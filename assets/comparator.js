@@ -4,7 +4,7 @@ function t(key) {
 }
 
 (function () {
-  const BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+  const BACKEND_URL = 'https://collaboration-assumes-shed-smoke.trycloudflare.com';
   const MAX_ITEMS   = 2;
   const CACHE_KEY   = 'gunloupe_comparator_cache';
   const CACHE_TTL   = 300000; // 5 min

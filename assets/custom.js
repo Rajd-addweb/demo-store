@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
           const res = await fetch(
-            "https://shopify-gunloupe.addwebprojects.com/customer-user-type/" +
+            (window.GUNLOUPE_API || "https://collaboration-assumes-shed-smoke.trycloudflare.com") + "/customer-user-type/" +
               customerId,
             {
               method: "POST",
