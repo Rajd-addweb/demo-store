@@ -1,0 +1,1659 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "section_CCQ8TY": {
+      "type": "section",
+      "blocks": {
+        "text_EaE3Kx": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "Bienvenido a <img src=\"https://cdn.shopify.com/s/files/1/0977/9986/4694/files/gunlope-logo.svg?v=1773908221\">",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "left",
+            "type_preset": "h1",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "text_XLLWr4": {
+          "type": "text",
+          "name": "t:names.text",
+          "settings": {
+            "text": "El mayor buscador de armas.",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "left",
+            "type_preset": "paragraph",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "text_EaE3Kx",
+        "text_XLLWr4"
+      ],
+      "custom_css": [
+        "%root% {height: 0;}"
+      ],
+      "name": "t:names.rich_text_section",
+      "settings": {
+        "custom_class_name": "welcome-title",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 0,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 64,
+        "padding-block-end": 16
+      }
+    },
+    "home_product_search_kMeBaX": {
+      "type": "home-product-search",
+      "blocks": {
+        "product_card_GyUf7k": {
+          "type": "product-card",
+          "name": "t:names.product_card",
+          "settings": {
+            "product": "{{ closest.product }}",
+            "product_card_gap": 4,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "product_card_gallery_HUzBhC": {
+              "type": "_product-card-gallery",
+              "settings": {
+                "image_ratio": "adapt",
+                "border": "none",
+                "border_width": 1,
+                "border_opacity": 100,
+                "border_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "product_card_gallery_HUzBhC"
+          ]
+        }
+      },
+      "block_order": [
+        "product_card_GyUf7k"
+      ],
+      "name": "Homepage Product Search",
+      "settings": {
+        "collection": "armas",
+        "custom_class_name": "product-search-list-wrapper"
+      }
+    },
+    "section_V3wCfj": {
+      "type": "section",
+      "blocks": {
+        "text_fyjeNa": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "¿Cómo funciona Gunloupe?",
+            "width": "100%",
+            "max_width": "normal",
+            "alignment": "center",
+            "type_preset": "h2",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "text_cyyeEB": {
+          "type": "text",
+          "name": "t:names.text",
+          "settings": {
+            "text": "Fácil, rápido y sencillo. Nuestro catálogo compara las mejores ofertas de armas para que elijas la que más se ajuste a ti.",
+            "width": "100%",
+            "max_width": "normal",
+            "alignment": "center",
+            "type_preset": "paragraph",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "text_fyjeNa",
+        "text_cyyeEB"
+      ],
+      "custom_css": [
+        "%root% {height: 0;}"
+      ],
+      "name": "t:names.rich_text_section",
+      "settings": {
+        "custom_class_name": "welcome-title",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 16,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 64,
+        "padding-block-end": 32
+      }
+    },
+    "section_aFYpw6": {
+      "type": "section",
+      "blocks": {
+        "group_YPkRNF": {
+          "type": "group",
+          "name": "t:names.column",
+          "settings": {
+            "content_direction": "column",
+            "vertical_on_mobile": true,
+            "horizontal_alignment": "flex-start",
+            "vertical_alignment": "center",
+            "align_baseline": false,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "flex-start",
+            "gap": 24,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "solid",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 16,
+            "toggle_overlay": false,
+            "overlay_color": "#00000026",
+            "overlay_style": "solid",
+            "gradient_direction": "to top",
+            "link": "",
+            "open_in_new_tab": false,
+            "placeholder": "",
+            "padding-block-start": 16,
+            "padding-block-end": 16,
+            "padding-inline-start": 16,
+            "padding-inline-end": 16
+          },
+          "blocks": {
+            "text_fbhhMg": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "<h4>01</h4>",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h6",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_c9Vc8L": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "<spanstyle var>Filtra las armas que te interesen del catalogo de Gunloupe.</spanstyle>",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "h4",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_3796nk": {
+              "type": "text",
+              "name": "t:names.description",
+              "settings": {
+                "text": "Gunloupe, el mayor y mas completo catalogo de armas, te ayuda a buscar y filtrar entre el mayor numero de armas del mercado para que encuentres la que mas se ajuste a tus necesidades.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "text_fbhhMg",
+            "text_c9Vc8L",
+            "text_3796nk"
+          ]
+        },
+        "group_Nbt6rP": {
+          "type": "group",
+          "name": "t:names.column",
+          "settings": {
+            "content_direction": "column",
+            "vertical_on_mobile": true,
+            "horizontal_alignment": "flex-start",
+            "vertical_alignment": "center",
+            "align_baseline": false,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "flex-start",
+            "gap": 24,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "solid",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 16,
+            "toggle_overlay": false,
+            "overlay_color": "#00000026",
+            "overlay_style": "solid",
+            "gradient_direction": "to top",
+            "link": "",
+            "open_in_new_tab": false,
+            "placeholder": "",
+            "padding-block-start": 16,
+            "padding-block-end": 16,
+            "padding-inline-start": 16,
+            "padding-inline-end": 16
+          },
+          "blocks": {
+            "text_nUT6xX": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "<p>02</p>",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h6",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_EWRgiE": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "<spanstyle var>Compara entre las ofertas, publicadas por armerías, que tiene cada producto .</spanstyle>",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "h4",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_GptxdK": {
+              "type": "text",
+              "name": "t:names.description",
+              "settings": {
+                "text": "Una vez elegida el arma encontraras diferentes opciones de venta del producto de tu interés. Elige la que más se adapte a ti.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_R7jPGi": {
+              "type": "text",
+              "name": "t:names.description",
+              "settings": {
+                "text": "*Los precios mostrados en el catalogo son meramente orientativos.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "text_nUT6xX",
+            "text_EWRgiE",
+            "text_GptxdK",
+            "text_R7jPGi"
+          ]
+        },
+        "group_Q393a7": {
+          "type": "group",
+          "name": "t:names.column",
+          "settings": {
+            "content_direction": "column",
+            "vertical_on_mobile": true,
+            "horizontal_alignment": "flex-start",
+            "vertical_alignment": "center",
+            "align_baseline": false,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "flex-start",
+            "gap": 24,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "solid",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 16,
+            "toggle_overlay": false,
+            "overlay_color": "#00000026",
+            "overlay_style": "solid",
+            "gradient_direction": "to top",
+            "link": "",
+            "open_in_new_tab": false,
+            "placeholder": "",
+            "padding-block-start": 16,
+            "padding-block-end": 16,
+            "padding-inline-start": 16,
+            "padding-inline-end": 16
+          },
+          "blocks": {
+            "text_Uj3AQz": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "<p>03</p>",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h6",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_ne8Hwh": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "Contacta, a través de Gunloupe, con la armería que publique el anuncio.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "h4",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_xybNxB": {
+              "type": "text",
+              "name": "t:names.description",
+              "settings": {
+                "text": "Una vez hayas decidido la oferta que mas te interesa, pincha en la oferta y Gunloupe se encargará de contactar a la armería en tu nombre.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "center",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "text_Uj3AQz",
+            "text_ne8Hwh",
+            "text_xybNxB"
+          ]
+        }
+      },
+      "block_order": [
+        "group_YPkRNF",
+        "group_Nbt6rP",
+        "group_Q393a7"
+      ],
+      "name": "t:names.multicolumn",
+      "settings": {
+        "custom_class_name": "gird-height-full ctmhigh",
+        "content_direction": "row",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "flex-start",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "flex-start",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 16,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 16,
+        "padding-block-end": 64
+      }
+    },
+    "section_gnpaNg": {
+      "type": "section",
+      "blocks": {
+        "text_Qb3K8i": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "Las mejores marcas del mercado están en Gunloupe.",
+            "width": "100%",
+            "max_width": "normal",
+            "alignment": "center",
+            "type_preset": "h2",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "text_y4d7Dy": {
+          "type": "text",
+          "name": "t:names.text",
+          "settings": {
+            "text": "En Gunloupe tenemos la meta de ofrecer al usuario la mejor experiencia posible y en ese sentido trabajamos cada día para traer las mejores marcas y productos al catalogo de Gunloupe.",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "paragraph",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "text_Qb3K8i",
+        "text_y4d7Dy"
+      ],
+      "custom_css": [
+        "%root% {height: 0;}"
+      ],
+      "name": "t:names.rich_text_section",
+      "settings": {
+        "custom_class_name": "welcome-title bg-light-gray ctm-max-width",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 16,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 64,
+        "padding-block-end": 32
+      }
+    },
+    "brand_logo_marquee_BmEekR": {
+      "type": "brand-logo-marquee",
+      "blocks": {
+        "logo_mF8bir": {
+          "type": "logo",
+          "settings": {
+            "logo": "shopify://shop_images/merkel.webp"
+          }
+        },
+        "logo_hqUfQq": {
+          "type": "logo",
+          "settings": {
+            "logo": "shopify://shop_images/browning.webp"
+          }
+        },
+        "logo_cFPpYq": {
+          "type": "logo",
+          "settings": {
+            "logo": "shopify://shop_images/beretta.webp"
+          }
+        },
+        "logo_AbQHqD": {
+          "type": "logo",
+          "settings": {
+            "logo": "shopify://shop_images/christensen-arms.webp"
+          }
+        },
+        "logo_9PHyEr": {
+          "type": "logo",
+          "settings": {
+            "logo": "shopify://shop_images/marcas_bergara.webp"
+          }
+        }
+      },
+      "block_order": [
+        "logo_mF8bir",
+        "logo_hqUfQq",
+        "logo_cFPpYq",
+        "logo_AbQHqD",
+        "logo_9PHyEr"
+      ],
+      "name": "Brand Logo Marquee",
+      "settings": {}
+    },
+    "section_cfDLYD": {
+      "type": "section",
+      "blocks": {
+        "group_JcPwQq": {
+          "type": "group",
+          "settings": {
+            "content_direction": "column",
+            "vertical_on_mobile": true,
+            "horizontal_alignment": "flex-start",
+            "vertical_alignment": "center",
+            "align_baseline": false,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "center",
+            "gap": 16,
+            "width": "custom",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "toggle_overlay": false,
+            "overlay_color": "#00000026",
+            "overlay_style": "solid",
+            "gradient_direction": "to top",
+            "link": "",
+            "open_in_new_tab": false,
+            "placeholder": "",
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "text_PeENGA": {
+              "type": "text",
+              "name": "t:names.heading",
+              "settings": {
+                "text": "Sabemos que elegir tu nueva arma puede ser complicado.",
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h3",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "text_LYYf3L": {
+              "type": "text",
+              "settings": {
+                "text": "Si las dudas te asaltan, puedes rellenar el siguiente formulario y nos pondremos en contacto contigo para aconsejarte personalmente.",
+                "width": "100%",
+                "max_width": "none",
+                "alignment": "left",
+                "type_preset": "paragraph",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 16,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "button_YMcFCM": {
+              "type": "button",
+              "settings": {
+                "custom_class_name": "m-auto",
+                "label": "Solicitar asesoramiento",
+                "link": "shopify://pages/ayuda",
+                "open_in_new_tab": false,
+                "style_class": "button",
+                "width": "fit-content",
+                "custom_width": 100,
+                "width_mobile": "fit-content",
+                "custom_width_mobile": 100
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "text_PeENGA",
+            "text_LYYf3L",
+            "button_YMcFCM"
+          ]
+        },
+        "image_Wz3Bf4": {
+          "type": "image",
+          "settings": {
+            "image": "shopify://shop_images/gunloupe_cta-illustration.webp",
+            "link": "",
+            "image_ratio": "square",
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 16,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "group_JcPwQq",
+        "image_Wz3Bf4"
+      ],
+      "name": "t:names.image_with_text",
+      "settings": {
+        "custom_class_name": "ask-for-advice welcome-title",
+        "content_direction": "row",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "flex-start",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 64,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 32,
+        "padding-block-end": 32
+      }
+    },
+    "section_pQTQFz": {
+      "type": "section",
+      "blocks": {
+        "text_RYNaik": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "Nuestros usuarios siguen confiando en Gunloupe.",
+            "width": "100%",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h2",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "text_RYNaik"
+      ],
+      "custom_css": [
+        "%root% {height: 0;}"
+      ],
+      "name": "t:names.rich_text_section",
+      "settings": {
+        "custom_class_name": "",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 16,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 64,
+        "padding-block-end": 32
+      }
+    },
+    "testimonial_marquee_MphyJy": {
+      "type": "testimonial-marquee",
+      "blocks": {
+        "testimonial_fPTNLL": {
+          "type": "testimonial",
+          "settings": {
+            "name": "Diego Romero",
+            "description": "\"Un sitio confiable para comprar armas. He tenido una experiencia muy positiva.\""
+          }
+        },
+        "testimonial_QAf8cd": {
+          "type": "testimonial",
+          "settings": {
+            "name": "Iker",
+            "description": "\"Excelente servicio, compré mi rifle aquí y todo fue muy fácil. Recomiendo esta página a todos los cazadores.\""
+          }
+        },
+        "testimonial_94UwBw": {
+          "type": "testimonial",
+          "settings": {
+            "name": "Carlos Sanchez",
+            "description": "\"Buscar mi nuevo rifle a través de Gunloupe fue rápido y sencillo. Estoy muy contento.\""
+          }
+        },
+        "testimonial_B6ADNg": {
+          "type": "testimonial",
+          "settings": {
+            "name": "Pieter VdB",
+            "description": "\"Gran variedad de rifles y ofertas de armerias. Definitivamente volveré a comprar aquí.\""
+          }
+        },
+        "testimonial_eHNRNE": {
+          "type": "testimonial",
+          "settings": {
+            "name": "Adriana Ortega",
+            "description": "\"La plataforma es muy intuitiva y fácil de usar. Pude encontrar la escopeta que buscaba.\""
+          }
+        }
+      },
+      "block_order": [
+        "testimonial_fPTNLL",
+        "testimonial_QAf8cd",
+        "testimonial_94UwBw",
+        "testimonial_B6ADNg",
+        "testimonial_eHNRNE"
+      ],
+      "name": "Testimonial Marquee",
+      "settings": {}
+    },
+    "section_q4GNzq": {
+      "type": "section",
+      "blocks": {
+        "text_F6B8Yx": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "¿Tienes alguna duda sobre Gunloupe?",
+            "width": "100%",
+            "max_width": "none",
+            "alignment": "center",
+            "type_preset": "h2",
+            "font": "var(--font-body--family)",
+            "font_size": "1rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "var(--color-foreground)",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "accordion_f4CtQp": {
+          "type": "accordion",
+          "name": "t:names.accordion",
+          "settings": {
+            "icon": "plus",
+            "dividers": false,
+            "type_preset": "h5",
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "accordion_row_XWFcn3": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Qué es Gunloupe?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_yxF9ik": {
+                  "type": "text",
+                  "name": "t:names.text",
+                  "settings": {
+                    "text": "Gunloupe es un motor de búsqueda especializado en armas de caza y tiro que permite a cazadores, tiradores deportivos y profesionales del sector buscar, filtrar, comparar y localizar armas disponibles en el mercado, todas ellas publicadas por armerías profesionales. Nuestra misión es proporcionar un entorno seguro parala compraventa de armas entre particulares y profesionales en cumplimiento dela legislación vigente y de los procedimientos establecidos por las autoridades competentes.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_yxF9ik"
+              ]
+            },
+            "accordion_row_QMQphU": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Qué ventajas ofrece Gunloupe?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_TAPFxf": {
+                  "type": "text",
+                  "settings": {
+                    "text": "A los usuarios les ayuda a poder buscar, filtrar,comparar, ver reviews y elegir el arma que cumpla sus necesidades y poder elegir entre las ofertas de las armerías profesionales que anuncien sus productos en Gunloupe. De esa manera el usuario esta comprando en un entorno seguro,a profesionales de confianza y productos revisados por profesionales. A las armerías profesionales Gunloupe les ofrece un entorno profesional, con un catalogo muy extenso donde poder dar publicidad a sus productos a unos usuarios con una misma afición: las armas para la caza y el tiro.",
+                    "width": "100%",
+                    "max_width": "normal",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_TAPFxf"
+              ]
+            },
+            "accordion_row_P9ABDr": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Que coste tiene Gunloupe?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_pAn8nx": {
+                  "type": "text",
+                  "settings": {
+                    "text": "Registrarse y usar Gunloupe no tiene ningún coste para el usuario ni para las armerías. Es un servicio gratuito que pretende facilitar el intercambio entre particulares y profesionales en un entorno profesional y seguro.",
+                    "width": "100%",
+                    "max_width": "normal",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_pAn8nx"
+              ]
+            },
+            "accordion_row_mHVd43": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Tenéis información sobre armas de caza, tiro y tácticas?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_VtEQWe": {
+                  "type": "text",
+                  "name": "t:names.text",
+                  "settings": {
+                    "text": "Gunloupe ofrece el catalogo mas completo y extenso de armas, donde podrás encontrar toda la información necesaria para poder buscar y comparar las armas que quieras.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_VtEQWe"
+              ]
+            },
+            "accordion_row_NEaYFe": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Cómo puedo comprar un arma?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_7zFJPM": {
+                  "type": "text",
+                  "name": "t:names.text",
+                  "settings": {
+                    "text": "Gunloupe no vende armas. Una vez filtres y compares a través de Gunloupe y encuentres el arma que te interesa, podrás contactar con la armería profesional que tenga la oferta que te cuadre a través de nuestra plataforma y el proceso de compra se realizara a través de la armería. Ademas, necesitas tener todas las licencias y permisos necesarios según la legislación de cada país. Recuerda que todas las transacciones deben realizarse siguiendo los procedimientos legales establecidos y para esos casos las armerías profesionales te podrán ayudar.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_7zFJPM"
+              ]
+            },
+            "accordion_row_R7PYKP": {
+              "type": "_accordion-row",
+              "name": "t:names.accordion_row",
+              "settings": {
+                "heading": "¿Quien puede publicar armas en Gunloupe?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_kF8eXX": {
+                  "type": "text",
+                  "name": "t:names.text",
+                  "settings": {
+                    "text": "Gunloupe es una motor de búsqueda, una plataforma dirigida a profesionales, donde solo podrán publicar anuncios las armerías profesionales. De esta manera se garantiza a los usuarios que las transacciones se realizan con absoluta seguridad.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_kF8eXX"
+              ]
+            },
+            "accordion_row_Q9jJ9Q": {
+              "type": "_accordion-row",
+              "settings": {
+                "heading": "¿Para qué necesito crear una cuenta?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 20
+              },
+              "blocks": {
+                "text_EHGRky": {
+                  "type": "text",
+                  "settings": {
+                    "text": "La creación de una cuenta te permite tener acceso a todas las funciones de la plataforma y ver las ofertas de las armerías profesionales. Además, la verificación de cuenta nos ayuda a mantener un entorno seguro y confiable para todos los usuarios.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_EHGRky"
+              ]
+            },
+            "accordion_row_yhPUKU": {
+              "type": "_accordion-row",
+              "settings": {
+                "heading": "¿Cómo puedo contactar con vosotros?",
+                "open_by_default": false,
+                "icon": "none",
+                "width": 50
+              },
+              "blocks": {
+                "text_Y3xUMM": {
+                  "type": "text",
+                  "settings": {
+                    "text": "Puedes contactar con nuestro equipo de soporte a través del formulario en nuestra web o enviando un email info@gunloupe.com . Estamos disponibles para ayudarte con cualquier duda sobre el uso de la plataforma, problemas técnicos o consultas sobre el proceso de compraventa.",
+                    "width": "100%",
+                    "max_width": "none",
+                    "alignment": "left",
+                    "type_preset": "rte",
+                    "font": "var(--font-body--family)",
+                    "font_size": "1rem",
+                    "line_height": "normal",
+                    "letter_spacing": "normal",
+                    "case": "none",
+                    "wrap": "pretty",
+                    "color": "var(--color-foreground)",
+                    "background": false,
+                    "background_color": "#00000026",
+                    "corner_radius": 0,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                }
+              },
+              "block_order": [
+                "text_Y3xUMM"
+              ]
+            }
+          },
+          "block_order": [
+            "accordion_row_XWFcn3",
+            "accordion_row_QMQphU",
+            "accordion_row_P9ABDr",
+            "accordion_row_mHVd43",
+            "accordion_row_NEaYFe",
+            "accordion_row_R7PYKP",
+            "accordion_row_Q9jJ9Q",
+            "accordion_row_yhPUKU"
+          ]
+        }
+      },
+      "block_order": [
+        "text_F6B8Yx",
+        "accordion_f4CtQp"
+      ],
+      "name": "t:names.faq_section",
+      "settings": {
+        "custom_class_name": "FAQ",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "flex-start",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 32,
+        "section_width": "page-width",
+        "section_height": "",
+        "section_height_custom": 50,
+        "color_scheme": "",
+        "background_media": "none",
+        "video_position": "cover",
+        "background_image_position": "cover",
+        "border": "none",
+        "border_width": 1,
+        "border_opacity": 100,
+        "border_radius": 0,
+        "toggle_overlay": false,
+        "overlay_color": "#00000026",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 48,
+        "padding-block-end": 64
+      }
+    },
+    "hero_showcase_main": {
+      "type": "hero-showcase",
+      "blocks": {
+        "slide_clasificados": {
+          "type": "slide",
+          "settings": {
+            "placeholder_asset": "showcase-gun1.jpg",
+            "image_treatment": "cover",
+            "heading": "Compra y vende armas de segunda mano",
+            "subheading": "Publica tu anuncio gratis y contacta directamente con compradores verificados.",
+            "cta_label": "Ver clasificados",
+            "link_target": "clasificados",
+            "tab_label": "Clasificados"
+          }
+        },
+        "slide_comparador": {
+          "type": "slide",
+          "settings": {
+            "placeholder_asset": "showcase-lupo.png",
+            "image_treatment": "contain",
+            "heading": "Compara modelos lado a lado",
+            "subheading": "Calibre, cañón, peso y precio de varios modelos en una sola pantalla.",
+            "cta_label": "Abrir comparador",
+            "link_target": "comparador",
+            "tab_label": "Comparador"
+          }
+        },
+        "slide_armas": {
+          "type": "slide",
+          "settings": {
+            "placeholder_asset": "showcase-gun2.jpg",
+            "image_treatment": "cover",
+            "heading": "Explora el catálogo de armas",
+            "subheading": "Filtra por tipo, calibre, marca y longitud de cañón entre miles de modelos.",
+            "cta_label": "Ver armas",
+            "link_target": "armas",
+            "tab_label": "Armas"
+          }
+        }
+      },
+      "block_order": [
+        "slide_clasificados",
+        "slide_comparador",
+        "slide_armas"
+      ],
+      "settings": {
+        "autoplay": true,
+        "autoplay_speed": 6,
+        "dots_align": "center",
+        "gradient_start": "#143521",
+        "gradient_end": "#245834",
+        "text_color": "#FFFFFF",
+        "accent_color": "#E2722A",
+        "accent_text_color": "#FFFFFF",
+        "desktop_height": 380,
+        "mobile_media_height": 200,
+        "aria_label": "Destacados de Gunloupe",
+        "section_width": "full",
+        "media_bg": "#0F2A19",
+        "sub_color": "#C8DCC0",
+        "progress_color": "#E2722A",
+        "progress_track_color": "#DDE3D8"
+      }
+    },
+    "promo_tiles_main": {
+      "type": "promo-tiles",
+      "blocks": {
+        "tile_clasificados": {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-gun1.jpg",
+            "title": "Clasificados",
+            "description": "Compra y vende",
+            "link_target": "clasificados"
+          }
+        },
+        "tile_comparador": {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-lupo.png",
+            "title": "Comparador",
+            "description": "Modelos lado a lado",
+            "link_target": "comparador"
+          }
+        },
+        "tile_armas": {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-gun2.jpg",
+            "title": "Armas",
+            "description": "Catálogo completo",
+            "link_target": "armas"
+          }
+        }
+      },
+      "block_order": [
+        "tile_clasificados",
+        "tile_comparador",
+        "tile_armas"
+      ],
+      "settings": {
+        "section_bg": "#FFFFFF",
+        "card_bg": "#FFFFFF",
+        "border_color": "#E4E8E0",
+        "title_color": "#1E4B2C",
+        "description_color": "#7B8C7E",
+        "accent_color": "#E2722A",
+        "section_width": "full",
+        "padding_top": 16,
+        "padding_bottom": 16,
+        "aria_label": "Destacados de Gunloupe"
+      }
+    }
+  },
+  "order": [
+    "hero_showcase_main",
+    "promo_tiles_main",
+    "section_CCQ8TY",
+    "home_product_search_kMeBaX",
+    "section_V3wCfj",
+    "section_aFYpw6",
+    "section_gnpaNg",
+    "brand_logo_marquee_BmEekR",
+    "section_cfDLYD",
+    "section_pQTQFz",
+    "testimonial_marquee_MphyJy",
+    "section_q4GNzq"
+  ]
+}

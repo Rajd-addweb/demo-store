@@ -1,0 +1,825 @@
+{% comment %}
+  section: hero-showcase.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+  Homepage showcase carousel — the client's approved "option 2a" layout, built
+  as a FIRST-PARTY promo rather than a sponsor placement.
+
+  The original design was pitched as a sellable slot ("3 patrocinadores
+  rotativos", a "Patrocinado" badge, "3 slots por semana"). Gunloupe has no
+  sponsor or dealer programme yet, so labelling a slide "Patrocinado" would
+  claim a commercial relationship that doesn't exist. The badge is therefore an
+  optional free-text eyebrow, blank by default, and the slides promote
+  Gunloupe's own features. The layout is unchanged, so if sponsorship ships
+  later it only needs the eyebrow set to "Patrocinado" and the logo slot filled.
+
+  Layout follows the design spec: 380px hero, 46% media / 54% message, 6s
+  rotation, stacked on mobile.
+
+  Navigation is dots overlaid on the banner's own bottom edge at every
+  breakpoint. The three selector cards that used to sit in a white strip below
+  and double as the carousel's tabs are now standalone promos with their own
+  images, text and links — see sections/promo-tiles.liquid.
+{% endcomment %}
+
+{%- liquid
+  assign blocks = section.blocks
+  assign slide_count = blocks.size
+  # One nav at every breakpoint. The old strip switched between tab cards and
+  # dots depending on slide count, which meant the nav's shape changed as
+  # slides were added; dots scale to any number, so that branch is gone.
+  assign use_dots = false
+  if slide_count > 1
+    assign use_dots = true
+  endif
+
+  # ES and EN pages don't share a handle (/pages/clasificados vs
+  # /en/pages/classifieds), so a raw URL field would 404 for every English
+  # visitor. Mirrors snippets/gunloupe-routes.liquid.
+  assign lp = ''
+  if request.locale.iso_code != 'es'
+    assign lp = '/' | append: request.locale.iso_code
+  endif
+  assign is_en = false
+  if lp == '/en'
+    assign is_en = true
+  endif
+-%}
+
+{%- if slide_count > 0 -%}
+  <section
+    class="hero-showcase{% if use_dots %} hero-showcase--has-dots{% endif %}"
+    id="HeroShowcase-{{ section.id }}"
+    data-autoplay="{{ section.settings.autoplay }}"
+    data-autoplay-speed="{{ section.settings.autoplay_speed }}"
+    aria-roledescription="carousel"
+    aria-label="{{ section.settings.aria_label | default: 'Gunloupe' | escape }}"
+  >
+    <div class="hero-showcase__viewport">
+      {%- for block in blocks -%}
+        {%- liquid
+          assign target = block.settings.link_target
+          case target
+            when 'clasificados'
+              assign href = '/pages/clasificados'
+              if is_en
+                assign href = '/en/pages/classifieds'
+              endif
+            when 'comparador'
+              assign href = '/pages/comparison-tool'
+              if is_en
+                assign href = '/en/pages/comparator'
+              endif
+            when 'mi_armero'
+              assign href = '/pages/mi-armero'
+              if is_en
+                assign href = '/en/pages/my-gun-safe'
+              endif
+            when 'favoritos'
+              assign href = '/pages/favoritos'
+              if is_en
+                assign href = '/en/pages/favourites'
+              endif
+            when 'armas'
+              assign href = '/collections/armas'
+              if is_en
+                assign href = '/en/collections/firearms'
+              endif
+            when 'blog'
+              assign href = lp | append: '/blogs/blog'
+            else
+              assign href = block.settings.custom_url
+          endcase
+          assign is_cutout = false
+          if block.settings.image_treatment == 'contain'
+            assign is_cutout = true
+          endif
+
+          # Only the first slide is visible on load, so it's the only one worth
+          # fetching eagerly — the rest would otherwise compete with it for
+          # bandwidth and hurt LCP.
+          assign img_loading = 'lazy'
+          assign img_priority = 'auto'
+          assign img_height = 980
+          if forloop.first
+            assign img_loading = 'eager'
+            assign img_priority = 'high'
+          endif
+          if is_cutout
+            assign img_height = 207
+          endif
+        -%}
+        <article
+          class="hero-showcase__slide{% if forloop.first %} is-active{% endif %}"
+          data-slide-index="{{ forloop.index0 }}"
+          role="group"
+          aria-roledescription="slide"
+          aria-label="{{ forloop.index }} / {{ slide_count }}"
+          {% unless forloop.first %}
+            aria-hidden="true"
+          {% endunless %}
+          {{ block.shopify_attributes }}
+        >
+          <div class="hero-showcase__media{% if is_cutout %} is-cutout{% endif %}">
+            {%- if block.settings.image != blank -%}
+              {{
+                block.settings.image
+                | image_url: width: 1200
+                | image_tag:
+                  loading: img_loading,
+                  fetchpriority: img_priority,
+                  widths: '600,900,1200',
+                  sizes: '(max-width: 899px) 100vw, 46vw',
+                  alt: block.settings.image_alt | default: block.settings.heading,
+                  class: 'hero-showcase__img'
+              }}
+              {%- comment -%}
+                Bundled demo art so the section renders immediately on the
+                staging theme before anyone picks images in the customizer.
+                Selecting an image above replaces it.
+              {%- endcomment -%}
+            {%- elsif block.settings.placeholder_asset != blank -%}
+              <img
+                class="hero-showcase__img"
+                src="{{ block.settings.placeholder_asset | asset_url }}"
+                alt="{{ block.settings.image_alt | default: block.settings.heading | escape }}"
+                width="1200"
+                height="{{ img_height }}"
+                loading="{{ img_loading }}"
+                fetchpriority="{{ img_priority }}"
+              >
+            {%- endif -%}
+          </div>
+
+          <div class="hero-showcase__body">
+            <div class="hero-showcase__meta-row">
+              {%- if block.settings.logo != blank -%}
+                {{
+                  block.settings.logo
+                  | image_url: width: 240
+                  | image_tag: loading: 'lazy', alt: '', class: 'hero-showcase__logo'
+                }}
+              {%- endif -%}
+              {%- if block.settings.eyebrow != blank -%}
+                <span class="hero-showcase__eyebrow">{{ block.settings.eyebrow }}</span>
+              {%- endif -%}
+            </div>
+
+            {%- if block.settings.heading != blank -%}
+              <h2 class="hero-showcase__heading">{{ block.settings.heading }}</h2>
+            {%- endif -%}
+
+            {%- if block.settings.subheading != blank -%}
+              <p class="hero-showcase__sub">{{ block.settings.subheading }}</p>
+            {%- endif -%}
+
+            {%- if block.settings.cta_label != blank and href != blank -%}
+              <div class="hero-showcase__actions">
+                <a
+                  class="hero-showcase__cta"
+                  href="{{ href }}"
+                  {% if target == 'custom' and block.settings.open_new_tab %}
+                    target="_blank" rel="noopener"
+                  {% endif %}
+                >
+                  {{- block.settings.cta_label -}}
+                </a>
+                {%- if block.settings.meta != blank -%}
+                  <span class="hero-showcase__note">{{ block.settings.meta }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          </div>
+        </article>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%}
+      Progress bar — shows how much of the current slide's dwell time is left,
+      so the rotation doesn't feel like it jumps without warning. Rendered only
+      when it would actually animate (autoplay on, more than one slide).
+    {%- endcomment -%}
+    {%- if section.settings.autoplay and slide_count > 1 -%}
+      <div class="hero-showcase__progress" aria-hidden="true"><span></span></div>
+    {%- endif -%}
+
+    {%- if use_dots -%}
+      {%- comment -%}
+        Overlaid on the banner itself rather than sitting in a strip beneath
+        it, so the banner ends at its own bottom edge and the promo tiles
+        below are visibly a separate row, not the carousel's navigation.
+      {%- endcomment -%}
+      <div
+        class="hero-showcase__dots hero-showcase__dots--{{ section.settings.dots_align }}"
+        role="tablist"
+        aria-label="{{ 'general.slideshow' | t: default: 'Slides' }}"
+      >
+        {%- for block in blocks -%}
+          <button
+            type="button"
+            class="hero-showcase__dot{% if forloop.first %} is-active{% endif %}"
+            role="tab"
+            data-slide-to="{{ forloop.index0 }}"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            tabindex="{% if forloop.first %}0{% else %}-1{% endif %}"
+          >
+            <span class="is-visually-hidden">
+              {{- block.settings.tab_label | default: forloop.index -}}
+            </span>
+          </button>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </section>
+
+  <style>
+    /* ─────────────────────────────────────────────────────────────────────
+       Values below are taken verbatim from the client's approved 2a artboard
+       so the build matches the design rather than approximating it:
+
+         hero row     height 380px, background #143521
+         media panel  width 46%, flat #0F2A19  (NOT a gradient)
+         copy panel   linear-gradient(100deg, #143521 0%, #245834 100%)
+                      padding 0 56px, gap 16px, vertically centred
+         heading      42px / 1.05 / 600 / -0.025em / #FFF
+         sub          mono 14px / 1.6 / #C8DCC0 / max-width 430px
+         cta          #E2722A, 15px/600, padding 13px 26px, radius 8px
+         note         mono 13px #9FBFA2
+         dots         9px circles - active #E2722A, idle #FFF at 55%,
+                      on a rgba(10,26,16,.42) pill, 18px off the bottom edge
+
+       The selector-card values from the 2a artboard now live in
+       sections/promo-tiles.liquid, which owns those cards as standalone
+       promos.
+
+       The design's mono face is JetBrains Mono, a stand-in; this theme ships
+       "Necto Mono" and already uses it for exactly this kind of sub-copy, so
+       we use that instead of loading a second mono webfont.
+       ───────────────────────────────────────────────────────────────────── */
+    #HeroShowcase-{{ section.id }} {
+      --hs-media-bg: {{ section.settings.media_bg }};
+      --hs-grad-start: {{ section.settings.gradient_start }};
+      --hs-grad-end: {{ section.settings.gradient_end }};
+      --hs-text: {{ section.settings.text_color }};
+      --hs-sub: {{ section.settings.sub_color }};
+      --hs-accent: {{ section.settings.accent_color }};
+      --hs-accent-text: {{ section.settings.accent_text_color }};
+      --hs-height: {{ section.settings.desktop_height }}px;
+      --hs-mobile-media: {{ section.settings.mobile_media_height }}px;
+      --hs-mono: "Necto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      max-width: {% if section.settings.section_width == 'full' %}none{% else %}1504px{% endif %};
+      margin-inline: auto;
+      position: relative;
+      background: var(--hs-media-bg);
+      color: var(--hs-text);
+      overflow: hidden;
+    }
+
+    /* Every slide occupies the SAME grid cell, so they overlap and the
+       viewport is as tall as the tallest one — height stays put across a
+       cross-fade instead of jumping. */
+    #HeroShowcase-{{ section.id }} .hero-showcase__viewport {
+      display: grid;
+      min-height: var(--hs-height);
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__slide {
+      grid-area: 1 / 1;
+      display: grid;
+      grid-template-columns: 46% 54%;
+      min-height: var(--hs-height);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .5s ease;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__slide.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__media {
+      position: relative;
+      overflow: hidden;
+      background: var(--hs-media-bg);
+    }
+
+    /* Absolutely positioned so the image can NEVER drive the section's height.
+       Left in flow with height:100%, the percentage can't resolve against an
+       auto-height parent, so the browser falls back to the image's intrinsic
+       ratio — a 1200x980 photo in an ~850px panel forced the banner to ~700px
+       instead of the 380px the design calls for. */
+    #HeroShowcase-{{ section.id }} .hero-showcase__img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Transparent cutouts are far wider than the panel, so they're letterboxed
+       on the panel colour rather than cropped. */
+    #HeroShowcase-{{ section.id }} .hero-showcase__media.is-cutout .hero-showcase__img {
+      object-fit: contain;
+      padding: 7% 5%;
+      filter: drop-shadow(0 18px 26px rgba(0, 0, 0, .38));
+    }
+
+    /* The gradient belongs to the COPY panel, per the design — the media panel
+       is a flat, darker green behind the photo. */
+    #HeroShowcase-{{ section.id }} .hero-showcase__body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+      padding: 0 56px;
+      background: linear-gradient(100deg, var(--hs-grad-start) 0%, var(--hs-grad-end) 100%);
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__meta-row:empty { display: none; }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__logo {
+      max-height: 30px;
+      width: auto;
+      display: block;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__eyebrow {
+      font-family: var(--hs-mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border: 1px solid color-mix(in srgb, var(--hs-text) 45%, transparent);
+      border-radius: 6px;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__heading {
+      margin: 0;
+      font-size: clamp(28px, 2.9vw, 42px);
+      line-height: 1.05;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+      color: var(--hs-text);
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__sub {
+      margin: 0;
+      font-family: var(--hs-mono);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--hs-sub);
+      max-width: 430px;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__actions {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__cta {
+      display: inline-block;
+      background: var(--hs-accent);
+      color: var(--hs-accent-text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 13px 26px;
+      border-radius: 8px;
+      transition: filter .2s ease, transform .2s ease;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__cta:hover {
+      filter: brightness(1.07);
+      transform: translateY(-1px);
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__note {
+      font-family: var(--hs-mono);
+      font-size: 13px;
+      color: #9FBFA2;
+    }
+
+    /* ── Slide progress ─────────────────────────────────────────────────── */
+    #HeroShowcase-{{ section.id }} .hero-showcase__progress {
+      height: 3px;
+      background: {{ section.settings.progress_track_color }};
+      overflow: hidden;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__progress > span {
+      display: block;
+      height: 100%;
+      background: {{ section.settings.progress_color }};
+      /* scaleX is compositor-driven, so the bar animates without triggering
+         layout on every frame the way an animated width would. */
+      transform: scaleX(0);
+      transform-origin: left center;
+      animation: hs-progress-{{ section.id }} var(--hs-speed, 6s) linear forwards;
+    }
+
+    @keyframes hs-progress-{{ section.id }} {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+
+    /* No autoplay means no countdown to show. */
+    @media (prefers-reduced-motion: reduce) {
+      #HeroShowcase-{{ section.id }} .hero-showcase__progress { display: none; }
+    }
+
+    /* ── Dots: overlaid on the banner's bottom edge ─────────────────────────
+       Absolutely positioned inside the section (which is already
+       position:relative) so they sit ON the banner instead of adding a strip
+       below it. z-index 2 clears the active slide's z-index 1.
+
+       Over a photo, bare dots can land on anything from sky to gunmetal, so
+       they ride a translucent dark pill — one backdrop that works over every
+       image rather than a per-slide colour choice. */
+    #HeroShowcase-{{ section.id }} .hero-showcase__dots {
+      position: absolute;
+      bottom: 18px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(10, 26, 16, .42);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__dots--left   { left: 26px; }
+    #HeroShowcase-{{ section.id }} .hero-showcase__dots--right  { right: 26px; }
+    #HeroShowcase-{{ section.id }} .hero-showcase__dots--center { left: 50%; transform: translateX(-50%); }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__dot {
+      width: 9px;
+      height: 9px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .55);
+      cursor: pointer;
+      transition: background-color .2s ease, transform .2s ease;
+    }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__dot:hover { background: rgba(255, 255, 255, .85); }
+
+    #HeroShowcase-{{ section.id }} .hero-showcase__dot.is-active {
+      background: var(--hs-accent);
+      transform: scale(1.25);
+    }
+
+    /* The focus ring has to read against the dark pill, not the page. */
+    #HeroShowcase-{{ section.id }} :is(.hero-showcase__dot, .hero-showcase__cta):focus-visible {
+      outline: 2px solid #FFF;
+      outline-offset: 2px;
+    }
+
+    /* ── Mobile: media stacked above the copy ────────────────────────────── */
+    @media screen and (max-width: 899px) {
+      #HeroShowcase-{{ section.id }} .hero-showcase__slide {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+      #HeroShowcase-{{ section.id }} .hero-showcase__viewport { min-height: 0; }
+      #HeroShowcase-{{ section.id }} .hero-showcase__media { height: var(--hs-mobile-media); }
+      /* Extra bottom padding keeps the CTA clear of the overlaid dots, which
+         on mobile land over the copy panel rather than over the photo. */
+      #HeroShowcase-{{ section.id }} .hero-showcase__body { padding: 26px 20px 30px; gap: 12px; }
+      #HeroShowcase-{{ section.id }}.hero-showcase--has-dots .hero-showcase__body { padding-bottom: 56px; }
+      #HeroShowcase-{{ section.id }} .hero-showcase__sub { max-width: none; }
+      /* Always centred on phones: there isn't width to spare for the dots to
+         sit off to one side of the copy. */
+      #HeroShowcase-{{ section.id }} .hero-showcase__dots {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #HeroShowcase-{{ section.id }} .hero-showcase__slide { transition: none; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      var root = document.getElementById('HeroShowcase-{{ section.id }}');
+      if (!root || root.dataset.hsBound) return;
+      root.dataset.hsBound = '1';
+
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.hero-showcase__slide'));
+      var nav = Array.prototype.slice.call(root.querySelectorAll('[data-slide-to]'));
+      if (slides.length < 2) return;
+
+      // Honour the OS "reduce motion" setting: the carousel stays fully
+      // usable via the dots, it just never advances on its own.
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var autoplay = root.dataset.autoplay === 'true' && !reduceMotion;
+      var speed = Math.max(2000, parseInt(root.dataset.autoplaySpeed, 10) * 1000 || 6000);
+      var index = 0;
+      var timer = null;
+      var progress = root.querySelector('.hero-showcase__progress > span');
+
+      // Feed the CSS animation the same duration the timer uses, so the bar
+      // finishing and the slide changing stay in lockstep at any speed.
+      root.style.setProperty('--hs-speed', speed + 'ms');
+
+      // Restarting a CSS animation needs the element taken out of and put back
+      // into the animation — reading offsetWidth forces the reflow that makes
+      // the browser treat it as a new animation rather than a continuing one.
+      function restartProgress() {
+        if (!progress) return;
+        progress.style.animation = 'none';
+        void progress.offsetWidth;
+        progress.style.animation = '';
+        progress.style.animationPlayState = autoplay ? 'running' : 'paused';
+      }
+
+      function show(next) {
+        index = (next + slides.length) % slides.length;
+        slides.forEach(function (slide, i) {
+          var active = i === index;
+          slide.classList.toggle('is-active', active);
+          if (active) slide.removeAttribute('aria-hidden');
+          else slide.setAttribute('aria-hidden', 'true');
+        });
+        nav.forEach(function (btn, i) {
+          var active = i === index;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          btn.setAttribute('tabindex', active ? '0' : '-1');
+        });
+        restartProgress();
+      }
+
+      function start() {
+        if (!autoplay || timer) return;
+        timer = setInterval(function () { show(index + 1); }, speed);
+        if (progress) progress.style.animationPlayState = 'running';
+      }
+      function stop() {
+        // The bar is paused even when there was no timer to clear, so it can't
+        // keep filling while the carousel is actually halted.
+        if (progress) progress.style.animationPlayState = 'paused';
+        if (!timer) return;
+        clearInterval(timer);
+        timer = null;
+      }
+      function restart() { stop(); start(); }
+
+      nav.forEach(function (btn, i) {
+        btn.addEventListener('click', function () {
+          show(i);
+          // Restart rather than just pause, so a manual pick always gets its
+          // full dwell time instead of being cut short by a timer already
+          // most of the way through.
+          restart();
+        });
+        btn.addEventListener('keydown', function (e) {
+          var dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+          if (!dir) return;
+          e.preventDefault();
+          var next = (i + dir + nav.length) % nav.length;
+          show(next);
+          nav[next].focus();
+          restart();
+        });
+      });
+
+      // Deliberately NOT paused on hover. This sits at the very top of the
+      // home page, so a visitor's cursor is resting over it on arrival more
+      // often than not — pausing there would leave most people looking at
+      // slide 1 forever and never seeing the other two.
+      //
+      // Focus is still honoured: that only triggers for someone actually
+      // tabbing through the slide's link, where rotating it away mid-interaction
+      // would be hostile.
+      root.addEventListener('focusin', stop);
+      root.addEventListener('focusout', function (e) {
+        if (!root.contains(e.relatedTarget)) start();
+      });
+      // A background tab shouldn't burn through slides unseen.
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stop();
+        else start();
+      });
+
+      show(0);
+      start();
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Hero Showcase",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Rotating showcase for Gunloupe's own features. 3 slides recommended. Navigation is dots overlaid on the banner's bottom edge, so any number of slides fits. The promo cards under the banner are their own section, Promo Tiles."
+    },
+    { "type": "header", "content": "Rotation" },
+    { "type": "checkbox", "id": "autoplay", "label": "Auto-rotate", "default": true },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "label": "Seconds per slide",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "unit": "s",
+      "default": 6
+    },
+    {
+      "type": "select",
+      "id": "dots_align",
+      "label": "Dot position",
+      "options": [
+        { "value": "left", "label": "Bottom left" },
+        { "value": "center", "label": "Bottom centre" },
+        { "value": "right", "label": "Bottom right" }
+      ],
+      "default": "center",
+      "info": "Always centred on mobile."
+    },
+    { "type": "header", "content": "Colours" },
+    {
+      "type": "paragraph",
+      "content": "Defaults are taken from the approved design. White text needs a dark background: #143521 gives 12.9:1 and #245834 gives 8.6:1. Anything lighter than about #4A8757 fails contrast for body text."
+    },
+    { "type": "color", "id": "gradient_start", "label": "Copy panel gradient start", "default": "#143521" },
+    { "type": "color", "id": "gradient_end", "label": "Copy panel gradient end", "default": "#245834" },
+    { "type": "color", "id": "media_bg", "label": "Image panel background", "default": "#0F2A19", "info": "Sits behind the photo, and behind transparent PNG cutouts." },
+    { "type": "color", "id": "text_color", "label": "Heading text", "default": "#FFFFFF" },
+    { "type": "color", "id": "sub_color", "label": "Body text", "default": "#C8DCC0" },
+    { "type": "color", "id": "accent_color", "label": "Button / active marker", "default": "#E2722A" },
+    { "type": "color", "id": "accent_text_color", "label": "Button text", "default": "#FFFFFF" },
+    { "type": "color", "id": "progress_color", "label": "Progress bar", "default": "#E2722A" },
+    { "type": "color", "id": "progress_track_color", "label": "Progress bar track", "default": "#DDE3D8" },
+    { "type": "header", "content": "Size" },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Width",
+      "options": [
+        { "value": "full", "label": "Full bleed" },
+        { "value": "page", "label": "Page width (matches the rest of the home page)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "range",
+      "id": "desktop_height",
+      "label": "Desktop height",
+      "min": 280,
+      "max": 560,
+      "step": 10,
+      "unit": "px",
+      "default": 380
+    },
+    {
+      "type": "range",
+      "id": "mobile_media_height",
+      "label": "Mobile image height",
+      "min": 140,
+      "max": 320,
+      "step": 10,
+      "unit": "px",
+      "default": 200
+    },
+    {
+      "type": "text",
+      "id": "aria_label",
+      "label": "Accessible label",
+      "default": "Destacados de Gunloupe"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        { "type": "header", "content": "Image" },
+        { "type": "image_picker", "id": "image", "label": "Image", "info": "1200 x 980 recommended." },
+        {
+          "type": "select",
+          "id": "image_treatment",
+          "label": "Image treatment",
+          "options": [
+            { "value": "cover", "label": "Photo — fill the panel" },
+            { "value": "contain", "label": "Cutout — centre on the gradient" }
+          ],
+          "default": "cover",
+          "info": "Use Cutout for transparent PNGs so they aren't cropped."
+        },
+        { "type": "text", "id": "image_alt", "label": "Image alt text" },
+        {
+          "type": "text",
+          "id": "placeholder_asset",
+          "label": "Demo image filename",
+          "info": "Bundled theme asset used only until an image is picked above. Leave as-is."
+        },
+        { "type": "header", "content": "Content" },
+        { "type": "image_picker", "id": "logo", "label": "Logo (optional)" },
+        {
+          "type": "text",
+          "id": "eyebrow",
+          "label": "Eyebrow label (optional)",
+          "info": "Small badge above the heading, e.g. Novedad. Leave empty for none."
+        },
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Heading" },
+        { "type": "textarea", "id": "subheading", "label": "Subheading" },
+        { "type": "text", "id": "meta", "label": "Small note beside the button (optional)" },
+        { "type": "header", "content": "Link" },
+        { "type": "text", "id": "cta_label", "label": "Button label", "default": "Ver más" },
+        {
+          "type": "select",
+          "id": "link_target",
+          "label": "Button goes to",
+          "options": [
+            { "value": "clasificados", "label": "Clasificados" },
+            { "value": "comparador", "label": "Comparador" },
+            { "value": "mi_armero", "label": "Mi Armero" },
+            { "value": "favoritos", "label": "Favoritos" },
+            { "value": "armas", "label": "Armas (catalogue)" },
+            { "value": "blog", "label": "Blog" },
+            { "value": "custom", "label": "Custom URL" }
+          ],
+          "default": "clasificados",
+          "info": "Named pages resolve to the right Spanish or English URL automatically."
+        },
+        { "type": "url", "id": "custom_url", "label": "Custom URL" },
+        { "type": "checkbox", "id": "open_new_tab", "label": "Open custom URL in a new tab", "default": false },
+        { "type": "header", "content": "Accessibility" },
+        {
+          "type": "text",
+          "id": "tab_label",
+          "label": "Slide name",
+          "default": "Slide",
+          "info": "Read out by screen readers on this slide's dot. Not shown on screen."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Showcase",
+      "blocks": [
+              {
+                      "type": "slide",
+                      "settings": {
+                              "placeholder_asset": "showcase-gun1.jpg",
+                              "image_treatment": "cover",
+                              "heading": "Compra y vende armas de segunda mano",
+                              "subheading": "Publica tu anuncio gratis y contacta directamente con compradores verificados.",
+                              "cta_label": "Ver clasificados",
+                              "link_target": "clasificados",
+                              "tab_label": "Clasificados"
+                      }
+              },
+              {
+                      "type": "slide",
+                      "settings": {
+                              "placeholder_asset": "showcase-lupo.png",
+                              "image_treatment": "contain",
+                              "heading": "Compara modelos lado a lado",
+                              "subheading": "Calibre, cañón, peso y precio de varios modelos en una sola pantalla.",
+                              "cta_label": "Abrir comparador",
+                              "link_target": "comparador",
+                              "tab_label": "Comparador"
+                      }
+              },
+              {
+                      "type": "slide",
+                      "settings": {
+                              "placeholder_asset": "showcase-gun2.jpg",
+                              "image_treatment": "cover",
+                              "heading": "Explora el catálogo de armas",
+                              "subheading": "Filtra por tipo, calibre, marca y longitud de cañón entre miles de modelos.",
+                              "cta_label": "Ver armas",
+                              "link_target": "armas",
+                              "tab_label": "Armas"
+                      }
+              }
+      ]
+    }
+  ]
+}
+{% endschema %}

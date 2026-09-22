@@ -1,0 +1,172 @@
+{% comment %}
+  snippet: gl-ad-title.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+  SINGLE SOURCE OF TRUTH for the ad title (firearm_model) text.
+
+  Why this exists
+  ---------------
+  An ad could be created from five different places, and each one used to build
+  the title from a different field, so the same firearm ended up with two
+  different-looking titles depending only on which button the seller pressed:
+
+    Sell button (product page / My Gun Safe / Favorites / Comparator)
+      -> brand + custom.submodelo   e.g. "Beretta 686 Silver Pigeon I Sporting"
+    Ad popup's own catalogue search
+      -> product.title              e.g. "Beretta 686 SILVER PIGEON I SPORTING"
+
+  Neither field is reliably cased: product.title is always "Brand UPPERCASE",
+  and submodelo is Title Case for some products ("90 Quest") but uppercase for
+  others ("ENDURANCE WOOD ADJUSTABLE COMB") because it comes straight from the
+  Sales Layer feed. So picking one field can't fix it — the text has to be
+  normalised. Every entry point now calls GunloupeAdTitle.build() and gets
+  byte-identical output for the same firearm.
+
+  The same normalisation is mirrored server-side in app.js (normaliseAdModel),
+  so an ad can never be stored with a badly-cased title even if some future
+  entry point forgets to call this.
+{% endcomment %}
+
+<script>
+  window.GunloupeAdTitle = (function () {
+    'use strict';
+
+    // ── Tokens that must NOT be title-cased ─────────────────────────────────
+    // Genuine model designations / manufacturer acronyms that read wrong when
+    // lower-cased ("SXP" -> "Sxp"). Only needed for 3+ letter all-caps runs:
+    // anything with a digit (CX4, B14, MR1, 12M), a dot (BE.S.T.) or existing
+    // mixed case (B-Fast) is already left alone by the rules below, and
+    // 1-2 letter all-caps runs (U, E, TD, CF) are kept as-is automatically.
+    // Add to this list if a model name comes out wrong.
+    var KEEP_UPPERCASE = [
+      'SXP', 'BMR', 'INTL', 'CVA', 'BAR', 'XPR', 'ATA', 'SLP', 'HMR',
+      'PRS', 'DBM', 'SBS', 'RFM', 'LRP', 'MSR', 'TAC',
+      // Finish / colour codes
+      'FDE', 'ODG', 'DLC', 'USA'
+    ];
+
+    // Lower-case particles inside a name ("Duca di Montefeltro", "486 by Marc
+    // Newsom"). Only honoured when the source already wrote them lower-case,
+    // so the "E" in "ARGO E PRESTIGE" — a model designation, not Italian "e" —
+    // is never touched.
+    var PARTICLES = ['di', 'de', 'del', 'della', 'da', 'du', 'van', 'von', 'la', 'le', 'y', 'e', 'by'];
+
+    var keepSet = {};
+    KEEP_UPPERCASE.forEach(function (w) { keepSet[w] = true; });
+
+    var particleSet = {};
+    PARTICLES.forEach(function (w) { particleSet[w] = true; });
+
+    var ROMAN_RE = /^[IVXLCDM]+$/;
+
+    /**
+     * Normalise ONE alphanumeric run. Punctuation never reaches this — the
+     * caller preserves it verbatim — so "(B-Fast)" arrives as "B" then "Fast",
+     * and "BE.S.T." as "BE", "S", "T", all of which survive untouched.
+     */
+    function normaliseWord(word, isFirst) {
+      if (!word) return word;
+
+      // Contains a digit: a model code, a caliber or a measurement.
+      // CX4, B14, MR1, T1x, 12M, 4X, 686, 76cm, 42.2cm — never reshape these.
+      if (/[0-9]/.test(word)) return word;
+
+      var upper = word.toUpperCase();
+
+      // Known acronym that must stay uppercase.
+      if (keepSet[upper]) return upper;
+
+      // Already mixed case — the source meant it that way. Beretta, B-Fast's
+      // "Fast", McMillan, PMXs.
+      if (/[a-zà-ÿ]/.test(word) && /[A-ZÀ-Þ]/.test(word)) return word;
+
+      var isAllCaps = word === upper;
+
+      // Roman numerals stay uppercase: "686 Silver Pigeon I Sporting".
+      if (isAllCaps && ROMAN_RE.test(word)) return word;
+
+      // 1-2 letter all-caps runs are designations, not words: U, E, R, TD, CF,
+      // and the "BE"/"S"/"T" pieces of BE.S.T.
+      if (isAllCaps && word.length <= 2) return word;
+
+      // Lower-case particle the source already wrote lower-case, and not the
+      // first word of the title.
+      if (!isFirst && !isAllCaps && particleSet[word.toLowerCase()]) return word.toLowerCase();
+
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+
+    /**
+     * Title-case a model/brand string while preserving every space, bracket,
+     * hyphen, slash and dot exactly where it was.
+     */
+    function normaliseModel(value) {
+      if (!value) return '';
+      var first = true;
+      return String(value).trim().replace(/[A-Za-zÀ-ÿ0-9²³]+/g, function (word) {
+        var out = normaliseWord(word, first);
+        first = false;
+        return out;
+      });
+    }
+
+    var BARREL_SUFFIX_RE = /\s*\/\/\s*([0-9]+(?:[.,][0-9]+)?)\s*(cm|mm|in)?\s*$/i;
+
+    /**
+     * "62" / "62 cm" / "62CM" all become "62cm". Anything that isn't a plain
+     * measurement is returned untouched rather than guessed at.
+     */
+    function normaliseBarrel(value) {
+      if (!value && value !== 0) return '';
+      var v = String(value).trim().replace(/\s+/g, '');
+      if (!v) return '';
+      var m = v.match(/^([0-9]+(?:[.,][0-9]+)?)(cm|mm|in)?$/i);
+      if (!m) return v;
+      return m[1] + (m[2] ? m[2].toLowerCase() : 'cm');
+    }
+
+    /**
+     * Build the canonical ad title.
+     *
+     *   build({ brand: 'Beretta',
+     *           model: '686 SILVER PIGEON I SPORTING (B-Fast)',
+     *           barrel: '76' })
+     *     -> 'Beretta 686 Silver Pigeon I Sporting (B-Fast) // 76cm'
+     *
+     * `model` may be a bare model name (Sell-button path) or a full product
+     * title that already starts with the brand (catalogue-search path) — the
+     * brand is only prepended when it isn't there already, so both paths land
+     * on the same string and a brand can never be duplicated or dropped.
+     */
+    function build(data) {
+      data = data || {};
+
+      var model = normaliseModel(data.model || '');
+      var brand = normaliseModel(data.brand || '');
+      var barrel = normaliseBarrel(data.barrel);
+
+      // A barrel already baked into the model text (re-formatting an existing
+      // title, or reading back this function's own output) wins only when no
+      // explicit barrel was passed — otherwise it would be duplicated.
+      var embedded = model.match(BARREL_SUFFIX_RE);
+      if (embedded) {
+        model = model.replace(BARREL_SUFFIX_RE, '');
+        if (!barrel) barrel = normaliseBarrel(embedded[1] + (embedded[2] || ''));
+      }
+
+      model = model.trim();
+
+      if (brand && model.toLowerCase().indexOf(brand.toLowerCase()) !== 0) {
+        model = (brand + ' ' + model).trim();
+      }
+      if (!model) model = brand;
+
+      return barrel ? (model + ' // ' + barrel) : model;
+    }
+
+    return {
+      build: build,
+      normaliseModel: normaliseModel,
+      normaliseBarrel: normaliseBarrel
+    };
+  })();
+</script>

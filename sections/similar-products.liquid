@@ -1,0 +1,326 @@
+{%- comment -%}
+  Similar Products (T2). Replaces Shopify's stock `product-recommendations`
+  on the weapon template, which used the built-in algorithm and knew nothing
+  about Type / Sub-type / Stock Material.
+
+  Tiers, per the ticket:
+    Tier 1  Type + Sub-type + Stock Material
+    Tier 2  Type + Sub-type
+    Tier 3  Type only                        (client, 2026-09-15: option "b")
+
+  Order is the same 24h deterministic shuffle used by Related Ads and Where
+  to Buy — `gl-ad-ordering.liquid`, seeded on this product's id, so every
+  visitor sees one canonical order that rolls at Madrid midnight. There is no
+  seller rotation here: these are catalogue products, not ads.
+
+  Cards come from `sections/similar-products-source.liquid` so that they are
+  byte-identical to what this section rendered before.
+{%- endcomment -%}
+
+{%- liquid
+  assign sp_root = routes.root_url
+  if sp_root == '/'
+    assign sp_root = ''
+  endif
+
+  capture sp_styles
+    echo '--column-count-mobile: ' | append: section.settings.mobile_columns | append: ';'
+    echo '--resource-list-column-gap-desktop: ' | append: section.settings.columns_gap | append: 'px;'
+    echo '--resource-list-row-gap-desktop: ' | append: section.settings.rows_gap | append: 'px;'
+    # base.css.liquid:3702 reads the UNSUFFIXED gap variable names.
+    echo '--resource-list-column-gap: ' | append: section.settings.columns_gap | append: 'px;'
+    echo '--resource-list-row-gap: ' | append: section.settings.rows_gap | append: 'px;'
+    echo '--resource-list-columns: repeat(' | append: section.settings.columns | append: ', 1fr);'
+    echo '--resource-list-columns-mobile: repeat(' | append: section.settings.mobile_columns | append: ', 1fr);'
+    echo '--column-count: ' | append: section.settings.columns | append: ';'
+  endcapture
+-%}
+
+{%- comment -%} AC: hidden until we know there is at least one match. {%- endcomment -%}
+<div
+  id="similar-products-{{ section.id }}"
+  class="product-recommendations similar-products {{ section.settings.custom_class_name }}"
+  style="display:none;"
+  {%- comment -%} Verification hooks: the three values the tiers key on. {%- endcomment -%}
+  data-sp-type="{{ product.type | escape }}"
+  data-sp-subtype="{{ product.metafields.custom.sub_tipo_de_arma | escape }}"
+  data-sp-material="{{ product.metafields.custom.material_caja | downcase | strip | escape }}"
+  data-sp-material-raw="{{ product.metafields.custom.material_caja | escape }}"
+  {{ section.shopify_attributes }}
+>
+  <div class="section-background color-{{ section.settings.color_scheme }}"></div>
+  <div
+    class="
+      section
+      section--{{ section.settings.section_width }}
+      color-{{ section.settings.color_scheme }}
+      section-resource-list
+      spacing-style
+      gap-style
+    "
+    style="
+      {% render 'spacing-style', settings: section.settings %}
+      {% render 'gap-style', value: section.settings.gap %}
+      {{ sp_styles }}
+    "
+  >
+    <div class="section-resource-list__content">
+      {% content_for 'blocks' %}
+    </div>
+
+    <div class="resource-list resource-list--grid" data-testid="resource-list-grid" data-sp-grid></div>
+
+    <div class="sp-more-wrap">
+      <button type="button" class="button button-secondary sp-more" data-sp-more style="display:none;">
+        {{ 'actions.show_more' | t }}
+      </button>
+    </div>
+  </div>
+</div>
+
+{%- comment -%}
+  gl-ad-ordering.liquid is raw JS with no <script> tag of its own — every
+  caller wraps it. See snippets/product-ads.liquid and sections/ad-detail.liquid.
+{%- endcomment -%}
+<script>
+  {% render 'gl-ad-ordering' %}
+</script>
+
+<script>
+  (function () {
+    var root = document.getElementById('similar-products-{{ section.id }}');
+    if (!root) return;
+
+    var grid    = root.querySelector('[data-sp-grid]');
+    var moreBtn = root.querySelector('[data-sp-more]');
+
+    // Built from routes.root_url so the fetch stays inside the visitor's
+    // locale — the returned cards are then already in Spanish or English,
+    // prices included, with no string handling on our side.
+    var SOURCE   = {{ sp_root | append: '/collections/armas' | json }};
+    var TYPE     = {{ product.type | json }};
+    var SUBTYPE  = {{ product.metafields.custom.sub_tipo_de_arma | json }};
+    var MATERIAL     = {{ product.metafields.custom.material_caja | downcase | strip | json }};
+    var MATERIAL_RAW = {{ product.metafields.custom.material_caja | json }};
+    var PID      = {{ product.id | json }};
+
+    var ROW = 4;   // AC3 — a row is 4 cards
+    var CAP = 12;  // client, 2026-09-15: "Show more up to 3 rows of 4, total of 12"
+
+    if (!TYPE) return;
+
+    function sourceUrl(withSubtype) {
+      // `section_id` 404s when combined with `view` — verified on staging
+      // 2026-09-16. So we request the alternate template whole and pick the
+      // items out of it. That response carries the full layout, which is why
+      // the fetch below is deferred until the section is near the viewport.
+      var u = SOURCE + '?view=similar-source' +
+              '&filter.p.product_type=' + encodeURIComponent(TYPE);
+      if (withSubtype && SUBTYPE) {
+        u += '&filter.p.m.custom.sub_tipo_de_arma=' + encodeURIComponent(SUBTYPE);
+      }
+      return u;
+    }
+
+    // Tier 1 asked for directly. Type + Sub-type alone returns hundreds of
+    // products and we can only afford to read one page of them, so Tier 1
+    // matches would be invisible whenever they fall outside that page —
+    // exactly what happened on the Sako 90 Quest (carbono): 529 matches,
+    // 24 read, 0 of them carbono.
+    function tierOneUrl() {
+      return sourceUrl(true) + '&filter.p.m.custom.material_caja=' + encodeURIComponent(MATERIAL_RAW);
+    }
+
+    function load(url) {
+      return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (html) {
+          if (!html) return [];
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          return [].slice.call(doc.querySelectorAll('.sp-item'));
+        })
+        .catch(function () { return []; });
+    }
+
+    // AC4 — one product can never appear twice, across tiers or pages. The
+    // firearm being viewed is seeded in so it can never recommend itself.
+    var seen = {};
+    seen[String(PID)] = true;
+
+    function collect(items, into) {
+      items.forEach(function (el) {
+        var id = el.getAttribute('data-pid');
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        into.push(el);
+      });
+    }
+
+    function render(t1, t2, t3) {
+      var ORD = window.GLAdOrdering;
+
+      // AC5 — the 24h shuffle, applied WITHIN each tier so the tier order
+      // itself (AC1/AC2) is never disturbed.
+      function ordered(list) {
+        if (!ORD) return list;
+        return ORD.dailyOrder(
+          list.map(function (el) { return { id: el.getAttribute('data-pid'), el: el }; }),
+          PID
+        ).map(function (entry) { return entry.el; });
+      }
+
+      var tier = {};
+      function tag(list, n) { list.forEach(function (el) { tier[el.getAttribute('data-pid')] = n; }); }
+      tag(t1, '1'); tag(t2, '2'); tag(t3, '3');
+
+      var all = ordered(t1).concat(ordered(t2), ordered(t3)).slice(0, CAP);
+
+      // Client rule (c): no matches at all in any tier — the section is not
+      // shown empty, it is not shown at all. `root` simply stays hidden.
+      if (!all.length) return;
+
+      // Client rule, 2026-09-15: when Tier 1 returns fewer than 4, open with
+      // a second row rather than one, so a thin top tier is not the whole
+      // list. Rule (a) falls out of the same line — when there is nothing to
+      // fill either row with, `all` is short and we show only what matched.
+      var initial = t1.length >= ROW ? ROW : ROW * 2;
+      var shown = 0;
+
+      function page() {
+        var next = all.slice(shown, shown + (shown === 0 ? initial : ROW));
+        if (!next.length) return;
+
+        var frag = document.createDocumentFragment();
+        next.forEach(function (el, i) {
+          var item = document.createElement('div');
+          item.className = 'resource-list__item';
+          // Verification hooks, invisible to visitors — the tier split and
+          // the daily order are not visible on the card itself.
+          item.setAttribute('data-sp-tier', tier[el.getAttribute('data-pid')] || '?');
+          item.setAttribute('data-sp-pos', String(shown + i + 1));
+          item.setAttribute('data-sp-pid', el.getAttribute('data-pid'));
+          while (el.firstChild) item.appendChild(el.firstChild);
+          frag.appendChild(item);
+        });
+
+        // AC3 "click to load" — append below what is already on screen; the
+        // cards already rendered are never rebuilt.
+        grid.appendChild(frag);
+        shown += next.length;
+
+        // Catalogue prices are rendered as a raw number and formatted (and
+        // currency-converted) by the global in layout/theme.liquid. Cards
+        // injected after load never get that pass unless we ask for it —
+        // snippets/product-ads.liquid:330 does the same.
+        if (typeof updatePrices === 'function') updatePrices();
+        if (moreBtn) moreBtn.style.display = shown < all.length ? '' : 'none';
+      }
+
+      if (moreBtn) moreBtn.addEventListener('click', page);
+      page();
+      root.style.display = '';
+    }
+
+    function start() {
+      var t1 = [];
+
+      // Shopify silently IGNORES a filter that is not enabled in Search &
+      // Discovery — it returns the unfiltered collection rather than an
+      // error. So we only trust this response if every item it contains
+      // actually carries our material; otherwise Tier 1 falls back to being
+      // split out of the Type+Sub-type window below, as before.
+      var tierOne = MATERIAL ? load(tierOneUrl()) : Promise.resolve([]);
+
+      tierOne.then(function (items) {
+        var stray = items.filter(function (el) {
+          return el.getAttribute('data-material') !== MATERIAL;
+        }).length;
+        if (items.length && !stray) collect(items, t1);
+
+        // A full page of Tier 1 already covers the cap — no second request.
+        if (t1.length >= CAP) { render(t1, [], []); return null; }
+
+        return load(sourceUrl(true)).then(function (rest) {
+          var matched = [];
+          collect(rest, matched);
+
+          var t2 = [];
+          matched.forEach(function (el) {
+            // Only reached when the material filter is not live; anything
+            // already in Tier 1 was consumed by `seen`.
+            if (MATERIAL && el.getAttribute('data-material') === MATERIAL) t1.push(el);
+            else t2.push(el);
+          });
+
+          if (!SUBTYPE || t1.length + t2.length >= CAP) { render(t1, t2, []); return null; }
+
+          return load(sourceUrl(false)).then(function (more) {
+            var t3 = [];
+            collect(more, t3);
+            render(t1, t2, t3);
+          });
+        });
+      });
+    }
+
+    // Similar Products sits well down the page. Fetching on load would pull
+    // a full page of markup for every visitor, including the ones who never
+    // scroll this far, so it waits until the section is within 600px.
+    // `root` itself starts display:none and a hidden element never
+    // intersects, so watch the anchor this section gets moved into
+    // (weapon-product.liquid:626-641), falling back to its parent.
+    var watch = document.getElementById('productos-similares') || root.parentElement;
+    if ('IntersectionObserver' in window && watch) {
+      var io = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; })) {
+          io.disconnect();
+          start();
+        }
+      }, { rootMargin: '600px' });
+      io.observe(watch);
+    } else {
+      start();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "t:names.product_recommendations",
+  "disabled_on": { "groups": ["header", "footer"] },
+  "blocks": [
+    { "type": "@theme" },
+    { "type": "@app" },
+    { "type": "text" },
+    { "type": "icon" }
+  ],
+  "settings": [
+    { "type": "text", "id": "custom_class_name", "label": "Custom class" },
+    { "type": "range", "id": "columns", "label": "Columns", "min": 1, "max": 6, "step": 1, "default": 4 },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Mobile columns",
+      "options": [{ "value": "1", "label": "1" }, { "value": "2", "label": "2" }],
+      "default": "2"
+    },
+    { "type": "range", "id": "columns_gap", "label": "Column gap", "min": 0, "max": 48, "step": 2, "unit": "px", "default": 12 },
+    { "type": "range", "id": "rows_gap", "label": "Row gap", "min": 0, "max": 48, "step": 2, "unit": "px", "default": 24 },
+    { "type": "range", "id": "gap", "label": "Gap", "min": 0, "max": 64, "step": 2, "unit": "px", "default": 28 },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "page-width", "label": "Page" },
+        { "value": "full-width", "label": "Full" }
+      ],
+      "default": "page-width"
+    },
+    { "type": "color_scheme", "id": "color_scheme", "label": "Color scheme", "default": "scheme-1" },
+    { "type": "range", "id": "padding-block-start", "label": "Top padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 48 },
+    { "type": "range", "id": "padding-block-end", "label": "Bottom padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 48 }
+  ],
+  "presets": [{ "name": "Similar products" }]
+}
+{% endschema %}

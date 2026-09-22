@@ -1,0 +1,44 @@
+{% comment %}
+  snippet: gl-ads-value-translations.liquid
+  ---------------------------------------------------------------
+  Single source of truth for the English->Spanish canonicalization
+  map used by window.GLI18n (see my-armorer.liquid, my-adverts.liquid,
+  ad-detail.liquid, classifieds.liquid, product-ads.liquid) to render
+  firearm type/subtype/category/status/handedness values in the active
+  locale regardless of which language they're stored in. Previously
+  duplicated byte-for-byte across all five files; now rendered from
+  here so there is exactly one copy.
+
+  IMPORTANT: values are hardcoded literals, NOT `| t`-rendered. GLI18n
+  builds a reverse (Spanish -> English) map from this table so it can
+  canonicalize ad data that was stored in Spanish even while the page
+  itself is rendering in English (or vice versa). `| t` resolves using
+  the CURRENT PAGE's active locale, so on an English page every value
+  here would come back English too, silently collapsing the ES->EN
+  side of the map and leaving raw Spanish values (e.g. "Nuevo",
+  "Diestro") untranslated on English pages. This was tried once
+  (2026-08-12) and broke Status/Handedness on English ad pages for
+  exactly that reason. Values below are kept in sync with the
+  "gunval_*"/new/nearly_new/used keys in locales/es.json by hand —
+  update both together if the Spanish wording changes.
+{% endcomment %}
+var EN_TO_ES = {
+  'Rifle': 'Rifle', 'Shotgun': 'Escopeta', 'Rimfire Rifle': 'Rifle - Fuego anular',
+  'Pistol': 'Pistola', 'Barrels': 'Cañones',
+  'Muzzleloader': 'Avancarga', 'Bolt-action': 'Cerrojo',
+  'Straight-pull bolt-action': 'Cerrojo Rectilineo',
+  'Rifle/rifle combination': 'Combinado rifle/rifle',
+  'Semi-automatic': 'Semi Automatico', 'Single-shot': 'Monotiro',
+  'Over-and-under express': 'Express Superpuesto', 'Side-by-side express': 'Express Paralelo',
+  'Rifle/shotgun combination': 'Combinado rilfe/escopeta',
+  'Drilling: 3 rifles': 'Drilling 3 rifle',
+  'Drilling: 2 rifles / 1 shotgun': 'Drilling 2 rifle 1 escopeta',
+  'Drilling: 2 shotguns / 1 rifle': 'Drilling 2 escopeta 1 rifle',
+  'Lever-action': 'Palanca', 'Pump-action': 'Corredera',
+  'Side-by-side': 'Paralela', 'Over-and-under': 'Superpuesta',
+  'Semi automatico/corredera': 'Semi automatico/corredera',
+  'Hunting': 'Caza', 'Precision': 'Precision', 'Competition': 'Competicion',
+  'Sporting': 'Sporting', 'Skeet': 'Skeet', 'Tactical': 'Tactico', 'Trap': 'Trap',
+  'New': 'Nuevo', 'Nearly New': 'Semi-nuevo', 'Used': 'Usado', 'Deactivated': 'Desactivado',
+  'Right-handed': 'Diestro', 'Left-handed': 'Zurdo', 'Ambidextrous': 'Ambidiestro',
+};

@@ -1,0 +1,317 @@
+
+
+.classifieds-filter-label svg , #closeDrawer2 {
+    display: none;
+}
+.filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+#clf-apply {
+    display: none;
+}
+.fancybox__toolbar__column.is-right button {
+    background: #000;
+}
+span.filter-title {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+}
+.fancybox__slide {
+    background: #ffffff7a;
+}
+section {
+  scroll-margin-top: 120px;
+}
+/* Safari / WebKit fix */
+input[type="date"]::-webkit-date-and-time-value {
+  width: 100%;
+  text-align: left;
+}   
+/* General fix */
+input[type="date"],
+input[type="date"] div,
+input[type="date"] * {
+  width: 100% !important;
+  display: block;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  appearance: none;
+  min-height: 50px;
+}
+
+@media (max-width:1200px) {
+    .resource-list--grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .my-armorer-collection_layout .products-grid_list {
+        grid-template-columns: repeat(auto-fill, minmax(21rem, 1fr));
+    }
+}
+
+/* Optional: only apply behavior on mobile */
+@media (max-width: 769px) {
+  .filter-tabs {
+        max-height: none !important;
+        opacity: 1 !important;
+        overflow: visible;
+  }
+    .resource-list--grid,
+    .my-armorer-collection_layout .products-grid_list,
+    .my-armorer-collection_layout .products-grid_list {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+@media (max-width:768px) {
+    .close-btn {
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+    }
+    .clf-dropdown-menu {
+        position: relative !important;
+    }
+    .clf-dropdown {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+    /* All 10 filters already render (the rule above overrides the native
+       [hidden] display:none on .clf-extra), so the "More filters" toggle
+       has nothing left to reveal on mobile — hide it here only. */
+    .clf-more-toggle {
+        display: none !important;
+    }
+    span.classifieds-filter-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid #e8ede9;
+        border-radius: 8px;
+        background: #f3f4f3;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: border-color 0.2s, background 0.2s;
+        color: var(--color-foreground);
+    }
+    .classifieds-filters {
+        flex-direction: column;
+        align-items: flex-start !important;
+        position: relative;
+        width: fit-content !important;
+        gap: 8px !important;
+        position: relative;
+    }
+    .classifieds-toolbar {
+        flex-direction: row !important;
+        gap: 10px;
+        flex-wrap: nowrap !important;
+    }
+    .filter-tabs {
+        flex-wrap: nowrap;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 8px 12px;
+        border: 1px solid #e8ede9;
+        border-radius: 8px;
+        background: #f3f4f3;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: border-color .2s, background .2s;
+        color: var(--color-foreground);
+        width: 220px;
+        text-align: left;
+        position: absolute;
+        top: 115%;
+        z-index: 999;
+        box-shadow: #00000059 0 5px 15px;
+        right: 0;
+        top: 0;
+        width: 100%;
+        height: 100dvh;
+        position: fixed;
+        transform: translateX(-150%);
+        transition: all ease-in-out 400ms;
+    }
+    .filter-tabs {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .filter-tabs.is-open {
+        transform: translateX(0);
+        transition: transform 400ms ease;
+        flex-wrap: nowrap !important;
+        overflow: hidden;
+        overflow-y: auto;
+        max-width: 100%;
+        max-height: 100dvh !important;
+        padding-bottom: 20px;
+    }
+    .ad-card_component {
+        flex-direction: column;
+        display: flex;
+        gap: 8px !important;
+    }
+    .ad-card_component {
+        flex-direction: column;
+        display: flex;
+        gap: 8px !important;
+    }
+
+    .section-classifieds .ad-card_component-data-top,
+    .product-detail-page .section_all-ads .ad-card_component-data-top {
+        flex-direction: column;
+        display: flex;
+        align-items: flex-start;
+        width: 100%;
+        gap: 7px;
+    }
+
+    .section-classifieds .ad-card_component-data {
+        width: 100%;
+    }
+
+    .ad-card_stat {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        align-items: center;
+    }
+    .classifieds-filter-label svg , #closeDrawer2 {
+        display: block !important;
+    }
+    .clf-card .ad-card_logo-wrap {
+        max-height: 380px;
+        object-fit: cover;
+    }
+
+    .clf-card .gun-slide, .clf-card .gun-slide img, .clf-card .ad-single-image {
+        min-height: 100% !important;
+        max-height: 100% !important;
+        height: 100% !important;
+        width: 100% !important;
+        object-fit: contain !important;
+    }
+    .clf-card .ad-card_logo-wrap {
+        height: 100% !important;
+        max-height: 380px !important;
+    }
+
+    .clf-card .gun-slide, .clf-card .gun-slide img, .clf-card .ad-single-image {
+        height: 180px !important;
+        object-fit: contain !important;
+        margin: auto !important;
+        width: auto !important;
+        max-height: 350px !important;
+    }
+    .gun-slider-track {
+        align-items: center;
+    }
+    button.clf-dropdown-toggle ,
+    .clf-dropdown ,
+    .ad-card_button-wrap {
+        width: 100%;
+    }
+
+    button.clf-dropdown-toggle {
+        justify-content: space-between;
+    }
+    .my-adverts .ad-card_component {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ad-card_logo-wrap {
+        width: 100%;
+        min-height: 240px;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+    }
+
+    .my-adverts .ad-card_component .ad-card_component-data .ad-card_component-data-top {
+        flex-direction: column;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 0 !important;
+    }
+    .ad-card_component-data {
+        padding-bottom: 0;
+        width: 100%;
+    }
+    .ad-card_title {
+        width: 100%;
+    }
+    .ad-card_button-wrap {
+        padding-top: 0 !important;
+    }
+    .my-adverts .ad-card_component .ad-card_component-data .ad-card_component-data-bottom {
+        display: flex;
+        gap: 10px;
+    }
+
+    .my-adverts .ad-card_component .ad-card_component-data .ad-card_component-data-bottom .stat-item {
+        width: 100%;
+        border: 0 !IMPORTANT;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+    .clf-sort-label {
+        display: none !important;
+    }
+    .clf-dropdown.open .clf-dropdown-menu {
+        top: 0 !important;
+    }
+    
+}
+
+@media (max-width:767px) {
+
+    .ask-for-advice > .border-style > .mobile-column .group-block-content {
+        justify-content: flex-start;
+        height: fit-content;
+    }
+    .ask-for-advice > .border-style > .mobile-column .group-block {
+        flex-basis: unset !important;
+    }
+
+    .my-armorer-collection_layout .products-grid_list {
+        display: flex;
+        flex-direction: column;   
+    }
+}
+
+
+@media (min-width: 800px)  and (max-width: 1100px) {
+    .my-adverts .ad-card_component {
+        grid-template-columns: minmax(18%, 20%) 63%;
+    }
+}
+
+
+
+
+
+
+/* ─────────────────────────────────────────
+   Safari iOS date input overflow fix
+───────────────────────────────────────────*/
+

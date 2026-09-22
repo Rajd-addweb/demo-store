@@ -1,0 +1,1505 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin language editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "accessibility": {
+    "account": "Account",
+    "cart": "Cart",
+    "cart_count": "Total items in cart",
+    "close_dialog": "Close dialog",
+    "country_region": "Country/Region",
+    "country_results_count": "{{ count }} results",
+    "decrease_quantity": "Decrease quantity",
+    "discount": "Apply a discount code",
+    "discount_menu": "Discount Codes",
+    "personalized_name": "Personalized name",
+    "discount_applied": "Applied discount code: {{ code }}",
+    "filters": "Filters",
+    "filter_count": {
+      "one": "{{ count }} filter applied",
+      "other": "{{ count }} filters applied",
+      "many": "{{ count }} filters applied"
+    },
+    "increase_quantity": "Increase quantity",
+    "inventory_status": "Inventory status",
+    "localization_region_and_language": "Region and language selector",
+    "menu": "Menu",
+    "nested_product": "{{ product_title }} for {{ parent_title }}",
+    "new_window": "Opens in a new window.",
+    "open_hotspot": "Open hotspot",
+    "quantity": "Quantity",
+    "pause_video": "Pause video",
+    "play_model": "Play 3D model",
+    "play_video": "Play video",
+    "loading_product_recommendations": "Loading product recommendations",
+    "rating": "Rating of this product is {{ rating }} out of 5",
+    "remove_item": "Remove {{ title}}",
+    "remove": "Remove",
+    "reset_search": "Reset search",
+    "search": "Search",
+    "scroll_to": "Scroll to {{ title }}",
+    "search_results_count": "{{ count }} search results found for \"{{ query }}\"",
+    "search_results_no_results": "No results found for \"{{ query }}\"",
+    "skip_to_product_info": "Skip to product information",
+    "skip_to_results_list": "Skip to results list",
+    "skip_to_text": "Skip to content",
+    "slide_status": "Slide {{ index }} of {{ length }}",
+    "slideshow": "Slideshow",
+    "slideshow_next": "Next slide",
+    "slideshow_pause": "Pause slideshow",
+    "slideshow_play": "Play slideshow",
+    "slideshow_previous": "Previous slide",
+    "unit_price": "Unit price",
+    "find_country": "Find country",
+    "view_pricing_info": "View pricing information"
+  },
+  "actions": {
+    "add": "Add",
+    "add_to_cart": "Add to cart",
+    "added": "Added",
+    "apply": "Apply",
+    "back": "Back",
+    "choose": "Choose",
+    "clear": "Clear",
+    "clear_all": "Clear all",
+    "close": "Close",
+    "open": "Open",
+    "continue_shopping": "Continue shopping",
+    "enter_password": "Enter password",
+    "log_in_html": "Have an account? <a href=\"{{ link }}\">Log in</a> to check out faster.",
+    "log_in": "Sign in",
+    "log_out": "Log out",
+    "open_image_in_full_screen": "Open image in full screen",
+    "remove": "Remove",
+    "remove_discount": "Remove discount {{ code }}",
+    "show_all_options": "Show all options",
+    "see_items": {
+      "one": "See {{ count }} item",
+      "other": "See {{ count }} items",
+      "many": "View {{ count }} items"
+    },
+    "show_filters": "Filter",
+    "show_less": "Show less",
+    "show_more": "Show more",
+    "sign_in_options": "Other sign in options",
+    "view_in_your_space": "View in your space",
+    "view_all": "View all",
+    "more": "More",
+    "zoom": "Zoom",
+    "close_dialog": "Close dialog",
+    "reset": "Reset",
+    "enter_using_password": "Enter using password",
+    "sign_up": "Sign up",
+    "submit": "Submit",
+    "view_store_information": "View store information",
+    "sort": "Sort"
+  },
+  "blocks": {
+    "contact_form": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "comment": "Comment",
+      "post_success": "Thanks for contacting us. We'll get back to you as soon as possible.",
+      "error_heading": "Please adjust the following:"
+    },
+    "email_signup": {
+      "label": "Email",
+      "placeholder": "Email address",
+      "success": "Thanks for subscribing!"
+    },
+    "filter": "Filter",
+    "load_video": "Load video: {{ description }}",
+    "sold_out": "Sold out",
+    "payment_methods": "Payment methods",
+    "slider_label": "Slider"
+  },
+  "blogs": {
+    "article": {
+      "comments_heading": {
+        "one": "{{ count }} comment",
+        "other": "{{ count }} comments",
+        "many": "{{ count }} comments"
+      },
+      "comment_author_separator": "•"
+    },
+    "comment_form": {
+      "email": "Email",
+      "error": "Comment failed to post, please address the following:",
+      "heading": "Leave a comment",
+      "message": "Message",
+      "moderated": "Please note, comments need to be approved before they are published.",
+      "name": "Name",
+      "post": "Post comment",
+      "success_moderated": "Comment posted, awaiting moderation",
+      "success": "Comment posted"
+    }
+  },
+  "content": {
+    "cancel": "Cancel",
+    "discount": "Discount",
+    "account_title": "Account",
+    "terms_and_policies": "Terms and Policies",
+    "account_title_personalized": "Hi {{ first_name }}",
+    "account_orders": "Orders",
+    "account_profile": "Profile",
+    "blog_details_separator": "|",
+    "cart_estimated_total": "Estimated total",
+    "cart_title": "Cart",
+    "cart_subtotal": "Subtotal",
+    "cart_total": "Cart total",
+    "checkout": "Check out",
+    "collection_placeholder": "Collection title",
+    "discount_code": "Discount code",
+    "shipping_discount_error": "Shipping discounts are shown at checkout after adding an address",
+    "discount_code_error": "Discount code cannot be applied to your cart",
+    "discounts": "Discounts",
+    "duties_and_taxes_included": "Duties and taxes included.",
+    "duties_and_taxes_included_shipping_at_checkout_with_policy_html": "Duties and taxes included. Discounts and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
+    "duties_and_taxes_included_shipping_at_checkout_with_policy_without_discounts_html": "Duties and taxes included. Shipping is calculated at checkout.",
+    "duties_and_taxes_included_shipping_at_checkout_without_policy": "Duties and taxes included. Discounts and shipping calculated at checkout.",
+    "duties_and_taxes_included_shipping_at_checkout_without_policy_without_discounts": "Duties and taxes included. Shipping is calculated at checkout.",
+    "duties_included": "Duties included.",
+    "duties_included_taxes_at_checkout_shipping_at_checkout_with_policy_html": "Duties included. Taxes, discounts and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
+    "duties_included_taxes_at_checkout_shipping_at_checkout_with_policy_without_discounts_html": "Duties included. Shipping is calculated at checkout.",
+    "duties_included_taxes_at_checkout_shipping_at_checkout_without_policy": "Duties included. Taxes, discounts and shipping calculated at checkout.",
+    "duties_included_taxes_at_checkout_shipping_at_checkout_without_policy_without_discounts": "Duties included. Shipping is calculated at checkout.",
+    "featured_products": "Featured products",
+    "filters": "Filters",
+    "grid_view": {
+      "default_view": "Default",
+      "grid_fieldset": "Column grid",
+      "single_item": "Single",
+      "zoom_out": "Zoom out"
+    },
+    "inventory_low_stock_show_count": {
+      "one": "{{ count }} left",
+      "other": "{{ count }} left",
+      "many": "{{ count }} remaining"
+    },
+    "inventory_low_stock": "Low stock",
+    "inventory_in_stock": "In stock",
+    "inventory_out_of_stock": "Out of stock",
+    "item_count": {
+      "one": "{{ count }} item",
+      "other": "{{ count }} items",
+      "many": "{{ count }} items"
+    },
+    "item_count_cutoff": "More than {{ count }} items",
+    "language": "Language",
+    "localization_region_and_language": "Region and language",
+    "no_products_found": "No products found.",
+    "no_results_found": "No results found",
+    "page_placeholder_title": "Page title",
+    "page_placeholder_content": "Select a page to display its content.",
+    "pagination": {
+      "nav_label": "Pagination navigation",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {{ page }}"
+    },
+    "pickup_available_at_html": "Pickup available at <b>{{ location }}</b>",
+    "pickup_available_in": "Pickup available, {{ pickup_time }}",
+    "pickup_not_available": "Pickup currently not available",
+    "pickup_ready_in": "{{ pickup_time }}",
+    "powered_by": "This shop will be powered by",
+    "price": "Price",
+    "price_compare_at": "Compare at price",
+    "price_from": "From {{ price }}",
+    "price_regular": "Regular price",
+    "price_sale": "Sale price",
+    "price_filter_html": "The highest price is {{ price }}",
+    "product_image": "Product image",
+    "product_information": "Product information",
+    "product_subtotal": "Product subtotal",
+    "product_total": "Product total",
+    "product_badge_sold_out": "Sold out",
+    "product_badge_sale": "Sale",
+    "product_card_placeholder": "Product title",
+    "placeholder_image": "Placeholder image",
+    "quantity": "Quantity",
+    "quantity_per_item": "/ea",
+    "recently_viewed_products": "Recently viewed",
+    "remove_all": "Remove all",
+    "remove_all_items_confirmation": "Remove all {{ count }} items from your cart?",
+    "remove_one_item_confirmation": "Remove 1 item from your cart?",
+    "reviews": "reviews",
+    "read_more": "Read more...",
+    "search_input_label": "Search",
+    "search_input_placeholder": "Search",
+    "search": "Search",
+    "search_results": "Search results",
+    "search_results_label": "Search results",
+    "search_results_no_results": "No results found for \"{{ terms }}\". Try another search.",
+    "search_results_no_results_check_spelling": "No results found for \"{{ terms }}\". Check the spelling or use a different word or phrase.",
+    "search_results_resource_articles": "Blog posts",
+    "search_results_resource_collections": "Collections",
+    "search_results_resource_pages": "Pages",
+    "search_results_resource_products": "Products",
+    "search_results_resource_products_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products",
+      "many": "{{ count }} products"
+    },
+    "search_results_resource_queries": "Search suggestions",
+    "total_items": "Total items",
+    "variant": "Variant",
+    "variant_total": "Variant total",
+    "view_cart": "View cart",
+    "your_cart": "Your cart",
+    "items_added_to_cart": {
+      "one": "1 item added to cart",
+      "other": "{{ count }} items added to cart",
+      "many": "{{ count }} items added to cart"
+    },
+    "search_results_view_all": "View all",
+    "search_results_view_all_button": "View all",
+    "seller_note": "Special instructions",
+    "shipping_policy": "Shipping calculated at checkout.",
+    "shipping_policy_html": "<a href=\"{{ link }}\">Shipping</a> calculated at checkout.",
+    "store_owner_link_html": "Are you the store owner? <a href=\"{{ link }}\">Log in here</a>",
+    "taxes_at_checkout_shipping_at_checkout_with_policy_html": "Taxes, discounts and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
+    "taxes_at_checkout_shipping_at_checkout_with_policy_without_discounts_html": "Taxes and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
+    "taxes_at_checkout_shipping_at_checkout_without_policy": "Taxes, discounts and shipping calculated at checkout.",
+    "taxes_at_checkout_shipping_at_checkout_without_policy_without_discounts": "Taxes and shipping calculated at checkout.",
+    "taxes_included": "Taxes included.",
+    "taxes_included_shipping_at_checkout_with_policy_html": "Taxes included. Discounts and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
+    "taxes_included_shipping_at_checkout_with_policy_without_discounts_html": "Taxes included. Shipping is calculated at checkout.",
+    "taxes_included_shipping_at_checkout_without_policy": "Taxes included. Discounts and shipping calculated at checkout.",
+    "taxes_included_shipping_at_checkout_without_policy_without_discounts": "Taxes included. Shipping is calculated at checkout.",
+    "unavailable": "Unavailable",
+    "use_fewer_filters_html": "Try using fewer filters, or <a class=\"{{ class }}\" href=\"{{ link }}\">clear all filters</a>.",
+    "view_more_details": "View more details",
+    "volume_pricing_available": "Volume pricing available",
+    "volume_pricing": "Volume pricing",
+    "at_price_each": "at {{ price }}/ea",
+    "each": "{{ price }}/ea",
+    "each_abbreviation": "ea",
+    "price_at": "at",
+    "price_range": "Price range",
+    "your_cart_is_empty": "Your cart is empty",
+    "product_count": "Product count",
+    "errors": "Errors",
+    "wrong_password": "Wrong password",
+    "recipient_form_send_to": "Send to",
+    "recipient_form_email_label": "Recipient’s email",
+    "recipient_form_email_label_my_email": "My email",
+    "recipient_form_email_address": "Recipient email address",
+    "recipient_form_name_label": "Recipient name (optional)",
+    "recipient_form_message": "Message (optional)",
+    "recipient_form_characters_used": "{{ used_chars }}/{{ max_chars }} characters used",
+    "recipient_form_send_on": "YYYY-MM-DD",
+    "recipient_form_send_on_label": "Send on (optional)",
+    "recipient_form_fields_visible": "Recipient form fields are now visible",
+    "recipient_form_fields_hidden": "Recipient form fields are now hidden",
+    "recipient_form_error": "There was an error with the form submission",
+    "product_custom_property_character_count": "{{ used_chars }}/{{ max_chars }} characters used"
+  },
+  "fields": {
+    "separator": "to"
+  },
+  "gift_cards": {
+    "issued": {
+      "how_to_use_gift_card": "Use the gift card code online or QR code in-store",
+      "title": "Here's your {{ value }} gift card balance for {{ shop }}!",
+      "subtext": "Your gift card",
+      "shop_link": "Visit online store",
+      "add_to_apple_wallet": "Add to Apple Wallet",
+      "qr_image_alt": "QR code — scan to redeem gift card",
+      "copy_code": "Copy gift card code",
+      "expiration_date": "Expires {{ expires_on }}",
+      "copy_code_success": "Code copied successfully",
+      "expired": "Expired"
+    }
+  },
+  "placeholders": {
+    "password": "Password",
+    "search": "Search",
+    "product_title": "Product title",
+    "collection_title": "Collection title",
+    "blog_posts": "Blog Posts",
+    "blog_post_title": "Title",
+    "blog_post_author": "Author",
+    "blog_post_date": "Date",
+    "blog_post_description": "An excerpt of your blog post's content"
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to cart",
+      "adding_to_cart": "Adding...",
+      "added_to_cart": "Added to cart",
+      "add_to_cart_error": "Error adding to cart",
+      "quantity_error_max": "This item has a maximum of {{ maximum }}",
+      "sold_out": "Sold out",
+      "unavailable": "Unavailable",
+      "quantity": "Quantity",
+      "quantity_increments": "Increments of {{ increment }}",
+      "quantity_minimum": "Minimum of {{ minimum }}",
+      "quantity_maximum": "Maximum of {{ maximum }}",
+      "in_cart": "in cart",
+      "default_title": "Default Title",
+      "sticky_add_to_cart": "Quick add to cart bar"
+    }
+  },
+  "custom": {
+    "home_h1": "The world’s largest firearms search engine",
+    "copied": "Copied",
+    "copy": "Copy",
+    "send_msg": "Failed to send message. Please try again.",
+    "Sending": "Sending",
+    "fill_error": "Please fill in your name and email.",
+    "fill_email": "Please enter a valid email address.",
+    "accept_policy": "Please accept the Privacy Policy.",
+    "fill_msg": "Please enter a message.",
+    "search_label": "Search",
+    "enter_name": "Personalized name",
+    "weapon_options": {
+      "one": "See option and where to buy",
+      "other": "View {{ count }} Firearm options"
+    },
+    "type": "Type",
+    "subtype": "Sub-type",
+    "price_from": "Approx. Price:",
+    "weapon_type": "Type of firearm",
+    "firearm_type": "Type of firearm",
+    "weapon_subtype": "Weapon sub-Type",
+    "firearm_subtype": "Sub-type of firearm",
+    "availability": "Availability",
+    "available": "Available",
+    "search_model": "Search firearm model",
+    "discontinued": "Discontinued",
+    "view_all_products": "View the entire catalog",
+    "read_article": "Read article",
+    "signup_cta": "Sign up to buy / sell / compare / favorite",
+    "favourite_without_loggedin": "Sign up to add in favorite",
+    "buy_firearm": "Buy this firearm",
+    "add_to_favorites": "Add to favorites",
+    "remove_from_favorites": "Remove from favorites",
+    "go_to_comparison": "Go to comparison",
+    "comparison_limit_title": "Comparison limit reached",
+    "comparison_limit_message": "You can only compare 2 firearms at a time. Remove one before adding another.",
+    "compare": "Compare",
+    "weapon_configuration": "Firearm configuration",
+    "firearm_configuration": "Firearm configuration",
+    "barrel_lengths": "Barrel Lengths",
+    "total_length": "Total length",
+    "calibers": "Calibers",
+    "no_ads_available": "Currently there are no available options to purchase this firearm. Please add it to your Favorites to be notified about changes in availability or alternatives.",
+    "caliber": "Caliber",
+    "twist_rate": "Twist rate",
+    "weight": "Weight",
+    "magazine_capacity": "Magazine Capacity",
+    "thread_diameter": "Thread diameter",
+    "thread": "Thread",
+    "technical_data": "Technical data",
+    "brand": "Brand",
+    "model": "Model",
+    "submodel": "Submodel",
+    "sub_model": "Sub-model",
+    "weapon_sub_type": "Sub-type of firearm",
+    "firearm_sub_type": "Sub-type of firearm",
+    "category": "Category",
+    "handedness": "Handedness",
+    "precision_warranty": "Accuracy gurantee",
+    "interchangeable_barrel": "Interchangeable Barrel",
+    "barrel_material": "Barrel Material",
+    "barrel_diameter": "Barrel Diameter",
+    "barrel_brand": "Barrel Brand",
+    "barrel_finish": "Barrel Finish",
+    "stock_type": "Type of stock",
+    "choke": "Choke",
+    "choke_type": "Type of choke",
+    "choke_number": "Number of chokes",
+    "adjustable_stock": "Adjustable stock",
+    "drop_stock": "Stock drop",
+    "stock_length": "Stock length",
+    "caja_larga": "Fullstock",
+    "stock_material": "Stock Material",
+    "trigger_type": "Fire mechanism",
+    "trigger_type1": "Trigger type",
+    "adjustable_trigger": "Adjustable trigger",
+    "brand_trigger": "Brand trigger",
+    "removable_magazine": "Removable Magazine",
+    "stock_finish": "Stock finishing",
+    "barrel_fluted": "Barrel fluted",
+    "muzzle_brake": "Muzzle brake",
+    "mouth_brake": "Muzzle brake",
+    "optics": "Optics",
+    "bases": "Bases",
+    "modality": "Category",
+    "open_sights": "Open sights",
+    "where_to_buy": "Where to buy?",
+    "second_hand": "Second hand",
+    "product_description": "Product description",
+    "loading_comparision": "Loading your comparision",
+    "similar_products": "Similar products",
+    "buy": "Buy",
+    "sell": "Sell",
+    "see_ad": "See the ad",
+    "sell_another_firearm": "Sell another firearm",
+    "signin_comparator": "Sign in to use the comparator",
+    "login_required_compare": "You need to be logged in to compare items.",
+    "login_required_firearms": "You need to be logged in to compare firearms.",
+    "no_adverts_found": "No Ads found",
+    "no_brands_found": "No brands found",
+    "no_calibers_found": "No calibers found",
+    "no_barrel_lengths_found": "No barrel lengths found",
+    "sign_in": "Sign in",
+    "create_account": "Create account",
+    "loading_comparison": "Loading your comparison...",
+    "loading_favorites": "Loading your favorites",
+    "loading": "Loading",
+    "no_firearms_to_compare": "No firearms to compare",
+    "compare_instruction": "Browse the catalog and click 'Compare' on any firearm variant to add it here.",
+    "compare_instruction2": "Browse the catalog and click 'Compare' on any firearm variant to add it here.",
+    "browse_catalog": "Browse the Firearms Catalog",
+    "select_brand": "Please select a brand",
+    "select_calibre": "Please select a caliber.",
+    "select_barrel_length": "Please select a barrel length.",
+    "select_status_error": "Please select a status.",
+    "enter_purchase_date": "Please enter a date of purchase.",
+    "status": "Status",
+    "date_": "Date",
+    "update_firearm": "Update firearm",
+    "select_firearm_type": "Please select a firearm type.",
+    "select_subtype_error": "Please select a sub-type.",
+    "barrel_length": "Barrel length",
+    "barrel": "Barrel",
+    "select_or_enter_model": "Please select or enter a model.",
+    "removing": "Removing",
+    "inches": "(inches)",
+    "unit_cm": "(cm)",
+    "more_info_buy": "See more info and where to buy",
+    "remove_from_comparison": "Eliminate from comparison",
+    "add_to_compare": "Add to comparison",
+    "sell_firearm": "Sell this firearm",
+    "sell_a_firearm": "Sell a firearm",
+    "add_or_remove_firearm": "Add or remove this firearm from your favorites",
+    "compare_title": "Compare this firearm",
+    "signin_armorer": "Sign in to use My Armorer",
+    "login_required": "You need to be logged in to My Armorer.",
+    "no_weapons_collection": "There are no weapons in your collection.",
+    "add_weapon_instruction": "Click on the 'Add a firearm' button, search for your firearm model, and add additional information to start building your collection.",
+    "date_of_purchase": "Date of purchase",
+    "custom_model": "Custom Model",
+    "error_update_firearm": "Error updating firearm",
+    "server_error": "Server error, please try again",
+    "error_saving_firearm": "Error saving firearm",
+    "in_catalogue": "In catalogue",
+    "view_model_specifications": "View model specifications",
+    "remove_firearm": "Remove firearm",
+    "edit_firearm": "Edit firearm",
+    "remove_from_compare": "Eliminate from compare",
+    "add_weapon": "Add a firearm",
+    "add_firearm": "Add a firearm",
+    "firearm_model": "Firearm model",
+    "firearm_details": "Details of the Firearm",
+    "about_firearm": "About your firearm",
+    "checking": "Checking",
+    "filter_text": "Filter",
+    "optional": "Optional",
+    "see": "see",
+    "more_result": "more results or browse the rest of the catalog",
+    "image_requirement": "Picture from our Catalogue will be used, or upload one of your own. Minimum resolution required •",
+    "city": "City",
+    "price": "Price",
+    "date": "date",
+    "No_cancel": "No, cancel",
+    "Yes_delete": "Yes, delete",
+    "Are_you_sure_you_want_to_delete": "Are you sure you want to delete?",
+    "Please_fix_the_following": "Please fix the following",
+    "loading_saved_firearms": "Please wait while we fetch your saved firearms.",
+    "no_favorites": "No products in your favorites",
+    "empty_favorites_message": "Browse the catalog and click 'Add to favorites' on any item to save it here.",
+    "browse_firearms": "Browse firearms",
+    "add_firearms": "Add a Firearm",
+    "please_wait": "Please wait — do not refresh the page.",
+    "deleting": "Deleting",
+    "signin_favorites": "Sign in to see your favorites",
+    "login_required_favorites": "You need to be logged in to save and view your favorite items.",
+    "add_to_armory": "Add to My Armory",
+    "sell_requirement_message": "Firearms need to be added to your My Armorer before you can sell them.",
+    "create_ad": "Create ad",
+    "creating": "Creating...",
+    "ad_submitted_success": "Your ad has been submitted! It will be reviewed by our team.",
+    "ad_create_failed": "Failed to create ad. Please try again.",
+    "error_generic": "Something went wrong. Please try again.",
+    "loading_ads": "Loading your ads...",
+    "armorer_requirement": "Firearms must be added to your My Armorer before you can sell them.",
+    "signin_my_ads": "Sign in to use My Ads",
+    "login_required_ads": "You need to be logged in to see ads.",
+    "firearm_removed_notice": "This item has been removed from your My Armorer. This ad is no longer visible in Classifieds.",
+    "views": "Views",
+    "emails": "Emails",
+    "contact_clicks": "Contact Clicks",
+    "phone_visible": "Phone Visible",
+    "rejection_reason": "Rejection reason",
+    "edit_ad": "Edit ad",
+    "edit": "Edit",
+    "description": "Description",
+    "text": "text",
+    "classifieds": "Classifieds",
+    "search_adverts": "Search Ads",
+    "loading_products": "Loading products",
+    "number": "Number",
+    "firearm_status": "Firearm status",
+    "select_status": "Select status",
+    "new": "New",
+    "nearly_new": "Nearly New",
+    "used": "Used",
+    "deactivated": "Deactivated",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "reactivated": "Reactivated",
+    "phone_number": "Phone number",
+    "photos": "Photos",
+    "add_photos": "Add photos",
+    "save_resubmit": "Save & resubmit",
+    "loading_ad": "Loading ad...",
+    "ad_not_found": "Ad not found or no longer available.",
+    "ad_state_pending": "This ad is under review.",
+    "ad_state_rejected": "This ad has been rejected.",
+    "ad_state_archived": "This ad has been archived.",
+    "ad_sold_notice": "This ad has been sold.",
+    "no_description": "No description provided.",
+    "share": "Share",
+    "sent": "Sent",
+    "send": "Send",
+    "share_ad": "Share this ad",
+    "purchase_date": "Purchase date",
+    "user_name": "User Name",
+    "see_phone": "See phone",
+    "contact": "Contact",
+    "seller_type": "Seller Type",
+    "private_seller": "Private Seller",
+    "ad_details": "Ad details",
+    "details": "Details",
+    "view_in_catalogue": "View in Product Catalogue",
+    "buyer_safety_tips": "Buyer Safety Tips",
+    "ffl_transfer_notice": "Always complete firearm transfers through a licensed FFL dealer.",
+    "verify_seller_notice": "Verify the seller's identity before making any payment.",
+    "inspect_condition_notice": "Inspect the item’s condition before completing the purchase.",
+    "firearm_law_notice": "Follow all local, state, and federal firearm laws.",
+    "safe_payment_warning": "Avoid sending payments outside trusted marketplace channels.",
+    "related_ads": "Related ads",
+    "go_to_armorer": "Go to My Armorer",
+    "no_related_ads": "No related ads found.",
+    "ask_advertiser": "Ask the advertiser",
+    "your_name": "Your name",
+    "email_address": "Email address",
+    "phone": "Phone",
+    "condition": "Condition",
+    "Your_Other_Ads": "Your Other Ads",
+    "accept_privacy_policy": "Accept Privacy Policy",
+    "message_sent_success": "Message sent!",
+    "message_sent_note": "We've received your message. The advertiser usually replies within 24 hours.",
+    "contact_cooldown_notice": "You can send another message in {time}.",
+    "contact_cooldown_heading": "Message sent ✓",
+    "link_copied": "Link copied to clipboard!",
+    "admin": "Admin",
+    "city_": "City",
+    "filter_by": "Filter by",
+    "all": "All",
+    "filter_by_status": "Filter by status",
+    "under_review": "Under review",
+    "published": "Published",
+    "publish": "Publish",
+    "status_rejected": "Rejected",
+    "archived": "Archived",
+    "archive": "Archive",
+    "sold": "Sold",
+    "deleted": "Deleted",
+    "delete": "Delete",
+    "apply": "Apply",
+    "reset_all": "Reset all",
+    "Bajo_Alto": "Low-High",
+    "Alto_bajo": "High-Low",
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "seller_name": "Seller name",
+    "pending": "Pending",
+    "pending_approval": "Pending Approval",
+    "no_ads_found": "No ads found for this filter.",
+    "ads": "Ad",
+    "image": "Image",
+    "seller": "Seller",
+    "posted_on": "Posted on",
+    "action": "Action",
+    "reject_ad": "Reject ad",
+    "reject": "Reject",
+    "rejection_For_reason": "Reason for rejection",
+    "archive_ad": "Archive ad",
+    "archive_For_reason": "Reason for archive",
+    "explain_rejection": "Explain why this ad is being rejected",
+    "explain_ad_archived": "Explain why this ad is being archived",
+    "delete_confirm_heading": "Are you sure you want to delete this ad? This cannot be undone.",
+    "advert_title": "Advert Title",
+    "provide_reason": "Please provide a reason.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "done": "Done",
+    "update_failed": "Update failed. Please try again.",
+    "network_error": "Network error. Please try again.",
+    "ads_load_failed": "Failed to load ads. Please refresh.",
+    "notify_seller_email": "This action will notify the seller by email.",
+    "mark_as_sold": "Mark as sold",
+    "yes_mark_sold": "Yes, Mark as sold",
+    "rejected": "Rejected",
+    "select_action": "Select Action",
+    "sort_by": "Sort by",
+    "alphabetical": "Alphabetical",
+    "p_l_h": "Price Low to High",
+    "p_h_l": "Price High to Low",
+    "end_session": "End session",
+    "profile": "Profile",
+    "spanish": "Spanish",
+    "english": "English",
+    "metric": "Metric",
+    "imperial": "Imperial",
+    "currency": "Currency",
+    "for_european_customers": "For European customers",
+    "for_us_customers": "For US customers",
+    "found": "Found",
+    "measures": "Measures",
+    "fill_name": "Please enter your name.",
+    "fill_phone": "Please enter your phone number.",
+    "your_message": "Your Message",
+    "is_require": "is required",
+    "yes_deactivate": "Yes, deactivate",
+    "city_required": "You must add a city.",
+    "price_required": "You must add a price",
+    "image_required": "You must upload at least one of your own images",
+    "firearm_status_required": "You must select the firearm's condition",
+    "phone_required": "You must add a phone number",
+    "accept_privacy_policy_label": "Accept Privacy and policy",
+    "upload_images_label": "Upload Image",
+    "fill_email_required": "Please enter your email address.",
+    "phone_contain_validation": "Phone number can only contain digits, spaces, or hyphens.",
+    "phone_short_validation": "Phone number is too short (minimum 7 digits).",
+    "phone_max_validation": "Phone number is too long (maximum 15 digits).",
+    "phone_number_validation": "Please enter a valid phone number.",
+    "updating": "Updating",
+    "uploading_images": "Uploading your images",
+    "almost_there": "Almost there, hang tight",
+    "finalizing": "Finalizing your ad",
+    "taking_longer": "Still working, large images take a moment",
+    "add_ad": "Add an ad",
+    "more_about_firearm": "Description - Tell us a little more about your Firearm",
+    "mark_ad_sold": "Mark this ad as sold",
+    "deactivate_ad": "Deactivate this ad?",
+    "reactivate_ad": "Reactivate this ad? It will go back to pending review.",
+    "yes_reactivate": "Yes, reactivate",
+    "error_saving": "Error saving changes. Please try again.",
+    "login_private": "Private Seller",
+    "login_private_desc": "Personal use",
+    "login_business": "Business",
+    "login_business_desc": "Gun shop / Armory",
+    "armorer_business_restricted_title": "This page is not available for Business accounts",
+    "armorer_business_restricted_desc": "My Gun Safe is a feature for Private users only. As a Business account, you can manage your listings directly from the Classifieds section.",
+    "armorer_business_restricted_cta": "Go to Homepage",
+    "user_type_title": "How will you use Gunloupe?",
+    "user_type_subtitle": "Select your account type. This cannot be changed later.",
+    "user_type_confirm": "Continue",
+    "user_type_error": "Error saving. Please try again.",
+    "user_type_note": "This selection is permanent and linked to your account.",
+    "private_feature_1": "Virtual Gun Safe",
+    "private_feature_2": "Favorites and Comparison Tool",
+    "private_feature_3": "Personalized Alerts",
+    "private_feature_4": "Find offers and contact Gun shops",
+    "business_feature_1": "Catalogue Integration",
+    "business_feature_2": "Classified Ads Platform",
+    "business_feature_3": "360° Campaigns and Featured Listings",
+    "business_feature_4": "Tracking and reporting",
+    "user_type_view_details": "View details",
+    "ad_id": "Ad ID",
+    "no_ads_yet": "You haven't created any ads yet.",
+    "private_profile_optional_note": "Complete your profile so we can tailor Gunloupe to what really interests you.",
+    "gunsafe_globalsearch_input_placeholder": "Search by brand or model...",
+    "shared": "Shared",
+    "no_results_found": "Not found. Add it manually",
+    "use_label": "Use",
+    "loading_more_products": "Loading more products...",
+    "date_of_birth": "Date of Birth",
+    "gender": "Gender",
+    "new_firearms": "New Firearms",
+    "view_results": "View results",
+    "display_alias_on_ads": "Display alias on my ads instead of full name",
+    "display_preference_for_ads": "DISPLAY PREFERENCE FOR ADS",
+    "alias_pref_hint_locked": "Based on your profile preference, your alias will be displayed on this ad.",
+    "alias_pref_hint_choose": "Choose how your name appears on your classified ads.",
+    "display_full_name": "Display full name",
+    "display_alias": "Display alias",
+    "additional_content": "Additional Content",
+    "availability_in_stock": "In Stock (1-3 days)",
+    "availability_wholesaler": "Wholesaler (1-2 weeks)",
+    "availability_on_demand": "On-Demand (+3 weeks)",
+    "select_availability": "Please select an availability option",
+    "select_handedness": "Please select a handedness option",
+    "gun_shop": "Gun Shop",
+    "more_filters": "More filters",
+    "hide_filters": "Hide filters",
+    "private_user_no_access_title": "This page is for gun shops only",
+    "private_user_no_access_message": "Only registered gun shops and businesses can post and manage firearm ads. To buy a firearm, please browse our classifieds page where you'll find all firearm ads posted by verified gun shops.",
+    "browse_classifieds": "Browse Classifieds",
+    "contact_prefill_message_html": "Hello,\n\nI'm interested in the listed firearm '{firearm_name}' and would like to receive more information about its availability, delivery time, and purchase conditions.\n\nI look forward to your reply.\n\nThank you very much.",
+    "contact_prefill_default_firearm": "firearm",
+    "date_picker_set": "Set",
+    "date_picker_cancel": "Cancel",
+    "date_picker_clear": "Clear",
+    "gender_select_placeholder": "— Select —",
+    "gender_male": "Male",
+    "gender_female": "Female",
+    "gender_other": "Other",
+    "gender_prefer_not_to_say": "Prefer not to say",
+    "blog_tag_armas": "Firearms",
+    "blog_tag_calibres": "Caliber",
+    "armorer_non_catalogue_msg": "This brand is not in the Gunloupe catalogue. Type the model name above and click the green button to confirm.",
+    "armorer_mismatch_msg": "No models match this Type / Subtype / Brand combination. Please try a different type, subtype, or brand.",
+    "logo": "Logo",
+    "profile_generic_error": "Error saving profile. Please try again.",
+    "profile_saved_msg": "✓ Profile saved! Redirecting…",
+    "profile_image_too_big": "Image must be under 5MB.",
+    "profile_customer_not_identified": "Error: customer not identified.",
+    "profile_phone_invalid": "Phone number must be between 7 and 15 digits.",
+    "profile_phone_required": "Phone is required for business accounts.",
+    "profile_phone_invalid_chars": "Phone number can only contain digits, spaces, and the characters + - ( ).",
+    "profile_invalid_date": "Invalid date.",
+    "profile_dob_future": "Date of birth cannot be in the future.",
+    "profile_required_fields_prefix": "Please fill in all required fields:",
+    "gunval_approx_price": "Approx. Price:",
+    "gunval_type_of_firearm": "Type of firearm",
+    "gunval_sub_type_of_firearm": "Sub-type of firearm",
+    "gunval_category": "Category",
+    "gunval_availability": "Availability",
+    "gunval_rifle": "Rifle",
+    "gunval_shotgun": "Shotgun",
+    "gunval_rimfire_rifle": "Rimfire Rifle",
+    "gunval_pistol": "Pistol",
+    "gunval_barrels": "Barrels",
+    "gunval_muzzleloader": "Muzzleloader",
+    "gunval_bolt_action": "Bolt-action",
+    "gunval_straight_pull_bolt_action": "Straight-pull bolt-action",
+    "gunval_rifle_rifle_combination": "Rifle/rifle combination",
+    "gunval_semi_automatic": "Semi-automatic",
+    "gunval_single_shot": "Single-shot",
+    "gunval_over_and_under_express": "Over-and-under express",
+    "gunval_side_by_side_express": "Side-by-side express",
+    "gunval_rifle_shotgun_combination": "Rifle/shotgun combination",
+    "gunval_drilling_3_rifles": "Drilling: 3 rifles",
+    "gunval_drilling_2_rifles_1_shotgun": "Drilling: 2 rifles / 1 shotgun",
+    "gunval_drilling_2_shotguns_1_rifle": "Drilling: 2 shotguns / 1 rifle",
+    "gunval_lever_action": "Lever-action",
+    "gunval_pump_action": "Pump-action",
+    "gunval_side_by_side": "Side-by-side",
+    "gunval_over_and_under": "Over-and-under",
+    "gunval_semi_automatico_corredera": "Semi automatico/corredera",
+    "gunval_hunting": "Hunting",
+    "gunval_precision": "Precision",
+    "gunval_competition": "Competition",
+    "gunval_sporting": "Sporting",
+    "gunval_skeet": "Skeet",
+    "gunval_tactical": "Tactical",
+    "gunval_trap": "Trap",
+    "gunval_deactivated_status": "Deactivated",
+    "gunval_aluminum": "Aluminum",
+    "gunval_carbon_fiber": "Carbon fiber",
+    "gunval_fiberglass": "Fiberglass",
+    "gunval_steel": "Steel",
+    "gunval_synthetic": "Synthetic",
+    "gunval_wood": "Wood",
+    "gunval_ambidextrous": "Ambidextrous",
+    "gunval_left_handed": "Left-handed",
+    "gunval_right_handed": "Right-handed",
+    "gunval_bavarian": "Bavarian",
+    "gunval_competition_chassis": "Competition chassis",
+    "gunval_dropped_stock": "Dropped stock",
+    "gunval_folding": "Folding",
+    "gunval_hogback_stock": "Hogback stock",
+    "gunval_monte_carlo": "Monte Carlo",
+    "gunval_straight_stock": "Straight stock",
+    "gunval_thumbhole": "Thumbhole",
+    "gunval_no": "NO",
+    "gunval_optional": "Optional",
+    "gunval_yes": "YES",
+    "gunval_available": "Available",
+    "gunval_discontinued": "Discontinued",
+    "gunval2_en_shotgun": "Shotgun",
+    "gunval2_en_pistol": "Pistol",
+    "gunval2_en_cannons": "Cannons",
+    "gunval2_en_rifle_rimfire": "Rifle - Rimfire",
+    "gunval2_en_semi_automatic": "Semi-automatic",
+    "gunval2_en_slider": "Slider",
+    "gunval2_en_bolt": "Bolt",
+    "gunval2_en_overlay": "Overlay",
+    "gunval2_en_single_shot": "Single shot",
+    "gunval2_en_lever_action": "Lever action",
+    "gunval2_en_straight_pull_bolt": "Straight-pull bolt",
+    "gunval2_en_semi_automatic_precision": "Semi-automatic Precision",
+    "gunval2_en_hunting": "Hunting",
+    "gunval2_en_competition": "Competition",
+    "gunval2_en_tactical": "Tactical",
+    "gunval2_en_defense": "Defense",
+    "gunval2_en_sport": "Sport",
+    "gunval2_en_varmint": "Varmint",
+    "gunval2_en_precision": "Precision",
+    "gunval2_en_right_handed": "Right-handed",
+    "gunval2_en_left_handed": "Left-handed",
+    "gunval2_en_ambidextrous": "Ambidextrous",
+    "gunval2_en_yes": "YES",
+    "gunval2_en_no": "NO",
+    "gunval2_en_rifle": "Rifle",
+    "gunval2_en_gun": "Gun",
+    "gunval2_es_escopeta": "Shotgun",
+    "gunval2_es_pistola": "Pistol",
+    "gunval2_es_canones": "Cannons",
+    "gunval2_es_rifle_fuego_anular": "Rifle - Rimfire",
+    "gunval2_es_semi_automatico": "Semi-automatic",
+    "gunval2_es_corredera": "Slider",
+    "gunval2_es_cerrojo": "Bolt",
+    "gunval2_es_superpuesta": "Overlay",
+    "gunval2_es_monotiro": "Single shot",
+    "gunval2_es_palanca": "Lever action",
+    "gunval2_es_cerrojo_rectilineo": "Straight-pull bolt",
+    "gunval2_es_semi_automatico_precision": "Semi-automatic Precision",
+    "gunval2_es_caza": "Hunting",
+    "gunval2_es_competicion": "Competition",
+    "gunval2_es_tactico": "Tactical",
+    "gunval2_es_defensa": "Defense",
+    "gunval2_es_deportivo": "Sport",
+    "gunval2_es_precision": "Precision",
+    "gunval2_es_diestro": "Right-handed",
+    "gunval2_es_zurdo": "Left-handed",
+    "gunval2_es_ambidiestro": "Ambidextrous",
+    "gunval2_es_si": "YES",
+    "gunval2_es_si_2": "YES",
+    "gunval2_es_acero_negro": "Black Steel",
+    "gunval2_es_acero": "Steel",
+    "gunval2_es_acero_inoxidable": "Stainless Steel",
+    "gunval2_es_caida": "Fall",
+    "gunval2_es_madera": "Timber",
+    "gunval2_es_sintetico": "Synthetic",
+    "gunval2_es_fibra_de_carbono": "Carbon Fiber",
+    "gunval2_es_polimero": "Polymer",
+    "gunval2_es_nogal": "Walnut",
+    "gunval2_es_laminado": "Laminate",
+    "gunval2_es_thumbhole": "Thumbhole",
+    "gunval2_es_empunadura_de_pistola": "Pistol Grip",
+    "gunval2_es_monte_carlo": "Monte Carlo",
+    "gunval2_es_ajustable": "Adjustable",
+    "gunval2_es_fijo": "Fixed",
+    "gunval2_es_pavonado": "Blued",
+    "gunval2_es_cerakote": "Cerakote",
+    "gunval2_es_niquel": "Nickel",
+    "gunval2_es_cromo": "Chrome",
+    "gunval2_es_camuflaje": "Camo",
+    "gunval2_es_negro": "Black",
+    "gunval2_es_marron": "Brown",
+    "gunval2_es_verde": "Green",
+    "gunval2_es_black_steel": "Acero Negro",
+    "gunval2_es_steel": "Acero",
+    "gunval2_es_stainless_steel": "Acero Inoxidable",
+    "gunval2_es_fall": "Caida",
+    "gunval2_es_timber": "Madera",
+    "gunval2_es_synthetic": "Sintetico",
+    "gunval2_es_walnut": "Nogal",
+    "gunval2_es_laminate": "Laminado",
+    "gunval2_es_blued": "Pavonado",
+    "gunval2_es_nickel": "Niquel",
+    "gunval2_es_chrome": "Cromo",
+    "gunval2_es_camouflage": "Camuflaje",
+    "gunval2_es_black": "Negro",
+    "gunval2_es_brown": "Marron",
+    "gunval2_es_green": "Verde",
+    "gunval2_es_rifle": "Rifle",
+    "gunval2_es_gun": "Gun",
+    "gunval2_es_no": "NO"
+  },
+  "customer": {
+    "login": "Login",
+    "register": "Register",
+    "account": {
+      "contacts": "Contact",
+      "mail": "Mail",
+      "phone": "Phone",
+      "address": "Address",
+      "address1": "Address #1",
+      "address2": "Address #2",
+      "country": "Country",
+      "zip": "Zip",
+      "edit_profile": "Edit Profile",
+      "contact_us": "Contact with us",
+      "personal_info": "Personal information",
+      "name": "Name",
+      "last_name": "Last Name",
+      "alias": "User Alias",
+      "email-address": "Email Address",
+      "marketing": "Subscribe to marketing updates",
+      "alerts": "Receive Alerts for Favorites",
+      "save_changes": "Save changes",
+      "cancel": "Return without saving your changes",
+      "business_information": "BUSINESS INFORMATION",
+      "shop_name": "Shop Name",
+      "shop_address": "SHOP ADDRESS",
+      "logo_requirement": "Logo required. Min 300×300px",
+      "change_logo": "Change logo"
+    }
+  },
+  "shopify": {
+    "checkout": {
+      "general": {
+        "map": {
+          "cluster_title": {
+            "many": "Group of {{number}} markers"
+          }
+        }
+      },
+      "customer_account": {
+        "saved_address_option_description": {
+          "many": "You have {{count}} saved addresses."
+        }
+      },
+      "stock": {
+        "unshippable_product": {
+          "header": {
+            "many": "No delivery available for %{count} items"
+          },
+          "message": {
+            "many": "These items will be removed from your cart because there are no delivery methods available for your address."
+          }
+        },
+        "item_label": {
+          "many": "{{count}} items"
+        },
+        "unfulfillable_product": {
+          "message": {
+            "many": "%{delivery_method} is no longer available for these items."
+          },
+          "default_message": {
+            "many": "The selected delivery method is no longer available for these items."
+          }
+        }
+      },
+      "order_summary": {
+        "unit_price": {
+          "per_item": {
+            "many": "%{price} for %{count} items"
+          }
+        },
+        "expand_component_information": {
+          "many": "Show %{count} items"
+        },
+        "collapse_component_information": {
+          "many": "Hide %{count} items"
+        },
+        "discount_discovery": {
+          "merchandise_quantity_label": {
+            "many": "%{count} items"
+          }
+        },
+        "discount_title_stacking": {
+          "many": "Discounts"
+        },
+        "discount_order_stacking": {
+          "many": "Discounts on orders"
+        },
+        "subtotal_label_with_quantity": {
+          "many": "Subtotal · %{count} items"
+        },
+        "number_items": {
+          "many": "%{count} items"
+        },
+        "view_all_items": {
+          "many": "View all %{count} articles"
+        },
+        "pickup_unavailable_banner_title": {
+          "many": "No stores available with your items"
+        },
+        "pickup_unavailable_banner_title_with_country": {
+          "many": "There are no stores available in %{country} with your items"
+        },
+        "discount_code_applied_count": {
+          "many": "Show %{count} discounts"
+        }
+      },
+      "shipping": {
+        "estimated_delivery_date": {
+          "many": "%{count} business days"
+        },
+        "other_method": {
+          "many": "Other %{count} shipping methods available from"
+        },
+        "subscription_delivery_description": {
+          "prepaid_delivery_frequency": {
+            "many": "for %{count} deliveries"
+          },
+          "subscription_delivery_frequency": {
+            "day": {
+              "many": "every %{count} days"
+            },
+            "week": {
+              "many": "every %{count} weeks"
+            },
+            "month": {
+              "many": "every %{count} months"
+            },
+            "year": {
+              "many": "every %{count} years"
+            }
+          },
+          "first_n_order_free": {
+            "many": "First %{count} orders free"
+          },
+          "free_for_first_n_order": {
+            "many": "For the first %{count} orders"
+          },
+          "free_shipping_cycles": {
+            "many": "Free shipping for %{count} more deliveries"
+          },
+          "free_shipping_cycles_delivery_not_included": {
+            "many": "Free shipping on %{count} deliveries"
+          },
+          "first_n_order_free_with_cycle": {
+            "many": "Free shipping for %{count} more deliveries, then %{recurring_order_shipping_price}"
+          },
+          "first_n_order_free_with_cycle_delivery_not_included": {
+            "many": "Free shipping for %{count} deliveries, then %{recurring_order_shipping_price}"
+          },
+          "max_cycles_base_shipping": {
+            "many": "%{count} more deliveries for %{shipping_price} each"
+          },
+          "max_cycles_base_shipping_delivery_not_included": {
+            "many": "%{count} more deliveries for %{shipping_price} each"
+          },
+          "prepaid_free_shipping_with_cycles": {
+            "many": "Free shipping for the first %{cycle}, then %{recurring_order_shipping_price}"
+          },
+          "prepaid_order_one_cycle": {
+            "many": "%{shipping_price} for %{count} more deliveries (%{per_delivery_cost} each)"
+          },
+          "prepaid_order_one_cycle_delivery_not_included": {
+            "many": "%{shipping_price} for %{count} deliveries (%{per_delivery_cost} per delivery)"
+          },
+          "prepaid_order_no_cycle": {
+            "many": "%{shipping_price} for %{count} more deliveries (%{per_delivery_cost}) then %{recurring_order_shipping_price}"
+          },
+          "prepaid_order_no_cycle_delivery_not_included": {
+            "many": "%{shipping_price} for %{count} deliveries (%{per_delivery_cost}) and then for %{recurring_order_shipping_price}"
+          }
+        },
+        "shipping_method_first_shipment_group_title": {
+          "many": "First shipments"
+        },
+        "shipping_method_recurring_shipments_group_title": {
+          "many": "Recurring shipments"
+        },
+        "unbranded_description_with_fulfillment_days": {
+          "many": "Ships in %{count} business days"
+        },
+        "unbranded_description_with_fulfillment_weeks": {
+          "many": "Ships in %{count} weeks"
+        }
+      },
+      "payment": {
+        "order_covered_by_gift_cards_notice": {
+          "many": "The cost of your order is covered by your gift cards."
+        },
+        "card_fields_unavailable_html": {
+          "many": "Debit and credit card payments are currently unavailable.<br><a href=\"%{current_url}\">Refresh this page</a> or try using a different payment method."
+        },
+        "expired_cards_info": {
+          "many": "There are %{count} expired cards that you can view and edit in your account."
+        },
+        "order_edit_banner_items_added": {
+          "many": "Added %{count}."
+        },
+        "crypto_payment_method": {
+          "cashback_descriptor": {
+            "many": "You will receive your refund after %{count} days."
+          }
+        },
+        "discount_show_more_warnings": {
+          "many": "Show %{count} more"
+        },
+        "discount_codes_removed_summary": {
+          "many": "%{count} discount codes were deleted"
+        },
+        "discount_codes_modified_summary": {
+          "many": "%{count} discount codes modified"
+        },
+        "discount_codes_removed_or_modified_summary": {
+          "many": "%{count} discount codes were removed or modified"
+        }
+      },
+      "shipping_errors": {
+        "shipping_method_not_available_generic": {
+          "many": "Some items in your cart cannot be shipped to the address you entered. Please review your address to make sure it is correct and try again, or select a different one."
+        },
+        "shipping_method_not_available_updated": {
+          "many": "One or more items you added cannot be shipped to your location. Remove them to complete checkout, or contact the store."
+        }
+      },
+      "processing": {
+        "wait": {
+          "medium": {
+            "many": "Your order is being processed. The estimated wait time is %{count} minutes."
+          }
+        }
+      },
+      "thank_you": {
+        "login_reorder_link_text": {
+          "many": "also buy these products"
+        },
+        "gift_card_confirmation_by_text_typ": {
+          "many": "In a few minutes you will receive a text message with your gift cards."
+        },
+        "gift_card_confirmation_by_email_typ": {
+          "many": "In a few minutes, you will receive an email with your gift cards."
+        },
+        "gift_card_email_title": {
+          "many": "Emailed gift cards"
+        },
+        "gift_card_text_title": {
+          "many": "Gift cards sent by text message"
+        },
+        "gift_card_resent_confirmation": {
+          "many": "The gift cards were re-sent."
+        },
+        "gift_card_resend_failure": {
+          "many": "There was an error resending your gift cards. Please try again or contact us."
+        },
+        "thank_you_unconfirmed_items_heading": {
+          "many": "Some items are not confirmed"
+        },
+        "thank_you_unconfirmed_items_description": {
+          "many": "The items were not charged to you"
+        },
+        "thank_you_item_label": {
+          "many": "%{count} items"
+        },
+        "items_fulfilled_by_store": {
+          "many": "The items you bought will come from other stores."
+        }
+      },
+      "review": {
+        "blocks": {
+          "pickup_items_at": {
+            "many": "Removal of %{count} items in"
+          },
+          "ship_items_to": {
+            "many": "Send %{count} items to"
+          }
+        }
+      },
+      "order_payment_collection": {
+        "changes_summary": {
+          "added": {
+            "many": "Added %{count}."
+          }
+        }
+      },
+      "open_graph_meta_tag": {
+        "title_with_products": {
+          "many": "Buy %{product_name} and %{count} other items"
+        }
+      },
+      "subscriptions": {
+        "recurring_totals_with_policies": {
+          "first_cycles": {
+            "many": "First %{count} payments of %{total_price} each"
+          }
+        },
+        "recurring_total_intervals": {
+          "day": {
+            "many": "%{count} days"
+          },
+          "week": {
+            "many": "%{count} weeks"
+          },
+          "month": {
+            "many": "%{count} months"
+          },
+          "year": {
+            "many": "%{count} years old"
+          }
+        },
+        "recurring_totals_with_initial_order_shipping_discount_with_policies": {
+          "first_cycles": {
+            "many": ", then %{count} payments of %{total_price} each"
+          }
+        }
+      },
+      "contextual_availability": {
+        "title": {
+          "many": "Unavailable products"
+        },
+        "products_not_available": {
+          "many": "These products will be removed from your cart because they are not available in your country or region."
+        },
+        "all_products_in_cart_unavailable": {
+          "many": "These products aren't available in your country or region."
+        }
+      },
+      "throttle": {
+        "estimated_wait_time": {
+          "many": "Estimated wait time: {{count}} minutes"
+        }
+      },
+      "deliverability": {
+        "not_deliverable": {
+          "title": {
+            "many": "No delivery available for %{count} items"
+          },
+          "message": {
+            "many": "These items will be removed from your cart because there are no delivery methods available for your address."
+          }
+        }
+      },
+      "pickup_point": {
+        "paginator": {
+          "header": {
+            "many": "Showing %{first} - %{last} of %{count} items"
+          },
+          "selected_pickup_point_label": {
+            "many": "%{pickup_point_index} of %{count} points"
+          },
+          "selected_page": {
+            "many": "%{first} - %{last} of %{count} points"
+          }
+        },
+        "number_of_pickup_points_near_location": {
+          "many": "%{count} withdrawal points near you"
+        },
+        "pickup_unavailable_banner_title": {
+          "many": "There are no collection points available for your items"
+        }
+      },
+      "notice_banner": {
+        "validation_errors_banner": {
+          "heading": {
+            "many": "There are {{count}} errors:"
+          }
+        }
+      },
+      "review_address_modal": {
+        "subtitle": {
+          "many": "This order will be shipped to an address provided by {{merchant}}. Please select a shipping address."
+        }
+      },
+      "local_pickup": {
+        "location_information": {
+          "many": "There are %{count} stores with stock near you"
+        },
+        "paginator": {
+          "label": {
+            "many": "%{first} - %{last} of %{count} stores"
+          }
+        },
+        "reveal_more_label": {
+          "many": "Show %{count} more locations"
+        },
+        "all_stores_far_away": {
+          "title_with_item": {
+            "many": "The nearest branch with your items available is more than %{distance} from %{location}"
+          }
+        },
+        "location_information_far_away": {
+          "many": "%{count} branches have your item"
+        },
+        "location_nearby": {
+          "many": "There are %{count} nearby branches with your item available"
+        },
+        "location_nearby_short": {
+          "many": "%{count} nearby stores with your item in stock"
+        },
+        "location_far_away": {
+          "many": "%{count} stores with your item available"
+        },
+        "toggle_more_locations": {
+          "many": "%{count} more branches"
+        },
+        "pickup_unavailable_banner_title": {
+          "many": "None of your items are available in any branches"
+        },
+        "pickup_unavailable_banner_title_with_country": {
+          "many": "There are no branches in %{country} with your items available"
+        }
+      },
+      "split_delivery": {
+        "inventory_issue_banner": {
+          "heading": {
+            "cannot_be_picked_up": {
+              "many": "%{count} items cannot be removed"
+            },
+            "cannot_be_shipped": {
+              "many": "%{count} items can't be shipped"
+            }
+          },
+          "remove_item": {
+            "many": "Delete items"
+          },
+          "ship_separately": {
+            "many": "send them separately"
+          },
+          "pick_them_up_in_store": {
+            "many": "pick up in store"
+          },
+          "remove_item_only": {
+            "many": "Delete items"
+          }
+        },
+        "pickup_items_count": {
+          "many": "Remove %{count} items"
+        },
+        "ship_items_count": {
+          "many": "Send %{count} items"
+        }
+      },
+      "merchandise_unavailable_in_buyer_location": {
+        "remove_items_action": {
+          "many": "remove unavailable items"
+        }
+      },
+      "remote_merchandise_only": {
+        "detail_item_label": {
+          "many": "{{count}} items"
+        }
+      }
+    },
+    "notices": {
+      "order": {
+        "cancel_reason": {
+          "many": "Other"
+        }
+      }
+    },
+    "page_titles": {
+      "search_results": {
+        "many": "Search: %{count} results found for \"%{terms}\""
+      }
+    }
+  },
+  "customer_accounts": {
+    "orders": {
+      "order_list": {
+        "items": {
+          "many": "{{count}} items"
+        }
+      },
+      "order_status": {
+        "delivered_description_gift_card": {
+          "many": "The gift cards were sent by email."
+        },
+        "gift_card_label": {
+          "many": "Gift cards"
+        },
+        "confirmed_gift_card_additional_description": {
+          "many": "Each gift card will be sent in a separate email."
+        },
+        "delivered_description_gift_card_text": {
+          "many": "The gift cards were sent by text message."
+        },
+        "confirmed_gift_card_additional_description_text": {
+          "many": "Each gift card will be sent in a separate text message."
+        },
+        "gift_resend_success": {
+          "many": "Gift cards forwarded"
+        },
+        "gift_resend_failure": {
+          "many": "There was a problem resending your gift cards. Please try again or contact us."
+        },
+        "tracking_number": {
+          "many": "Tracking Numbers"
+        },
+        "gift_card_resend_button": {
+          "many": "Resend gift cards"
+        }
+      }
+    },
+    "order_details": {
+      "image_gallery": {
+        "load_more_items": {
+          "many": "Load {{count}} more items"
+        }
+      },
+      "subtotal_label_with_quantity": {
+        "many": "Subtotal · {{count}} items"
+      },
+      "discount_order_stacking": {
+        "many": "Order Discounts"
+      }
+    },
+    "B2B": {
+      "orders": {
+        "draft_order_list": {
+          "pending_tab_accessibility_label": {
+            "pending_orders": {
+              "many": "You have {{count}} pending orders"
+            }
+          }
+        }
+      },
+      "draft_order_details": {
+        "payment_status": {
+          "pending": {
+            "banner_overdue": {
+              "many": "Payment was due {{count}} days ago."
+            },
+            "banner_due": {
+              "many": "Payment is due in {{count}} days."
+            },
+            "banner_overdue_for_single_fulfillment": {
+              "many": "Payment of {{amount}} was due {{count}} days ago. {{link}}"
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "banner_title": {
+        "many": "There are {{count}} errors."
+      }
+    },
+    "payment_methods": {
+      "add_payment_method": {
+        "subscription_contracts": {
+          "more_items": {
+            "many": "{{count}} more products"
+          },
+          "product_count": {
+            "many": "{{count}} products"
+          }
+        },
+        "updating_contracts": {
+          "many": "Updating {{count}} subscription contracts..."
+        },
+        "contracts_updated": {
+          "many": "Successfully updated {{count}} subscription contracts"
+        }
+      }
+    },
+    "ui_components": {
+      "autocompleteOptionsAvailable": {
+        "many": "{{count}} items available"
+      },
+      "month": {
+        "many": "months"
+      },
+      "mapClusterTitle": {
+        "many": "Group of {{number}} markers"
+      }
+    },
+    "date": {
+      "humanize": {
+        "lessThanOneHourAgo": {
+          "many": "{{count}} minutes ago"
+        }
+      }
+    }
+  }
+}

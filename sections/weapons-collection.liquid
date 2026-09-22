@@ -1,0 +1,833 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('collectionSearchInput');
+    const sentinel = document.getElementById('scroll-sentinel');
+    const spinner = document.getElementById('load-spinner');
+
+    const localePrefix = (function () {
+      const match = window.location.pathname.match(/^(\/[a-z]{2}(?:-[a-z]{2,4})?)(\/|$)/i);
+      return match ? match[1] : '';
+    })();
+
+    // Must match the page's own locale — filter values (e.g. metafield-driven
+    // facets like Sub-tipo de arma) are locale-translated, so a Spanish-context
+    // filter value sent to the English search index matches nothing.
+    const searchLocale = localePrefix;
+
+    {% render 'gl-search-value-translations' %}
+
+    var initialQuery = new URLSearchParams(window.location.search).get('q');
+
+    let mode = initialQuery ? 'search' : 'collection';
+    let loading = false;
+    let currentQuery = initialQuery || '';
+    let searchTimeout;
+    let collectionNextUrl = null;
+    let searchCurrentPage = 1;
+    let searchHasMore = false;
+
+    function clearGridForSearch() {
+      var target = document.getElementById('ResultsList');
+      if (!target) return;
+      var innerGrid = target.querySelector('[data-product-grid]') || target;
+      innerGrid.innerHTML = '';
+    }
+
+    function getOrCreateEmptyState() {
+      let el = document.getElementById('collectionNoResults');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'collectionNoResults';
+        el.style.cssText = 'display:none;width:35%;margin:2rem auto;text-align:center;';
+        el.innerHTML = '<img src="https://cdn.shopify.com/s/files/1/0977/9986/4694/files/no-result.png?v=1773991233" alt="No products found" width="200" height="200">';
+        var target = document.getElementById('ResultsList');
+        if (target) target.parentNode.insertBefore(el, target.nextSibling);
+      }
+      return el;
+    }
+
+    function showEmptyState(show) {
+      var el = getOrCreateEmptyState();
+      el.style.display = show ? 'block' : 'none';
+      var target = document.getElementById('ResultsList');
+      if (target) target.style.display = show ? 'none' : '';
+    }
+
+    function showSentinel(show) {
+      if (!sentinel) return;
+      sentinel.style.display = show ? 'block' : 'none';
+      observer.unobserve(sentinel);
+      if (show) observer.observe(sentinel);
+    }
+
+    function setLoading(state) {
+      loading = state;
+      if (spinner) spinner.style.display = state ? 'flex' : 'none';
+    }
+
+    function initCollectionPagination() {
+      const btn = document.querySelector('.load-more-btn[href]');
+      collectionNextUrl = btn ? btn.getAttribute('href') : null;
+      if (btn) btn.style.display = 'none';
+      showSentinel(!!collectionNextUrl);
+      var grid = document.querySelector('[data-product-grid]');
+      if (grid && !grid.querySelector('.resource-list__item')) showEmptyState(true);
+    }
+
+    function renderActiveFilterBadges() {
+      var container = document.getElementById('activeFilters');
+      if (!container) return;
+      var params = new URLSearchParams(window.location.search);
+      var badges = [];
+      params.forEach(function (value, key) {
+        if (key.indexOf('filter.') !== 0) return;
+        var removeUrl = new URL(window.location.href);
+        var remaining = [];
+        params.forEach(function (v, k) { if (!(k === key && v === value)) remaining.push([k, v]); });
+        removeUrl.search = new URLSearchParams(remaining).toString();
+        var label = key.replace(/^filter\.p\.m\.custom\./, '').replace(/^filter\.p\./, '').replace(/_/g, ' ').replace(/\w/g, function (c) { return c.toUpperCase(); });
+        badges.push('<span class="active-filter-badge" style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f3;border:1px solid #d1d5db;border-radius:20px;padding:4px 10px;font-size:0.8rem;margin:2px;">' + label + ': <strong>' + value + '</strong><a href="' + removeUrl.toString() + '" style="margin-left:4px;color:#295A31;text-decoration:none;font-weight:bold;" aria-label="Remove filter">×</a></span>');
+      });
+      container.innerHTML = badges.join('');
+    }
+
+    function buildCollectionUrl(href) {
+      var url = new URL(href, window.location.origin);
+      if (!url.searchParams.has('section_id')) url.searchParams.set('section_id', '{{ section.id }}');
+      var current = new URLSearchParams(window.location.search);
+      current.forEach(function (value, key) {
+        if (key.indexOf('filter.') === 0 && !url.searchParams.has(key)) url.searchParams.append(key, value);
+      });
+      return url.toString();
+    }
+
+    function getActiveFilterParams() {
+      var params = new URLSearchParams(window.location.search);
+      var filterParams = new URLSearchParams();
+      params.forEach(function (value, key) { if (key.indexOf('filter.') === 0) filterParams.append(key, value); });
+      return filterParams.toString();
+    }
+
+    function buildSearchUrl(query, page) {
+      var url = searchLocale + '/search?q=' + encodeURIComponent(query) + '&type=product';
+      if (page > 1) url += '&page=' + page;
+      var filters = getActiveFilterParams();
+      if (filters) url += '&' + filters;
+      return url;
+    }
+
+    function hasRealResults(doc) {
+      var lower = ((doc.body && doc.body.innerHTML) || '').toLowerCase();
+      var phrases = ['no results found for', 'no se encontraron resultados', 'no se han encontrado resultados', 'ningún resultado para', 'sin resultados para', 'no result'];
+      for (var i = 0; i < phrases.length; i++) { if (lower.indexOf(phrases[i]) !== -1) return false; }
+      var countEl = doc.querySelector('[data-search-results-count], .search-results-count, .results-count, .search-results__count');
+      if (countEl && /^\s*0\b/.test(countEl.textContent)) return false;
+      return true;
+    }
+
+    function translateCardToSpanish(clone) {
+      clone.querySelectorAll('.meta-row span:first-child').forEach(function (label) {
+        var t = label.textContent.trim();
+        if (labelMap[t]) label.textContent = labelMap[t];
+      });
+      clone.querySelectorAll('.meta-row span:last-child').forEach(function (val) {
+        var t = val.textContent.trim();
+        if (valueMap[t]) val.textContent = valueMap[t];
+      });
+      clone.querySelectorAll('a.button').forEach(function (btn) {
+        var t = btn.textContent.trim();
+        var m = t.match(/^(?:View|See) (\d+) Firearm options$/);
+        if (m) { btn.textContent = weaponOptionsOtherTemplate.replace(/\d+/, m[1]); return; }
+        if (t === 'View Firearm options' || t === 'See option and where to buy') btn.textContent = weaponOptionsOne;
+      });
+      clone.querySelectorAll('a[href*="/en/products/"]').forEach(function (a) {
+        a.href = a.getAttribute('href').replace('/en/products/', '/products/');
+      });
+    }
+
+    // Get product IDs currently rendered inside the results grid ONLY (not the whole page)
+    function getGridProductIds() {
+      var existing = new Set();
+      var target = document.getElementById('ResultsList');
+      if (!target) return existing;
+      var grid = target.querySelector('[data-product-grid]') || target;
+      grid.querySelectorAll('product-card[data-product-id]').forEach(function (el) {
+        var id = el.getAttribute('data-product-id');
+        if (id) existing.add(id);
+      });
+      return existing;
+    }
+
+    function extractCleanSearchCards(doc, skipIds) {
+      var items = doc.querySelectorAll('.resource-list__item, li[data-product-id]');
+      if (!items.length) return [];
+      var seenIds = new Set();
+      var cards = [];
+
+      items.forEach(function (item) {
+        var productCard = item.querySelector('product-card');
+        if (!productCard) return;
+        var productId = productCard.getAttribute('data-product-id');
+
+        if (productId) {
+          if (skipIds && skipIds.has(productId)) return;
+          if (seenIds.has(productId)) return;
+          seenIds.add(productId);
+        }
+
+        var clone = productCard.cloneNode(true);
+        var content = clone.querySelector('.product-card__content');
+        if (content) {
+          var meta = content.querySelector('.product-card__meta');
+          if (meta) {
+            var toRemove = [], node = content.firstChild;
+            while (node && node !== meta) {
+              if (!(node.nodeType === 1 && node.classList.contains('card-gallery'))) toRemove.push(node);
+              node = node.nextSibling;
+            }
+            toRemove.forEach(function (n) { n.parentNode && n.parentNode.removeChild(n); });
+          }
+        }
+        if (!localePrefix) translateCardToSpanish(clone);
+        var wrapper = document.createElement('div');
+        wrapper.className = 'resource-list__item';
+        wrapper.appendChild(clone);
+        cards.push(wrapper);
+      });
+      return cards;
+    }
+
+    function detectSearchHasMore(doc, page) {
+      if (doc.querySelector('link[rel="next"]')) return true;
+      if (doc.querySelector('[aria-label="Next"], .pagination__item--next, .pagination .next')) return true;
+      var grid = doc.querySelector('[data-last-page]');
+      if (grid) return page < parseInt(grid.getAttribute('data-last-page'), 10);
+      return false;
+    }
+
+    async function loadNextCollectionPage() {
+      if (!collectionNextUrl || loading) return;
+      setLoading(true);
+      try {
+        var res = await fetch(buildCollectionUrl(collectionNextUrl));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        var source = doc.getElementById('ResultsList');
+        var target = document.getElementById('ResultsList');
+        if (!source || !target) return;
+        var cards = source.querySelectorAll('.resource-list__item, li[data-product-id], .product-grid__item');
+        var innerGrid = target.querySelector('[data-product-grid]') || target;
+        if (cards.length) { cards.forEach(function (card) { innerGrid.insertAdjacentHTML('beforeend', card.outerHTML); }); }
+        else { innerGrid.insertAdjacentHTML('beforeend', source.innerHTML); }
+        if (window.GunloupeRetag) window.GunloupeRetag();
+        var nextBtn = doc.querySelector('.load-more-btn[href]');
+        collectionNextUrl = nextBtn ? nextBtn.getAttribute('href') : null;
+        showSentinel(!!collectionNextUrl);
+      } catch (err) { console.error('[weapons] collection loadPage error:', err); }
+      finally { setLoading(false); }
+    }
+
+    async function loadSearchPage(query, page, isAppend) {
+      if (loading) return;
+      setLoading(true);
+      try {
+        var res = await fetch(buildSearchUrl(query, page));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        var target = document.getElementById('ResultsList');
+        if (!target) return;
+        var innerGrid = target.querySelector('[data-product-grid]') || target;
+
+        if (!hasRealResults(doc)) {
+          if (!isAppend) { innerGrid.innerHTML = ''; showEmptyState(true); }
+          searchHasMore = false;
+          showSentinel(false);
+          return;
+        }
+
+        var existingIds = isAppend ? getGridProductIds() : null;
+        var cleanCards = extractCleanSearchCards(doc, existingIds);
+
+        if (!cleanCards.length) {
+          if (!isAppend) { innerGrid.innerHTML = ''; showEmptyState(true); }
+          searchHasMore = false;
+          showSentinel(false);
+          return;
+        }
+
+        showEmptyState(false);
+        if (!isAppend) innerGrid.innerHTML = '';
+        cleanCards.forEach(function (card) { innerGrid.appendChild(card); });
+        if (window.GunloupeRetag) window.GunloupeRetag();
+
+        searchHasMore = detectSearchHasMore(doc, page);
+        showSentinel(searchHasMore);
+      } catch (err) { console.error('[weapons] search loadPage error:', err); }
+      finally { setLoading(false); }
+    }
+
+    // Shopify's own /search relevance matching isn't locale-consistent —
+    // confirmed directly against Shopify: the identical multi-word query
+    // returns 0 results from /search in one market and loose, only-partially-
+    // relevant matches in another (e.g. matching just one word of a three-word
+    // query). The correct baseline is the strict one — a query that doesn't
+    // genuinely match a product should show no results, in either language —
+    // so instead of relaxing anything, we double-check Shopify's own results
+    // ourselves and drop any card whose title doesn't actually contain every
+    // significant word of the query, before they're shown.
+    var STOPWORDS = {
+      'the': 1, 'and': 1, 'for': 1, 'with': 1, 'of': 1,
+      'de': 1, 'del': 1, 'la': 1, 'el': 1, 'los': 1, 'las': 1, 'y': 1, 'con': 1, 'para': 1
+    };
+
+    function significantQueryWords(query) {
+      var seen = {};
+      return query.split(/\s+/).reduce(function (words, w) {
+        w = w.trim();
+        var key = w.toLowerCase();
+        if (w.length < 3 || STOPWORDS[key] || seen[key]) return words;
+        seen[key] = true;
+        words.push(key);
+        return words;
+      }, []);
+    }
+
+    function cardMatchesAllWords(card, words) {
+      if (!words.length) return true;
+      var title = getTitle(card).toLowerCase();
+      return words.every(function (w) { return title.indexOf(w) !== -1; });
+    }
+
+    async function loadAllSearchPages(query, sortValue) {
+      if (loading) return;
+      setLoading(true);
+      var target = document.getElementById('ResultsList');
+      if (!target) { setLoading(false); return; }
+      var innerGrid = target.querySelector('[data-product-grid]') || target;
+      innerGrid.innerHTML = '';
+      showEmptyState(false);
+      try {
+        var queryWords = significantQueryWords(query);
+        var firstRes = await fetch(buildSearchUrl(query, 1));
+        if (!firstRes.ok) { showEmptyState(true); return; }
+        var firstDoc = new DOMParser().parseFromString(await firstRes.text(), 'text/html');
+        if (!hasRealResults(firstDoc)) { showEmptyState(true); searchHasMore = false; showSentinel(false); return; }
+
+        var lastPageEl = firstDoc.querySelector('[data-last-page]');
+        var totalPages = Math.min(lastPageEl ? parseInt(lastPageEl.getAttribute('data-last-page'), 10) : 1, 20);
+        var remainingFetches = [];
+        for (var p = 2; p <= totalPages; p++) {
+          remainingFetches.push(
+            fetch(buildSearchUrl(query, p))
+              .then(function (r) { return r.text(); })
+              .then(function (h) { return new DOMParser().parseFromString(h, 'text/html'); })
+              .catch(function () { return null; })
+          );
+        }
+
+        var seenIds = new Set();
+        var allCards = extractCleanSearchCards(firstDoc, null);
+        allCards.forEach(function (card) {
+          var pc = card.querySelector('product-card');
+          var id = pc ? pc.getAttribute('data-product-id') : null;
+          if (id) seenIds.add(id);
+        });
+
+        (await Promise.all(remainingFetches)).forEach(function (doc) {
+          if (!doc || !hasRealResults(doc)) return;
+          var pageCards = extractCleanSearchCards(doc, seenIds);
+          pageCards.forEach(function (card) {
+            var pc = card.querySelector('product-card');
+            var id = pc ? pc.getAttribute('data-product-id') : null;
+            if (id) seenIds.add(id);
+          });
+          allCards = allCards.concat(pageCards);
+        });
+
+        allCards = allCards.filter(function (card) { return cardMatchesAllWords(card, queryWords); });
+
+        if (!allCards.length) { showEmptyState(true); searchHasMore = false; showSentinel(false); return; }
+
+        allCards.forEach(function (card) { innerGrid.appendChild(card); });
+        sortCardsClientSide(sortValue);
+        if (window.GunloupeRetag) window.GunloupeRetag();
+
+        searchHasMore = false;
+        showSentinel(false);
+      } catch (err) { console.error('[weapons] loadAllSearchPages error:', err); }
+      finally { setLoading(false); }
+    }
+
+    async function runSearch(query, isAppend) {
+      var sortValue = document.getElementById('weapons-sort-select') ? document.getElementById('weapons-sort-select').value : 'title-ascending';
+      if (!isAppend) {
+        searchCurrentPage = 1; searchHasMore = false; showSentinel(false);
+        clearGridForSearch();
+        await loadAllSearchPages(query, sortValue);
+      } else {
+        if (!searchHasMore || loading) return;
+        searchCurrentPage += 1;
+        await loadSearchPage(query, searchCurrentPage, true);
+        if (sortValue !== 'title-ascending') sortCardsClientSide(sortValue);
+      }
+    }
+
+    // Bridge for custom.js's active-filter chip removal (#activeFilters button
+    // clicks): that script owns unchecking the sidebar checkbox and rewriting
+    // the URL via history.replaceState, but replaceState fires no event this
+    // script listens for — so without this hook the product grid never
+    // re-fetches after a chip is removed while a text search (?q=) is active.
+    window.GunloupeRunSearch = function () {
+      var q = new URLSearchParams(window.location.search).get('q');
+      if (!q) return;
+      currentQuery = q; mode = 'search'; runSearch(q, false);
+    };
+
+    // Same bridge, for refreshing a dropdown's own "(1) Rifle" summary after
+    // custom.js unchecks a box programmatically (chip removal) — that never
+    // fires a native "change" event, so updateFilterGroupUI's normal trigger
+    // never runs unless called explicitly.
+    window.GunloupeUpdateFilterGroupUI = updateFilterGroupUI;
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (!entries[0].isIntersecting || loading) return;
+      if (mode === 'search') { if (searchHasMore) runSearch(currentQuery, true); }
+      else { if (collectionNextUrl) loadNextCollectionPage(); }
+    }, {rootMargin: '300px'});
+
+    if (sentinel) observer.observe(sentinel);
+
+    input.addEventListener('input', function () {
+      clearTimeout(searchTimeout);
+      var query = input.value.trim();
+      if (!query) {
+        showEmptyState(false); mode = 'collection';
+        var clearedUrl = new URL(window.location.href);
+        clearedUrl.searchParams.delete('q');
+        window.history.pushState({query: ''}, '', clearedUrl.pathname + clearedUrl.search);
+        location.reload(); return;
+      }
+      if (query.length < 2) return;
+      searchTimeout = setTimeout(function () {
+        var currentVal = input.value.trim();
+        if (currentVal !== query || !currentVal || currentVal.length < 2) return;
+        var searchUrl = new URL(window.location.href);
+        searchUrl.searchParams.set('q', query);
+        window.history.pushState({query: query}, '', searchUrl.pathname + searchUrl.search);
+        currentQuery = query; mode = 'search';
+        runSearch(query, false);
+      }, 350);
+    });
+
+    if (initialQuery) {
+      input.value = initialQuery;
+      setTimeout(function () { runSearch(initialQuery, false); }, 0);
+    } else {
+      mode = 'collection'; initCollectionPagination(); renderActiveFilterBadges();
+    }
+
+    window.addEventListener('popstate', function () {
+      var q = new URLSearchParams(window.location.search).get('q');
+      if (q) { input.value = q; currentQuery = q; mode = 'search'; runSearch(q, false); }
+      else { showEmptyState(false); location.reload(); }
+    });
+
+    function buildFilterUrlFromCheckboxes() {
+      var checkboxes = document.querySelectorAll('.filters-sidebar input[type="checkbox"]:checked');
+      var url = new URL(window.location.pathname, window.location.origin);
+      var currentParams = new URLSearchParams(window.location.search);
+
+      currentParams.forEach(function (value, key) {
+        if (key === 'q') return;
+
+        // ✅ Always preserve price range — it's not a checkbox, must survive rebuild
+        if (key === 'filter.v.price.gte' || key === 'filter.v.price.lte') {
+          url.searchParams.set(key, value);
+          return;
+        }
+
+        // Drop old checkbox-based filters — rebuilt fresh below from current DOM state
+        if (key.indexOf('filter.') === 0) return;
+
+        // Keep everything else (sort_by, etc.)
+        url.searchParams.set(key, value);
+      });
+
+      checkboxes.forEach(function (cb) { url.searchParams.append(cb.name, cb.value); });
+      if (currentQuery) url.searchParams.set('q', currentQuery);
+      return url;
+    }
+
+    function isMobileDrawer() {
+      return window.matchMedia('(max-width: 767px)').matches;
+    }
+
+    var countFetchTimer = null;
+    var countFetchSeq = 0;
+
+    function setViewResultsLabel(text) {
+      var btn = document.getElementById('glViewResults');
+      if (btn) btn.textContent = text;
+    }
+
+    function updateViewResultsBtn() {
+      var btn = document.getElementById('glViewResults');
+      if (!btn) return;
+      var base = btn.dataset.label;
+      var anyChecked = document.querySelectorAll('.filters-sidebar input[type="checkbox"]:checked').length > 0;
+
+      // Search mode has no reliable total — keep plain label
+      if (currentQuery) { setViewResultsLabel(base); return; }
+
+      if (!anyChecked && !getActiveFilterParams()) { setViewResultsLabel(base); return; }
+
+      setViewResultsLabel(base + ' …'); // loading hint
+
+      clearTimeout(countFetchTimer);
+      countFetchTimer = setTimeout(function () {
+        var seq = ++countFetchSeq;
+        var url = buildFilterUrlFromCheckboxes();
+        url.searchParams.set('section_id', '{{ section.id }}');
+
+        fetch(url.toString())
+          .then(function (r) { return r.text(); })
+          .then(function (html) {
+            if (seq !== countFetchSeq) return; // a newer request superseded this one
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var grid = doc.querySelector('[data-total-count]');
+            var total = grid ? parseInt(grid.getAttribute('data-total-count'), 10) : NaN;
+            setViewResultsLabel(!isNaN(total) ? base + ' (' + total + ')' : base);
+          })
+          .catch(function () {
+            if (seq === countFetchSeq) setViewResultsLabel(base);
+          });
+      }, 400); // debounce: waits until user pauses tapping
+    }
+
+    window.GunloupeUpdateViewResultsBtn = updateViewResultsBtn;
+
+
+    function updateFilterGroupUI(group) {
+      if (!group) return;
+
+      // Collect labels of checked options in this group
+      var labels = [];
+      group.querySelectorAll('.filter-content input[type="checkbox"]:checked').forEach(function (input) {
+        var span = input.parentElement.querySelector('span');
+        if (span) labels.push(span.textContent.trim());
+      });
+
+      // Toggle the "has selection" state (moves label up, shows values)
+      group.classList.toggle('withSelectedValue', labels.length > 0);
+
+      // Update count in the title: "Modalidad (2)"
+      var title = group.querySelector('.filter-title');
+      if (title) {
+        var nameSpan = title.querySelector('span');
+        if (nameSpan) {
+          title.innerHTML = '';
+          title.appendChild(nameSpan);
+          if (labels.length) title.appendChild(document.createTextNode(' (' + labels.length + ')'));
+        }
+      }
+
+      // Update / create / remove the selected-values display
+      var sel = group.querySelector('.filter-selected-values');
+      if (labels.length) {
+        if (!sel) {
+          var isSearchGroup = !!group.querySelector('.form_field-wrapper');
+          sel = document.createElement(isSearchGroup ? 'div' : 'span');
+          sel.className = 'filter-selected-values';
+          var host = group.querySelector('.form_field-wrapper') || group.querySelector('.filter-toggle');
+          if (host) {
+            var arrow = host.querySelector('.filter-arrow');
+            if (arrow) host.insertBefore(sel, arrow); else host.appendChild(sel);
+          }
+        }
+        sel.innerHTML = labels.map(function (l) {
+          return '<span class="selected-item">' + l + '</span>';
+        }).join(', ');
+      } else if (sel) {
+        sel.remove();
+      }
+    }
+
+    document.addEventListener('change', function (e) {
+      var cb = e.target.closest('.filters-sidebar input[type="checkbox"]');
+      if (!cb) return;
+
+      // MOBILE: keep drawer open, just update button count
+      if (isMobileDrawer()) {
+        var li = cb.closest('li');
+        if (li) li.classList.toggle('is-active', cb.checked);
+
+        var group = cb.closest('.filter-group');
+        updateFilterGroupUI(group);
+
+        // ✅ collapse the dropdown after selecting, drawer stays open
+        if (group) {
+          group.classList.remove('open');
+          var searchInput = group.querySelector('.filter-search');
+          if (searchInput) {
+            searchInput.value = '';
+            searchInput.blur();
+          }
+        }
+
+        updateViewResultsBtn();
+        return;
+      }
+
+      // DESKTOP: apply immediately
+      var url = buildFilterUrlFromCheckboxes();
+      window.history.pushState({query: currentQuery}, '', url.toString());
+      if (currentQuery) {
+        // Search mode never reloads the page, so — unlike the plain-collection
+        // branch below, which gets this label for free from the server-
+        // rendered markup after navigating — nothing else refreshes the
+        // dropdown's own "(1) Rifle" summary. Without this it stays stale.
+        updateFilterGroupUI(cb.closest('.filter-group'));
+        mode = 'search'; runSearch(currentQuery, false);
+      }
+      else { window.location.href = url.toString(); }
+    });
+
+    // Mobile "View Results" button — applies filters + closes drawer
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('#glViewResults');
+      if (!btn) return;
+
+      var sb = document.querySelector('.filters-sidebar');
+      if (sb) sb.classList.remove('open-sidebar');
+      document.documentElement.classList.remove('overflow-locked');
+      document.body.classList.remove('overflow-locked');
+
+      var url = buildFilterUrlFromCheckboxes();
+      window.history.pushState({query: currentQuery}, '', url.toString());
+      if (currentQuery) { mode = 'search'; runSearch(currentQuery, false); }
+      else { window.location.href = url.toString(); }
+    });
+
+    updateViewResultsBtn();
+
+    document.addEventListener('click', function (e) {
+      var anchor = e.target.closest('.filters-sidebar a[href], .filter-global-reset a[href]');
+      if (!anchor || !anchor.getAttribute('href') || !currentQuery) return;
+      e.preventDefault();
+      var url = new URL(anchor.getAttribute('href'), window.location.origin);
+      url.searchParams.set('q', currentQuery);
+      window.history.pushState({query: currentQuery}, '', url.toString());
+      runSearch(currentQuery, false);
+    });
+
+    function getTitle(card) {
+      var el = card.querySelector('.product-card-title');
+      if (el) return el.textContent.trim();
+      var h3 = card.querySelector('.product-grid-view-zoom-out--details h3');
+      return h3 ? h3.textContent.trim() : '';
+    }
+    function getPrice(card) {
+      var priceEl = card.querySelector('.price[data-price]');
+      if (priceEl) { var raw = parseFloat(priceEl.getAttribute('data-price')); if (!isNaN(raw) && raw > 0) return raw; }
+      return null;
+    }
+    function sortCardsClientSide(sortValue) {
+      var grid = document.querySelector('[data-product-grid]');
+      if (!grid) return;
+      var items = Array.from(grid.querySelectorAll('.resource-list__item'));
+      if (!items.length) return;
+      items.sort(function (a, b) {
+        var pA = getPrice(a), pB = getPrice(b);
+        switch (sortValue) {
+          case 'title-ascending': return getTitle(a).localeCompare(getTitle(b));
+          case 'title-descending': return getTitle(b).localeCompare(getTitle(a));
+          case 'price-ascending': if (pA===null&&pB===null) return 0; if (pA===null) return 1; if (pB===null) return -1; return pA-pB;
+          case 'price-descending': if (pA===null&&pB===null) return 0; if (pA===null) return 1; if (pB===null) return -1; return pB-pA;
+          default: return 0;
+        }
+      });
+      items.forEach(function (item) { grid.appendChild(item); });
+      if (window.GunloupeRetag) window.GunloupeRetag();
+    }
+
+    var sortSelect = document.getElementById('weapons-sort-select');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', function () {
+        var sortValue = this.value;
+        if (currentQuery) {
+          var url = new URL(window.location.href);
+          url.searchParams.set('sort_by', sortValue);
+          window.history.replaceState({}, '', url.toString());
+          if (sortValue !== 'title-ascending') { loadAllSearchPages(currentQuery, sortValue); }
+          else { runSearch(currentQuery, false); }
+        } else {
+          var url = new URL(window.location.pathname, window.location.origin);
+          new URLSearchParams(window.location.search).forEach(function (value, key) { if (key !== 'sort_by') url.searchParams.append(key, value); });
+          url.searchParams.set('sort_by', sortValue);
+          window.location.href = url.toString();
+        }
+      });
+    }
+    if (initialQuery) {
+      var initSortValue = new URLSearchParams(window.location.search).get('sort_by');
+      if (initSortValue && sortSelect) sortSelect.value = initSortValue;
+    }
+  });
+</script>
+
+<section class="weapons-page">
+  <div class="weapon-header">
+    {% if section.settings.page_title != blank %}
+    {%- comment -%} h2, not h1: layout/theme.liquid already renders the page's
+       single h1. This heading was tagged h1 while carrying h2 styling classes,
+       so the page ended up with two h1s. Tag only — appearance is unchanged.
+    {%- endcomment -%}
+    <h2 class="weapons-page__title h2 text-block text-center">
+      {{ section.settings.page_title }}
+    </h2>
+    <div class="home-product-search-wrapper">
+      <div class="form_field-wrapper">
+        <div class="form_field-input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512" fill="none"
+            preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+            <g clip-path="url(#clip0_4162_4606)">
+              <path
+                d="M416 208C416 253.9 401.1 296.3 376 330.7L502.6 457.4C515.1 469.9 515.1 490.2 502.6 502.7C490.1 515.2 469.8 515.2 457.3 502.7L330.7 376C296.3 401.2 253.9 416 208 416C93.1 416 0 322.9 0 208C0 93.1 93.1 0 208 0C322.9 0 416 93.1 416 208ZM208 352C226.91 352 245.636 348.275 263.106 341.039C280.577 333.802 296.452 323.195 309.823 309.823C323.195 296.452 333.802 280.577 341.039 263.106C348.275 245.636 352 226.91 352 208C352 189.09 348.275 170.364 341.039 152.894C333.802 135.423 323.195 119.548 309.823 106.177C296.452 92.805 280.577 82.198 263.106 74.9613C245.636 67.7247 226.91 64 208 64C189.09 64 170.364 67.7247 152.894 74.9613C135.423 82.198 119.548 92.805 106.177 106.177C92.805 119.548 82.198 135.423 74.9613 152.894C67.7247 170.364 64 189.09 64 208C64 226.91 67.7247 245.636 74.9613 263.106C82.198 280.577 92.805 296.452 106.177 309.823C119.548 323.195 135.423 333.802 152.894 341.039C170.364 348.275 189.09 352 208 352Z"
+                fill="currentColor"></path>
+            </g>
+          </svg>
+        </div>
+        <input type="text" id="collectionSearchInput" class="home-product-search__input" value="{{ request.params.q }}"
+          placeholder=" ">
+        <label class="form_label avsd">{{ 'content.search' | t }}</label>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="weapons-layout">
+    <aside class="filters-sidebar">
+      <div class="active-filters-tablet">
+        <div class="mobile-filters-sidebar-header">
+          <h4>{{ 'custom.filter_text' | t }}</h4>
+          <div class="btn-cancel-cross" id="filters-sidebar-close">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="8" fill="#F3F4F3" />
+              <path
+                d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z"
+                stroke="#295A31" stroke-width="1.19938" />
+              <path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295A31"
+                stroke-width="1.19938" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      {% render 'weapons-filters', collection: collection %}
+    </aside>
+
+    <div class="home-product-search-result">
+      <div class="listing-list-top">
+        <div class="active-filters-desktop">
+          <div id="activeFilters" class="active-filters"></div>
+        </div>
+        <div class="active-filters-tablet">
+          <div class="filter-button-wrapper" id="open-filter">
+            <span>{{ 'custom.filter_text' | t }}</span>
+            {% render 'icon-filter' %}
+          </div>
+        </div>
+        <div class="weapons-sort-wrapper">
+          <label for="weapons-sort-select">{{ 'custom.sort_by' | t }}:</label>
+          {% assign current_sort = collection.sort_by | default: collection.default_sort_by %}
+          <select id="weapons-sort-select" class="weapons-sort-select" aria-label="Sort products">
+            <option value="title-ascending" {% if current_sort=='title-ascending' %}selected{% endif %}>{{ 'custom.alphabetical' | t }} A-Z</option>
+            <option value="title-descending" {% if current_sort=='title-descending' %}selected{% endif %}>{{ 'custom.alphabetical' | t }} Z-A</option>
+            <option value="price-ascending" {% if current_sort=='price-ascending' %}selected{% endif %}>{{ "custom.p_l_h" | t }}</option>
+            <option value="price-descending" {% if current_sort=='price-descending' %}selected{% endif %}>{{ "custom.p_h_l" | t }}</option>
+          </select>
+        </div>
+      </div>
+
+      <results-list infinite-scroll="{{ section.settings.enable_infinite_scroll }}">
+        <div id="searched-item-wrapper">
+          {% paginate collection.products by 48 %}
+          <div id="ResultsList">
+            {%- assign search_query = request.params.q -%}
+            <div class="product-grid product-grid--collection" data-product-grid data-last-page="{{ paginate.pages }}"
+  data-total-count="{{ paginate.items }}" id="productGrid">
+              {%- if search_query == blank -%}
+              {% for product in collection.products %}
+              <div class="resource-list__item">
+                {% content_for 'blocks', closest.product: product %}
+              </div>
+              {% endfor %}
+              {%- endif -%}
+            </div>
+          </div>
+          {% if collection.products.size == 0 and search_query == blank %}
+          <div id="collectionNoResults" style="width:35%;margin:2rem auto;text-align:center;">
+            <img src="https://cdn.shopify.com/s/files/1/0977/9986/4694/files/no-result.png?v=1773991233"
+              alt="No products found" width="200" height="200">
+          </div>
+          {% endif %}
+          {% if paginate.next %}
+          <a href="{{ paginate.next.url }}" class="button load-more-btn" data-load-more style="opacity: 0;">
+            Load more
+          </a>
+          {% endif %}
+          {% endpaginate %}
+        </div>
+        <div id="scroll-sentinel"
+          style="height:1px; {% if collection.products.size >= 48 and search_query == blank %}display:block;{% else %}display:none;{% endif %}"
+          aria-hidden="true"></div>
+        <div id="load-spinner"
+          style="display:none; justify-content:center; align-items:center; padding:2rem; gap:0.5rem;"
+          aria-label="Loading more products">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+            style="animation: weapons-spin 0.8s linear infinite;">
+            <style>
+              @keyframes weapons-spin {
+                to {
+                  transform: rotate(360deg);
+                }
+              }
+            </style>
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" stroke-dasharray="25 13"
+              stroke-linecap="round" opacity="0.6" />
+          </svg>
+          <span style="font-size:0.875rem; color:var(--color-text-secondary);">{{ 'custom.loading_more_products' | t }}</span>
+        </div>
+      </results-list>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Weapons Collection",
+  "settings": [
+    {
+      "type": "text",
+      "id": "page_title",
+      "label": "Page Title",
+      "default": "Find your Firearm"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_infinite_scroll",
+      "label": "Auto load products on scroll",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@theme"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Weapons Collection"
+    }
+  ]
+}
+{% endschema %}

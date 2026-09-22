@@ -1,0 +1,31 @@
+{% comment %}
+  ============================================================
+  File: snippets/gl-customer-data.liquid
+  
+  PURPOSE:
+  Injects customer ID and existing user_type metafield into
+  the page as JS variables so login-entry.js can read them.
+  
+  WHERE TO INCLUDE:
+  Add {% render 'gl-customer-data' %} in your theme.liquid
+  just BEFORE the closing </body> tag, or in your header section.
+  ============================================================
+{% endcomment %}
+
+<script>
+  {% if customer %}
+    window.gl_customer_id   = {{ customer.id | json }};
+    window.gl_user_type_meta = {{ customer.metafields.custom.user_type.value | json }};
+    window.gl_customer_email = {{ customer.email | json }};
+    window.gl_customer_first = {{ customer.first_name | json }};
+    window.gl_customer_last  = {{ customer.last_name | json }};
+  {% else %}
+    window.gl_customer_id    = null;
+    window.gl_user_type_meta = null;
+    window.gl_customer_email = null;
+    window.gl_customer_first = null;
+    window.gl_customer_last  = null;
+  {% endif %}
+</script>
+
+

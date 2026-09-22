@@ -1,0 +1,40 @@
+{% comment %}
+  snippet: gl-tech-bool.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+  Renders one Technical data value with consistent casing.
+
+  The yes/no rows on the product page are `single_line_text_field` metafields
+  fed by Sales Layer, so the same answer arrives spelled several ways — "SI",
+  "Si", "Yes", "No", "NO", "Opcional", "OPCIONAL" — and each language has its
+  own stored value. Printing them raw put two or three casings in one table.
+
+  This uppercases a value ONLY when it is one of those yes/no/optional words.
+  Everything else is passed through exactly as stored, so real values such as
+  "FLASH HIDER", "SUB-MOA", "Carril Picatinny" or a choke name are untouched.
+
+  The wording itself is Sales Layer's to own — this changes presentation only,
+  never the word.
+
+  Usage:
+    {% render 'gl-tech-bool', value: product.metafields.custom.rosca.value %}
+{% endcomment %}
+
+{%- liquid
+  assign raw = value | strip
+  assign probe = raw | downcase
+
+  comment
+    Every spelling Sales Layer currently sends across both languages.
+    "optinal" is theirs, misspelt at source; it is listed so it is at least
+    cased like its neighbours, and is deliberately not corrected here.
+  endcomment
+  assign bool_words = 'si,sí,no,yes,opcional,optional,optinal' | split: ','
+
+  if raw == blank
+    echo '—'
+  elsif bool_words contains probe
+    echo raw | upcase
+  else
+    echo raw
+  endif
+-%}

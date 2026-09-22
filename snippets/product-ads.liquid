@@ -1,0 +1,505 @@
+{% comment %}
+  snippet: product-ads.liquid
+  v4 — "Where to buy" for a firearm's Product Page.
+
+  v3's tiered sort (Sub-type+Type+Material -> ... -> Type) is GONE: the
+  client confirmed it should be dropped, and with it the Storefront API
+  call that fetched custom.material_caja purely to feed it. Matching was
+  never done by those tiers — it happens in step 1 of loadAds() on handle
+  or brand+model title — so removing them changed the ORDER only, never
+  which ads qualify.
+
+  Ordering now follows the same two rules as Related Ads, from the same
+  shared helper (snippets/gl-ad-ordering.liquid — do not fork it):
+    • one canonical random order per Product Page, regenerated at Madrid
+      midnight, identical for every visitor that day;
+    • seller round-robin so no one seller dominates the 6 visible slots.
+  Show 6, then "Show more" appends the next 6 to a growing list.
+
+  v2 history has the New Firearms / Second Hand split if it is ever needed
+  again — private users can no longer create ads, so it was dropped.
+{% endcomment %}
+
+<section id="section-all-ads" class="section_all-ads">
+  <div class="page-width">
+    <h2>{{ 'custom.where_to_buy' | t }}</h2>
+
+    <!-- All ads for this product, together — no more New Firearms /
+         Second Hand split: private users can no longer create ads, so
+         grouping by seller_type stopped reflecting a real distinction. -->
+    <div id="pad-ads-section" style="display:none;">
+      <div class="ads-list_list" id="pad-ads-list"></div>
+      <div class="pad-more-wrap">
+        <button type="button" class="button button-secondary pad-more" id="pad-show-more" style="display:none;">{{ 'actions.show_more' | t }}</button>
+      </div>
+    </div>
+
+    <!-- Empty state — shown when no ads found -->
+    <div id="pad-empty-state" style="display:none;">
+      <div class="pad-empty-box">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#295A31" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 8V12M12 16H12.01" stroke="#295A31" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="pad-empty-text">
+          {{ 'custom.no_ads_available' | t | default: 'Currently there are no available options to purchase this firearm. Please add it to your Favorites to be notified about changes in availability or alternatives.' }}
+        </p>
+        {% if customer %}
+        <div class="product-options_buttons-wrap">
+          <button title="Add or remove this item from your favorites" class="product-card_button fav-button"
+            data-fav-handle="{{ product.handle }}" data-fav-title="{{ product.title }}"
+            data-fav-product-title="{{ product.title }}"
+            data-fav-image="{{ product.featured_image | image_url: width: 600 }}" data-fav-price="{{ product.price }}"
+            data-fav-type="{{ product.type }}"
+            data-fav-subtype="{{ product.metafields.custom.sub_tipo_de_arma.value }}"
+            data-fav-category="{{ product.metafields.custom.categoria_web.value }}" data-fav-status="In catalog">
+            <div class="product-card_icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" width="100%"
+                height="100%" preserveAspectRatio="xMidYMid meet" role="img">
+                <g fill="none">
+                  <path
+                    d="M8.96173 18.9111L9.42605 18.3221L8.96173 18.9111ZM12 5.50088L11.4596 6.02098C11.601 6.16787 11.7961 6.25088 12 6.25088C12.2039 6.25088 12.399 6.16787 12.5404 6.02098L12 5.50088ZM15.0383 18.9111L15.5026 19.5001L15.0383 18.9111ZM9.42605 18.3221C7.91039 17.1273 6.25307 15.9605 4.93829 14.48C3.64922 13.0285 2.75 11.3347 2.75 9.13734H1.25C1.25 11.8029 2.3605 13.8363 3.81672 15.476C5.24722 17.0868 7.07077 18.3755 8.49742 19.5001L9.42605 18.3221ZM2.75 9.13734C2.75 6.98647 3.96537 5.18277 5.62436 4.42444C7.23607 3.68772 9.40166 3.88282 11.4596 6.02098L12.5404 4.98078C10.0985 2.44377 7.26409 2.02563 5.00076 3.0602C2.78471 4.07317 1.25 6.42527 1.25 9.13734H2.75ZM8.49742 19.5001C9.00965 19.9039 9.55954 20.3345 10.1168 20.6602C10.6739 20.9857 11.3096 21.2502 12 21.2502V19.7502C11.6904 19.7502 11.3261 19.6295 10.8736 19.3651C10.4213 19.1008 9.95208 18.7368 9.42605 18.3221L8.49742 19.5001ZM15.5026 19.5001C16.9292 18.3755 18.7528 17.0868 20.1833 15.476C21.6395 13.8363 22.75 11.8029 22.75 9.13734H21.25C21.25 11.3347 20.3508 13.0285 19.0617 14.48C17.7469 15.9605 16.0896 17.1273 14.574 18.3221L15.5026 19.5001ZM22.75 9.13734C22.75 6.42527 21.2153 4.07317 18.9992 3.0602C16.7359 2.02563 13.9015 2.44377 11.4596 4.98078L12.5404 6.02098C14.5983 3.88282 16.7639 3.68772 18.3756 4.42444C20.0346 5.18277 21.25 6.98647 21.25 9.13734H22.75ZM14.574 18.3221C14.0479 18.7368 13.5787 19.1008 13.1264 19.3651C12.6739 19.6295 12.3096 19.7502 12 19.7502V21.2502C12.6904 21.2502 13.3261 20.9857 13.8832 20.6602C14.4405 20.3345 14.9903 19.9039 15.5026 19.5001L14.574 18.3221Z"
+                    fill="currentColor"></path>
+                </g>
+              </svg>
+            </div>
+            <div data-fav-text="add">{{ 'custom.add_to_favorites' | t }}</div>
+            <div data-fav-text="remove" style="display:none;">{{ 'custom.remove_from_favorites' | t }}</div>
+          </button>
+        </div>
+        {% else %}
+        <div class="product-options_buttons-wrap">
+          <button onclick="window.location.href='{{ routes.storefront_login_url }}?return_url={{ product.url }}'"
+            title="{{ 'custom.signup_cta' | t }}" class="product-card_button">
+            <div class="product-card_icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M9.25 1.69043C8.83516 1.69043 8.5 2.02559 8.5 2.44043C8.5 2.85527 8.83516 3.19043 9.25 3.19043H11.1883L6.47031 7.91074C6.17734 8.20371 6.17734 8.67949 6.47031 8.97246C6.76328 9.26543 7.23906 9.26543 7.53203 8.97246L12.25 4.25215V6.19043C12.25 6.60527 12.5852 6.94043 13 6.94043C13.4148 6.94043 13.75 6.60527 13.75 6.19043V2.44043C13.75 2.02559 13.4148 1.69043 13 1.69043H9.25ZM3.625 2.44043C2.58906 2.44043 1.75 3.27949 1.75 4.31543V11.8154C1.75 12.8514 2.58906 13.6904 3.625 13.6904H11.125C12.1609 13.6904 13 12.8514 13 11.8154V9.19043C13 8.77559 12.6648 8.44043 12.25 8.44043C11.8352 8.44043 11.5 8.77559 11.5 9.19043V11.8154C11.5 12.0217 11.3313 12.1904 11.125 12.1904H3.625C3.41875 12.1904 3.25 12.0217 3.25 11.8154V4.31543C3.25 4.10918 3.41875 3.94043 3.625 3.94043H6.25C6.66484 3.94043 7 3.60527 7 3.19043C7 2.77559 6.66484 2.44043 6.25 2.44043H3.625Z" fill="#295A31"/></svg>
+            </div>
+            <div>{{ 'custom.favourite_without_loggedin' | t }}</div>
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</section>
+<script>window.GL_LOCALE = {{ request.locale.iso_code | json }};</script>
+<script>
+  window.GLI18n = window.GLI18n || (function () {
+    {% render 'gl-ads-value-translations' %}
+
+    var ES_TO_EN = {};
+    Object.keys(EN_TO_ES).forEach(function (en) {
+      var es = EN_TO_ES[en];
+      if (!(es in ES_TO_EN)) ES_TO_EN[es] = en;
+    });
+
+    function locale() {
+      var l = (window.GL_LOCALE || '').toLowerCase();
+      return l === 'en' ? 'en' : 'es';
+    }
+
+    function canonical(value) {
+      if (value == null) return '';
+      var v = String(value).trim();
+      if (EN_TO_ES.hasOwnProperty(v)) return v;
+      if (ES_TO_EN.hasOwnProperty(v)) return ES_TO_EN[v];
+      return v;
+    }
+
+    function t(value, loc) {
+      var target = loc || locale();
+      var canon  = canonical(value);
+      if (target === 'en') return canon;
+      return EN_TO_ES.hasOwnProperty(canon) ? EN_TO_ES[canon] : canon;
+    }
+
+    return { t: t, canonical: canonical, locale: locale };
+  })();
+</script>
+<script>
+  window._statusLabels = {
+    new:         {{ 'custom.new'         | t | json }},
+    nearly_new:  {{ 'custom.nearly_new'  | t | json }},
+    used:        {{ 'custom.used'        | t | json }},
+    deactivated: {{ 'custom.deactivated' | t | json }}
+  };
+</script>
+<script>
+  window._availabilityLabels = {
+    in_stock:   {{ 'custom.availability_in_stock'   | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }},
+    wholesaler: {{ 'custom.availability_wholesaler' | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }},
+    on_demand:  {{ 'custom.availability_on_demand'  | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }}
+  };
+</script>
+{% render 'gl-ad-meta' %}
+<script>
+  {% render 'gl-ad-ordering' %}
+</script>
+<script>
+(function() {
+  'use strict';
+  const I18N = window.GLI18n || { t: v => v, canonical: v => v, locale: () => 'es' };
+  const ORD    = window.GLAdOrdering;
+  const AdMeta = window.GunloupeAdMeta;
+  const BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+
+  // ── Current product context (from Liquid) ──────────────────────────────
+  // PRODUCT_HANDLE doubles as the page seed for the 24h order: the ticket
+  // asks for a canonical order "for a Product Page", so two firearms that
+  // share an ad must order it differently.
+  const PRODUCT_HANDLE = {{ product.handle | json }};
+
+  // AC2: 6 on load, "Show more" appends the next 6 below them.
+  const PAGE_SIZE = 6;
+
+  const R              = window.GunloupeRoutes || {};
+  const AD_DETAIL_BASE = R.adDetail || '/pages/detalle-anuncio';
+
+  function formatPrice(val, adCurrency) {
+    if (!val) return 'N/A';
+    var num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+    if (isNaN(num) || num === 0) return 'N/A';
+    var sourceCurrency = adCurrency || 'EUR';
+    var currency = localStorage.getItem('currency') || 'EUR';
+    var rate = parseFloat(localStorage.getItem('eur_to_usd') || '1.08');
+    var numInEur = sourceCurrency === 'USD' ? num / rate : num;
+    if (currency === 'USD') return '$' + Math.round(numInEur * rate);
+    return numInEur.toLocaleString('en-US', { minimumFractionDigits: 0 }) + '€';
+  }
+
+  // ── Parse images ────────────────────────────────────────────────────────
+  function parseImages(ad) {
+    var images = [];
+    if (ad.ad_images) {
+      try {
+        var parsed = JSON.parse(ad.ad_images);
+        if (Array.isArray(parsed)) images = parsed.filter(function(u) { return u && u.startsWith('http'); });
+      } catch(e) {}
+    }
+    if (!images.length && ad.product_image && ad.product_image.startsWith('http')) {
+      images = [ad.product_image];
+    }
+    if (!images.length) {
+      images = ['https://cdn.shopify.com/s/files/1/0977/9986/4694/files/product-placeholder.svg'];
+    }
+    return images;
+  }
+
+  // ── Render slider ────────────────────────────────────────────────────────
+  function renderSlider(images, adId) {
+    if (images.length <= 1) {
+      return '<img src="' + (images[0] || '') + '" alt="Ad image" class="ad-single-image" loading="lazy">';
+    }
+    var slides = images.map(function(img) {
+      return '<div class="gun-slide"><img src="' + img + '" alt="Ad image" loading="lazy"></div>';
+    }).join('');
+    var dots = images.map(function(_, i) {
+      return '<span class="gun-dot' + (i === 0 ? ' is-active' : '') + '"></span>';
+    }).join('');
+    return '<div class="gun-slider" data-slider data-ad-id="' + adId + '">' +
+      '<div class="gun-slider-track">' + slides + '</div>' +
+      '<button class="gun-prev" type="button">‹</button>' +
+      '<button class="gun-next" type="button">›</button>' +
+      '<div class="gun-dots">' + dots + '</div>' +
+      '</div>';
+  }
+
+  // ── Init sliders ─────────────────────────────────────────────────────────
+  function initSliders(container) {
+    container.querySelectorAll('.gun-slider[data-slider]').forEach(function(slider) {
+      var track  = slider.querySelector('.gun-slider-track');
+      var slides = slider.querySelectorAll('.gun-slide');
+      var dots   = slider.querySelectorAll('.gun-dot');
+      var prev   = slider.querySelector('.gun-prev');
+      var next   = slider.querySelector('.gun-next');
+      if (!track || slides.length <= 1) return;
+      var current = 0;
+      function goTo(idx) {
+        current = (idx + slides.length) % slides.length;
+        track.style.transform = 'translateX(-' + (current * 100) + '%)';
+        dots.forEach(function(d, i) { d.classList.toggle('is-active', i === current); });
+      }
+      if (prev) prev.addEventListener('click', function() { goTo(current - 1); });
+      if (next) next.addEventListener('click', function() { goTo(current + 1); });
+      dots.forEach(function(dot, i) { dot.addEventListener('click', function() { goTo(i); }); });
+    });
+  }
+
+  // ── Render single card ───────────────────────────────────────────────────
+  function renderCard(ad) {
+    var images       = parseImages(ad);
+    var isSold       = ad.ad_status === 'sold';
+    var adNumericId  = String(ad.id || '').split('/').pop();
+    // Identical breakdown to the Clasificados / Mis anuncios / Related Ads
+    // cards, from the same shared helper. Barrel length is baked into
+    // firearm_model as a "// 62cm" suffix by GunloupeAdTitle.build(), so it
+    // has to be split back out or it sits inside the title text.
+    var modelParts   = AdMeta.splitModelBarrel(ad.firearm_model);
+    var titleLine    = [modelParts.model, ad.firearm_caliber].filter(Boolean).join(' | ');
+    var subtitleLine = [I18N.t(ad.firearm_type), I18N.t(ad.firearm_subtype)].filter(Boolean).join(' / ');
+    var barrelChip   = AdMeta.barrelChipHtml(modelParts.barrelCm);
+    var handChip     = AdMeta.handednessChipHtml(ad.firearm_handedness);
+
+    var productLink = (ad.product_handle && !ad.product_handle.startsWith('custom-'))
+      ? '<a href="' + window.Shopify.routes.root + 'products/' + ad.product_handle + '" class="ad-card_product-link text-size-small">' + subtitleLine + '</a>'
+      : '<span class="ad-card_product-link text-size-small">' + subtitleLine + '</span>';
+
+    // Business sellers show shop name, private sellers show personal name
+    var sellerDisplay = ad.seller_type === 'business'
+      ? (ad.seller_shop_name || ad.seller_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—'))
+      : (ad.seller_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—'));
+
+    const sellerTypeLabel = ad.seller_type === 'business' ? '{{ 'custom.login_business' | t }}' : '{{ 'custom.login_private' | t }}';
+    const sellerTypeBadge = `<span class="ad-seller-type-badge ad-seller-type-badge--${ad.seller_type || 'private'}">${sellerTypeLabel}</span>`
+
+    var btn = isSold
+      ? '<button class="button button-secondary is-small" disabled style="opacity:0.5;cursor:not-allowed;">{{ "custom.sold" | t }}</button>'
+      : '<button class="button button-secondary is-small pad-see-ad" data-handle="' + adNumericId + '">{{ "custom.see_ad" | t }}</button>';
+
+    // data-seller is a verification hook, invisible to visitors: the card
+    // shows the seller's display NAME, but the rotation keys on the raw
+    // customer id, and two shops can display similar names.
+    return '<div class="ads-list_item clf-card' + (isSold ? ' clf-sold' : '') + '"' +
+      ' data-ad-id="' + ad.id + '"' +
+      ' data-seller="' + ORD.sellerOf(ad) + '">' +
+      '<div class="ad-card_component">' +
+
+        '<div class="ad-card_logo-wrap" style="position:relative;">' +
+          '<div class="gun-card__media-wrapper">' +
+            '<div class="gun-card__media' + (images.length <= 1 ? ' single' : '') + '">' +
+              renderSlider(images, adNumericId) +
+            '</div>' +
+          '</div>' +
+          (isSold ? '<div class="clf-sold-overlay"><span class="clf-sold-badge">{{ "custom.sold" | t }}</span></div>' : '') +
+        '</div>' +
+
+        '<div class="ad-card_component-data">' +
+          '<div class="ad-card_component-data-top">' +
+            '<div class="ad-card_title">' +
+              (ad.firearm_personalized_name ? '<div class="ad-card_nickname text-size-tiny">' + ad.firearm_personalized_name + '</div>' : '') +
+              '<div class="ad-card_title-text">' + (titleLine || '—') + '</div>' +
+              '<div class="ad-card_meta-row">' + productLink + barrelChip + handChip + '</div>' +
+              '<div class="user-type-wrapper"><span class="ad-card_useralias text-size-tiny">' + sellerDisplay + '</span></div>' +
+            '</div>' +
+            '<div class="ad-card_stat">' +
+              '<div class="product-table_header-cell text-size-small">{{ "custom.city" | t }}</div>' +
+              '<div class="product-table_spec-text">' + (ad.city || '—') + '</div>' +
+            '</div>' +
+            '<div class="ad-card_stat">' +
+              '<div class="product-table_header-cell text-size-small">{{ "custom.price" | t }}</div>' +
+              '<div class="product-table_spec-text price" data-price="' + (ad.price || 0) + '" data-currency="' + (ad.currency || 'EUR') + '">' + formatPrice(ad.price, ad.currency) + '</div>' +
+            '</div>' +
+            '<div class="ad-card_stat">' +
+              '<div class="product-table_header-cell text-size-small">{{ "custom.availability" | t }}</div>' +
+              '<div class="product-table_spec-text">' + ((window._availabilityLabels && window._availabilityLabels[ad.firearm_availability]) || ad.firearm_availability || '—') + '</div>' +
+            '</div>' +
+            '<div class="ad-card_stat">' +
+              '<div class="product-table_header-cell text-size-small">{{ "custom.status" | t }}</div>' +
+              '<div class="product-table_spec-text">' + (I18N.t(ad.firearm_status) || '—') + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="ad-card_button-wrap">' + btn + '</div>' +
+
+      '</div>' +
+    '</div>';
+  }
+
+  // ── Show / hide TOC link ─────────────────────────────────────────────────
+  function setTocLink(visible) {
+    var tocLink = document.querySelector('.toc_link[href="#section-all-ads"]');
+    if (tocLink) tocLink.style.display = visible ? '' : 'none';
+  }
+
+  // ── Render the ads, 6 at a time ────────────────────────────────────────
+  // AC2 — "click to load": each press of "Show more" APPENDS the next 6
+  // below the ones already on screen. It must not re-render the list, which
+  // is what v3 did (listEl.innerHTML = ...) — that would rebuild every card,
+  // dropping the sliders' state and re-binding every button.
+  //
+  // The order is fixed before the first render, so revealing more never
+  // re-sorts what the visitor is already looking at.
+  function renderAds(ads, listEl) {
+    var moreBtn = document.getElementById('pad-show-more');
+    var shown   = 0;
+
+    function bind(scope) {
+      initSliders(scope);
+      if (typeof updatePrices === 'function') updatePrices();
+      scope.querySelectorAll('.pad-see-ad').forEach(function(btn) {
+        if (btn._padBound) return; // appended nodes only — never re-bind
+        btn._padBound = true;
+        btn.addEventListener('click', function() {
+          var handle = this.dataset.handle;
+          if (handle) window.location.href = AD_DETAIL_BASE + '?handle=' + handle;
+        });
+      });
+    }
+
+    function renderNextPage() {
+      var next = ads.slice(shown, shown + PAGE_SIZE);
+      if (!next.length) return;
+
+      // Collect the new nodes before binding so sliders and click handlers
+      // are only wired on what was just added.
+      var frag = document.createElement('div');
+      frag.innerHTML = next.map(renderCard).join('');
+      var added = [];
+      while (frag.firstChild) added.push(listEl.appendChild(frag.firstChild));
+
+      shown += next.length;
+      added.forEach(function(node) { if (node.nodeType === 1) bind(node); });
+
+      // Hidden outright when there is nothing left — including the common
+      // case of 6 or fewer ads, where it never appears at all.
+      if (moreBtn) moreBtn.style.display = shown < ads.length ? '' : 'none';
+    }
+
+    if (moreBtn) moreBtn.addEventListener('click', renderNextPage);
+    renderNextPage();
+
+    // Barrel chips render cm-only until this resolves, then fill in their
+    // curated inches — cards appended later by "Show more" read the map
+    // directly, since it is cached by then.
+    AdMeta.loadBarrelInches();
+  }
+
+  // ── Main: fetch, score, split, render ────────────────────────────────────
+  async function loadAds() {
+    var adsSection = document.getElementById('pad-ads-section');
+    var adsList    = document.getElementById('pad-ads-list');
+    var emptyEl    = document.getElementById('pad-empty-state');
+
+    try {
+      var res  = await fetch(BACKEND_URL + '/my-adverts/all');
+      var data = await res.json();
+
+      var PRODUCT_TITLE_LOWER = {{ product.title | downcase | json }};
+
+      // ── Step 1: filter to ads for this product ───────────────────────
+      var candidates = (data.ads || []).filter(function(ad) {
+        if (ad.ad_status !== 'published' && ad.ad_status !== 'sold') return false;
+        var handleMatch = !!(ad.product_handle && ad.product_handle === PRODUCT_HANDLE);
+        var brand       = (ad.firearm_brand || '').toLowerCase().trim();
+        var model       = (ad.firearm_model || '').toLowerCase().trim();
+        var adFullTitle = (brand + ' ' + model).toLowerCase().trim();
+        var titleMatch = !!(brand && model && (
+          // Original: product title contains both brand and model
+          (PRODUCT_TITLE_LOWER.includes(brand) && PRODUCT_TITLE_LOWER.includes(model))
+          ||
+          // NEW: ad's full title contains the current product title (catches variants like "2.0", "HUNTER" etc.)
+          (adFullTitle.includes(PRODUCT_TITLE_LOWER))
+        ));
+        return handleMatch || titleMatch;
+      });
+
+      if (!candidates.length) {
+        if (emptyEl) emptyEl.style.display = '';
+        setTocLink(true);
+        return;
+      }
+
+      // ── Step 2: order the ENTIRE matched list, not just the first 6 ──
+      //   AC6: one canonical order per Product Page per day, seeded on the
+      //        product handle so each page differs, regenerated at Madrid
+      //        midnight and identical for every visitor in between.
+      //   AC3/AC4/AC5: seller round-robin over that order — one slot each
+      //        in turn, a seller with several ads re-enters only after
+      //        everyone else has had a turn, and a lone seller takes every
+      //        slot rather than leaving them empty.
+      //   There is no tier split here (unlike Related Ads), so this is a
+      //   single pass with no rotation state to carry.
+      //
+      //   Published and sold are ordered SEPARATELY, then joined, so a sold
+      //   ad can never outrank a published one. Ordering the mixed list would
+      //   let the daily shuffle drop a sold ad into slot 1.
+      var published = candidates.filter(function (ad) { return ad.ad_status === 'published'; });
+      var soldAds   = candidates.filter(function (ad) { return ad.ad_status === 'sold'; });
+
+      var ads = ORD.rotateBySeller(ORD.dailyOrder(published, PRODUCT_HANDLE));
+
+      // ── Step 2b: fill the first page with sold ads, if it isn't full ──
+      //   Sold ads exist here to stop a thinly-traded firearm showing an
+      //   almost-empty section, so they fill the gap up to PAGE_SIZE and no
+      //   further: with 6 published ads there is no gap, and a sold ad is of
+      //   no use to a buyer. They are never paginated into "show more".
+      //
+      //   Their order is the same daily rotation the published ads use, on
+      //   its own seed so the two shuffles don't correlate. That keeps the
+      //   section's fairness rule intact — no seller's ads sit at the top
+      //   permanently — and it is stable for the whole day, so the section
+      //   doesn't reshuffle between two visits.
+      if (ads.length < PAGE_SIZE && soldAds.length) {
+        var gap = PAGE_SIZE - ads.length;
+        ads = ads.concat(ORD.dailyOrder(soldAds, PRODUCT_HANDLE + '|sold').slice(0, gap));
+      }
+
+      // ── Step 3: backfill handedness before rendering ────────────────
+      //   firearm_handedness is only stored on ads created after the
+      //   handedness dropdown shipped; older ads resolve it from the linked
+      //   product's custom.lateralidad metafield. Without this the chip just
+      //   doesn't appear on them. Ordering does not depend on it, so it runs
+      //   after.
+      await AdMeta.attachHandedness(ads);
+
+      if (ads.length) {
+        renderAds(ads, adsList);
+        if (adsSection) adsSection.style.display = '';
+      } else {
+        if (emptyEl) emptyEl.style.display = '';
+      }
+
+      setTocLink(true);
+
+    } catch(e) {
+      if (emptyEl) emptyEl.style.display = '';
+      setTocLink(true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadAds);
+  } else {
+    loadAds();
+  }
+
+})();
+</script>
+
+<style>
+  /* ── "Show more" ── */
+  .pad-more-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  /* ── Empty state ── */
+  .pad-empty-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 48px 24px;
+    background: rgb(var(--color-foreground-rgb) / 0.03);
+    border: 1px solid rgb(var(--color-foreground-rgb) / 0.08);
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .pad-empty-text {
+    max-width: 520px;
+    color: rgb(var(--color-foreground-rgb) / 0.7);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .pad-empty-box .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+</style>

@@ -1,0 +1,188 @@
+{% comment %}
+  snippet: gl-ad-ordering.liquid
+  ---------------------------------------------------------------
+  Single source of truth for the "Related Ads" / "Where to Buy" ad
+  ordering rules. Defines window.GLAdOrdering. Render it inside a
+  <script> block BEFORE the section script that uses it:
+
+      <script> render 'gl-ad-ordering'  (as a Liquid tag) </script>
+
+  Consumers: sections/ad-detail.liquid (Related Ads).
+  Planned:   snippets/product-ads.liquid (Where to Buy) — same rules,
+             same helpers; do not fork a second copy.
+
+  Two rules live here:
+
+  1. dailyOrder(ads, pageSeed)
+     A canonical random order that is identical for every visitor and
+     regenerates once every 24h (UTC midnight). No backend, no storage:
+     the position of each ad is a hash of (ad id + pageSeed + UTC date),
+     so the order is reproducible from the data alone.
+
+     The hash is PER AD, not per list, so publishing a new ad slots it
+     into the existing order instead of reshuffling everything.
+
+     pageSeed is the id of the ad/product whose page is being viewed.
+     It is required: the ticket asks for a canonical order "for a
+     Product Page", so two different detail pages that share matching
+     ads must order them differently. Dropping the seed would give
+     every page the same sequence.
+
+  2. rotateBySeller(ads, state)
+     Round-robin so one seller cannot dominate the list. Each seller
+     takes one slot per turn; a seller with several matching ads
+     re-enters the rotation only after every other seller has had a
+     turn. Behaviour by seller count:
+        6+ sellers -> the first 6 slots are 6 distinct sellers
+        2-5        -> the cycle repeats once everyone has had a turn
+        1          -> that seller fills every slot
+     Slots are never left empty to enforce the cap.
+
+     `state` is an optional { last: <sellerId> } object that is read
+     and updated on each call, so the rotation can be carried across a
+     tier boundary — without it the last ad of tier 1 and the first of
+     tier 2 can both belong to the same seller.
+{% endcomment %}
+
+window.GLAdOrdering = window.GLAdOrdering || (function () {
+  'use strict';
+
+  // FNV-1a (32-bit) plus a murmur3 fmix32 finaliser. Small and
+  // dependency-free — used only to order a list, nothing security-sensitive.
+  //
+  // The finaliser is NOT optional. Plain FNV-1a has no avalanche on its last
+  // step: flipping the low bit of the final character shifts the whole hash
+  // by exactly ±the FNV prime, which is far too small to reorder anything.
+  // Without this, two consecutive days (".. -14" vs ".. -15") produced an
+  // identical order and the 24h refresh silently did nothing.
+  function hash32(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 0x01000193) >>> 0;
+    }
+    h ^= h >>> 16;
+    h  = Math.imul(h, 0x85ebca6b) >>> 0;
+    h ^= h >>> 13;
+    h  = Math.imul(h, 0xc2b2ae35) >>> 0;
+    h ^= h >>> 16;
+    return h >>> 0;
+  }
+
+  // The store's calendar date as YYYY-MM-DD, in MADRID time — not the
+  // visitor's local time and not UTC.
+  //
+  // Madrid, because the client agreed to "the order refreshes at midnight"
+  // meaning HIS midnight. On UTC the roll happened at 01:00 Madrid in winter
+  // and 02:00 in summer, so someone checking just after midnight would still
+  // see the previous day's order and read it as a bug.
+  //
+  // Intl handles the CET/CEST switch on its own, so this needs no DST logic.
+  // 'en-CA' is the locale that formats as YYYY-MM-DD.
+  var dayFormatter = null;
+
+  function storeDay(now) {
+    var d = now || new Date();
+    try {
+      if (!dayFormatter) {
+        dayFormatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Madrid',
+          year:     'numeric',
+          month:    '2-digit',
+          day:      '2-digit'
+        });
+      }
+      return dayFormatter.format(d);
+    } catch (e) {
+      return utcDay(d); // ancient browser with no tz support — order still works
+    }
+  }
+
+  // Fallback only. Every visitor must resolve the SAME day string, so this is
+  // deliberately UTC rather than the visitor's own timezone.
+  function utcDay(now) {
+    var d = now || new Date();
+    return d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0');
+  }
+
+  // Ad ids arrive as Shopify GIDs ("gid://shopify/Metaobject/123"); the
+  // numeric tail is the stable part.
+  function idOf(value) {
+    return String(value == null ? '' : value).split('/').pop();
+  }
+
+  function adId(ad) {
+    return idOf(ad && ad.id);
+  }
+
+  // The seller a slot is charged to. customer_id is the owner field the
+  // ad detail page already uses to detect "you are viewing your own ad".
+  // Ads with no owner are bucketed together rather than each counting as
+  // its own seller, which would let them bypass the rotation.
+  function sellerOf(ad) {
+    return idOf(ad && ad.customer_id) || '__unknown__';
+  }
+
+  function dailyOrder(ads, pageSeed, now) {
+    var day  = storeDay(now);
+    var seed = String(pageSeed == null ? '' : pageSeed);
+    var keyed = (ads || []).map(function (ad) {
+      var id = adId(ad);
+      // Day and page seed lead, ad id last: the characters that change
+      // between days are then mixed through every later step of the hash.
+      return { ad: ad, id: id, key: hash32(day + '|' + seed + '|' + id) };
+    });
+    keyed.sort(function (a, b) {
+      if (a.key !== b.key) return a.key - b.key;
+      return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); // deterministic tie-break
+    });
+    return keyed.map(function (entry) { return entry.ad; });
+  }
+
+  function rotateBySeller(ads, state) {
+    // One queue per seller, in the order the sellers first appear. The
+    // input is already daily-randomised, so that first-appearance order
+    // is itself part of the 24h shuffle — no extra randomisation here.
+    var queues = [];
+    var bySeller = {};
+    (ads || []).forEach(function (ad) {
+      var seller = sellerOf(ad);
+      if (!bySeller[seller]) {
+        bySeller[seller] = [];
+        queues.push({ seller: seller, items: bySeller[seller] });
+      }
+      bySeller[seller].push(ad);
+    });
+
+    var out  = [];
+    var last = state && state.last;
+
+    while (queues.length) {
+      // Normally take the seller at the front of the rotation. The one
+      // exception is the first slot after a carried-over rotation: if
+      // that seller also took the previous slot and someone else is
+      // waiting, let the other seller go first.
+      var idx = (queues.length > 1 && queues[0].seller === last) ? 1 : 0;
+      var queue = queues.splice(idx, 1)[0];
+
+      out.push(queue.items.shift());
+      last = queue.seller;
+
+      // Back of the queue: this seller's remaining ads only re-enter
+      // after every other seller has had a turn.
+      if (queue.items.length) queues.push(queue);
+    }
+
+    if (state) state.last = last;
+    return out;
+  }
+
+  return {
+    dailyOrder:     dailyOrder,
+    rotateBySeller: rotateBySeller,
+    sellerOf:       sellerOf,
+    storeDay:       storeDay,
+    utcDay:         utcDay
+  };
+})();

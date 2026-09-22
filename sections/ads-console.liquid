@@ -1,0 +1,1851 @@
+{% comment %}
+section.ads-console.liquid
+Gunloupe — Admin Ads Console
+Access restricted to admin emails defined in ADMIN_EMAILS array
+{% endcomment %}
+
+{% comment %} ── ADMIN EMAIL WHITELIST — add/remove emails here ── {% endcomment %}
+{% assign admin_emails = "dharmit.f@addwebsolution.in,jota@ctd.io,abertrand@gunloupe.com" | split: "," %}
+{% assign is_admin = false %}
+{% if customer %}
+{% for email in admin_emails %}
+{% if customer.email == email %}
+{% assign is_admin = true %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if is_admin %}
+
+<section class="ads-console-section"
+  style="padding-top:{{ section.settings.padding_top }}px;padding-bottom:{{ section.settings.padding_bottom }}px;">
+
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="ac-header">
+      <div class="ac-header__left">
+      </div>
+      <div class="ac-header__right">
+        <span class="ac-admin-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          {{ "custom.admin" | t }}
+        </span>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="ac-toolbar">
+      <div class="ac-toolbar__left">
+        <span class="ac-toolbar__label">{{ "custom.filter_by" | t}}:</span>
+        <div class="ac-filter-dropdown-wrap" id="ac-filter-dropdown-wrap">
+          <button class="ac-filter-trigger" id="ac-filter-trigger" type="button">
+            <span id="ac-filter-label">{{ "custom.all" | t }}</span>
+            {% render 'icon-arrowdown' %}
+          </button>
+          <div class="ac-filter-popover" id="ac-filter-popover">
+            <div class="ac-filter-popover__header">
+              <span class="ac-filter-popover__title">{{ 'custom.filter_by_status' | t }}</span>
+              <button class="ac-filter-popover__clear" id="ac-filter-clear" type="button"></button>
+            </div>
+            <ul class="ac-filter-list">
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="pending">
+                  <span class="ac-filter-item__dot pending"></span>
+                  {{ 'custom.under_review' | t }}
+                </label>
+              </li>
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="published">
+                  <span class="ac-filter-item__dot published"></span>
+                  {{ 'custom.published' | t }}
+                </label>
+              </li>
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="rejected">
+                  <span class="ac-filter-item__dot rejected"></span>
+                  {{ 'custom.status_rejected' | t }}
+                </label>
+              </li>
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="archived">
+                  <span class="ac-filter-item__dot archived"></span>
+                  {{ 'custom.archived' | t }}
+                </label>
+              </li>
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="sold">
+                  <span class="ac-filter-item__dot sold"></span>
+                  {{ 'custom.sold' | t }}
+                </label>
+              </li>
+              <li class="ac-filter-item">
+                <label class="ac-filter-item__label">
+                  <input type="checkbox" class="ac-filter-check" value="deleted">
+                  <span class="ac-filter-item__dot deleted"></span>
+                  {{ 'custom.deleted' | t }}
+                </label>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <button class="button ac-btn-apply" id="ac-apply" type="button">{{ 'custom.apply' | t }}</button>
+        <button class="ac-btn-reset" id="ac-reset">{{ 'custom.reset_all' | t }}</button>
+      </div>
+      <div class="ac-toolbar__right">
+        <select class="ac-sort-select" id="ac-sort">
+          <option value="date_desc">{{ "custom.date" | t}} ({{ 'custom.newest' | t }})</option>
+          <option value="date_asc">{{ "custom.date" | t}} ({{ 'custom.oldest' | t }})</option>
+          <option value="name_asc">{{ 'custom.seller_name' | t }} A–Z</option>
+          <option value="name_desc">{{ 'custom.seller_name' | t }} Z–A</option>
+        </select>
+        {% render 'icon-arrowdown' %}
+      </div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="ac-stats-bar" id="ac-stats-bar">
+      <div class="ac-stat-pill ac-stat-pill--all" data-filter="all">
+        <span class="ac-stat-pill__dot all"></span>
+        {{ 'custom.all' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="pending">
+        <span class="ac-stat-pill__dot pending"></span>
+        <span id="stat-pending">0</span> {{ 'custom.under_review' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="published">
+        <span class="ac-stat-pill__dot published"></span>
+        <span id="stat-published">0</span> {{ 'custom.published' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="rejected">
+        <span class="ac-stat-pill__dot rejected"></span>
+        <span id="stat-rejected">0</span> {{ 'custom.status_rejected' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="archived">
+        <span class="ac-stat-pill__dot archived"></span>
+        <span id="stat-archived">0</span> {{ 'custom.archived' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="sold">
+        <span class="ac-stat-pill__dot sold"></span>
+        <span id="stat-sold">0</span> {{ 'custom.sold' | t }}
+      </div>
+      <div class="ac-stat-pill" data-filter="deleted">
+        <span class="ac-stat-pill__dot deleted"></span>
+        <span id="stat-deleted">0</span> {{ 'custom.deleted' | t }}
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="ac-loading" id="ac-loading">
+      <div class="ac-spinner"></div>
+      <p>{{ 'custom.loading_ads' | t }}...</p>
+    </div>
+
+    <!-- EMPTY -->
+    <div class="ac-empty" id="ac-empty" style="display:none;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <p>{{ 'custom.no_ads_found' | t }}</p>
+    </div>
+
+    <!-- TABLE -->
+    <div class="ac-table-wrap" id="ac-table-wrap" style="display:none;">
+      <table class="ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th ac-th--img img-wrapper">{{ 'custom.image' | t }}</th>
+            <th class="ac-th wapon-name">{{ 'custom.advert_title' | t }}</th>
+            <th class="ac-th seller-name">{{ 'custom.seller' | t }}</th>
+            <th class="ac-th city-name">{{ 'custom.city' | t }}</th>
+            <th class="ac-th wapon-price">{{ 'custom.price' | t }}</th>
+            <th class="ac-th date">{{ 'custom.posted_on' | t }}</th>
+            <th class="ac-th status">{{ 'custom.status' | t }}</th>
+            <th class="ac-th btn-title">{{ 'custom.action' | t }}</th>
+          </tr>
+        </thead>
+        <tbody id="ac-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="ac-pagination" id="ac-pagination" style="display:none;">
+      <button class="ac-page-btn" id="ac-prev-page">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <div class="ac-page-numbers" id="ac-page-numbers"></div>
+      <button class="ac-page-btn" id="ac-next-page">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<!-- REASON MODAL -->
+<div class="ac-modal-overlay" id="ac-reason-modal" style="display:none;">
+  <div class="ac-modal">
+    <div class="ac-modal__header">
+      <h3 class="ac-modal__title" id="ac-reason-modal-title">{{ 'custom.reject_ad' | t }}</h3>
+      <button class="ac-modal__close" id="ac-reason-modal-close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="ac-modal__body">
+      <div class="ac-modal__ad-info" id="ac-reason-modal-ad-info"></div>
+      <label class="ac-modal__label" id="ac-reason-modal-label">{{ 'custom.rejection_reason' | t }} <span
+          class="ac-required">*</span></label>
+      <textarea class="ac-modal__textarea" id="ac-reason-input" rows="4"
+        placeholder="{{ 'custom.explain_rejection' | t }}..."></textarea>
+      <div class="ac-modal__error" id="ac-reason-error" style="display:none;">{{ 'custom.provide_reason' | t }}</div>
+    </div>
+    <div class="ac-modal__footer">
+      <button class="button is-small button-secondary ac-modal__btn-cancel" id="ac-reason-cancel">{{ 'custom.cancel' | t }}</button>
+      <button class="button is-small bg-color-orange ac-modal__btn-confirm" id="ac-reason-confirm">{{ 'custom.confirm' | t }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CUSTOM CONFIRM POPUP (matches my-adverts style) ──────────────────── -->
+<div class="delete-confirm-overlay" id="ac-customConfirmOverlay" style="display:none;">
+  <div class="delete-confirm-popup">
+    <button type="button" class="delete-confirm-close" id="ac-customConfirmClose">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#F3F4F3"/>
+        <path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295a31" stroke-width="1.19938"/>
+        <path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295a31" stroke-width="1.19938" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <p class="delete-confirm-title" id="ac-customConfirmMessage"></p>
+    <div class="delete-confirm-actions">
+      <button type="button" class="delete-confirm-btn delete-confirm-btn--cancel" id="ac-customConfirmCancel">{{ 'custom.No_cancel' | t }}</button>
+      <button type="button" class="delete-confirm-btn delete-confirm-btn--confirm" id="ac-customConfirmYes"></button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS TOAST -->
+<div class="ac-toast" id="ac-toast" style="display:none;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+  <span id="ac-toast-msg">{{ 'custom.done' | t }}!</span>
+</div>
+
+<style>
+  /* ── Custom Confirm Popup (shared with my-adverts) ── */
+  .delete-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .delete-confirm-popup {
+    background: var(--color-background, #fff);
+    border-radius: 16px;
+    padding: 28px 24px 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    position: relative;
+    text-align: center;
+  }
+  .delete-confirm-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+  .delete-confirm-close:hover { opacity: 1; }
+  .delete-confirm-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin: 8px 0 24px;
+    line-height: 1.5;
+    padding: 0 20px;
+  }
+  .delete-confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .delete-confirm-btn {
+    flex: 1;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    border: none;
+  }
+  .delete-confirm-btn--cancel {
+    background: #f3f4f6;
+    color: var(--color-foreground);
+    border: 1px solid #e5e7eb;
+  }
+  .delete-confirm-btn--cancel:hover { background: #e5e7eb; }
+  .delete-confirm-btn--confirm {
+    background: var(--color-foreground);
+    color: #fff;
+  }
+  .delete-confirm-btn--confirm:hover { opacity: 0.85; }
+  .delete-confirm-btn--confirm.is-danger { background: var(--color-foreground); }
+  .delete-confirm-btn--confirm.is-danger:hover { background: #b91c1c; }
+
+  .ac-admin-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-foreground);
+    color: var(--color-background, white);
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    width: fit-content;
+    margin: 24px 0 24px auto;
+  }
+
+  .ac-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .ac-toolbar__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ac-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    min-width: 180px;
+    background: #fff;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .ac-toolbar__label {
+    white-space: nowrap;
+  }
+
+  .ac-filter-dropdown-wrap {
+    position: relative;
+    gap: 4px;
+    width: 155px;
+    height: 34px;
+    background: #FFFFFF;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+  }
+
+  .ac-filter-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 100%;
+    justify-content: space-between;
+    user-select: none;
+    height: 100%;
+    color: var(--color-foreground);
+  }
+
+  .ac-filter-trigger:hover,
+  .ac-filter-trigger.is-open {
+    border-color: var(--color-foreground);
+    color: var(--color-foreground);
+  }
+
+  .ac-filter-trigger.has-selection {
+    border-color: var(--color-foreground);
+    background: color-mix(in srgb, var(--color-foreground) 8%, white);
+  }
+
+  .ac-filter-trigger svg {
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .ac-filter-trigger.is-open svg {
+    transform: rotate(180deg);
+  }
+
+  .ac-filter-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: #fff;
+    border: 1px solid var(--color-foreground);
+    border-radius: 10px;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+    z-index: 999;
+    min-width: 200px;
+    overflow: hidden;
+  }
+
+  .ac-filter-popover.is-open {
+    display: block;
+    animation: acDropIn 0.15s ease;
+  }
+
+  @keyframes acDropIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .ac-filter-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .ac-filter-popover__title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .ac-filter-popover__clear {
+    font-size: 12px;
+    color: var(--color-foreground);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .ac-filter-popover__clear:hover { text-decoration: underline; }
+
+  .ac-filter-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+  }
+
+  .ac-filter-item { padding: 0; }
+
+  .ac-filter-item__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.1s;
+  }
+
+  .ac-filter-item__label:hover {
+    background: color-mix(in srgb, var(--color-primary, #295A31) 6%, transparent);
+  }
+
+  .ac-filter-check {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary, #295A31);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .ac-filter-item__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ac-filter-item__dot.pending   { background: #f59e0b; }
+  .ac-filter-item__dot.published { background: #10b981; }
+  .ac-filter-item__dot.rejected  { background: #FF383C; }
+  .ac-filter-item__dot.archived  { background: #8b5cf6; }
+  .ac-filter-item__dot.sold      { background: #E06D31; }
+  .ac-filter-item__dot.deleted   { background: #9ca3af; }
+  .ac-stat-pill__dot.deleted     { background: #9ca3af; }
+
+  .ac-btn-apply {
+    padding: 6px 16px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: inherit;
+  }
+
+  .ac-btn-apply:hover { opacity: 0.85; }
+
+  .ac-btn-reset {
+    padding: 6px 14px;
+    background: none;
+    color: var(--color-foreground);
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    text-decoration: underline;
+  }
+
+  .ac-sort-select {
+    padding: 6px 12px;
+    padding-right: 45px;
+    border-radius: 6px;
+    color: var(--color-foreground);
+    cursor: pointer;
+    outline: none;
+    border: none;
+    -webkit-appearance: none;
+    z-index: 1;
+    background: transparent;
+  }
+
+  .ac-toolbar__right svg {
+    position: absolute;
+    right: 10px;
+    top: 13px;
+  }
+
+  /* ── Stats Bar ── */
+  .ac-stats-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .ac-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+
+  .ac-stat-pill:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+
+  .ac-stat-pill.is-active {
+    border-color: #295A31;
+    background: color-mix(in srgb, #295A31 8%, white);
+    font-weight: 600;
+  }
+
+  .ac-stat-pill__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ac-stat-pill__dot.all       { background: #295A31; }
+  .ac-stat-pill__dot.pending   { background: #f59e0b; }
+  .ac-stat-pill__dot.published { background: #10b981; }
+  .ac-stat-pill__dot.rejected  { background: #FF383C; }
+  .ac-stat-pill__dot.archived  { background: #8b5cf6; }
+  .ac-stat-pill__dot.sold      { background: #E06D31; }
+
+  /* ── Loading / Empty ── */
+  .ac-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 80px 0;
+    color: #6b7280;
+  }
+
+  .ac-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #295A31;
+    border-radius: 50%;
+    animation: acSpin 0.8s linear infinite;
+  }
+
+  @keyframes acSpin { to { transform: rotate(360deg); } }
+
+  .ac-action-trigger .ac-btn-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(0,0,0,0.15);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: acSpin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .ac-empty {
+    text-align: center;
+    padding: 80px 0;
+    color: #6b7280;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── Table ── */
+  .ac-table-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 120px;
+  }
+
+  .ac-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+    padding: 1px 6px;
+  }
+
+  .ac-table thead tr th,
+  .ac-table #ac-tbody .ac-tr td {
+    border-top: 1px solid #E4E4E4;
+    border-bottom: 1px solid #e4e4e4;
+    background: #fff;
+  }
+
+  .ac-table thead,
+  .ac-table #ac-tbody .ac-tr {
+    box-shadow: 0px 0px 1px rgba(0, 0, 0, 1);
+  }
+
+  .ac-th {
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #f9fafb;
+    white-space: nowrap;
+  }
+
+  .ac-th--img { width: 90px; }
+
+  .ac-td {
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--color-foreground);
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+  }
+
+  .ac-tr:last-child .ac-td { border-bottom: none; }
+  .ac-tr:hover { background: #fafafa; }
+  .ac-tr.is-deleted { opacity: 0.5; }
+
+  .ac-table #ac-tbody .ac-tr td.ac-td-img-wrapper {
+    background-color: #f3f4f4;
+  }
+
+  .ac-td-img {
+    width: 170px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .ac-td-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .ac-ad-title  { margin-bottom: 2px; }
+  .ac-ad-sub    { font-size: 12px; color: #295A31A6; }
+  .ac-seller-name  { font-weight: 500; }
+  .ac-seller-alias { font-size: 12px; color: #295A31A6; }
+
+  .ac-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    word-break: break-word;
+    text-align: center;
+  }
+
+  .ac-status-badge.pending     { color: #92400e; }
+  .ac-status-badge.published   { color: var(--color-foreground); }
+  .ac-status-badge.rejected    { color: #FF383C; }
+  .ac-status-badge.archived    { color: #5b21b6; }
+  .ac-status-badge.sold        { color: #E06D31; }
+  .ac-status-badge.deleted     { color: #9ca3af; }
+  .ac-status-badge.deactivated { color: #854d0e; }
+
+  .ac-admin-note {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    font-style: italic;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Custom Action Dropdown ── */
+  .ac-action-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ac-action-select-wrap { position: relative; }
+
+  .ac-action-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px 7px 12px;
+    min-width: 145px;
+    border: 1px solid var(--color-foreground);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--color-foreground);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .ac-action-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .ac-action-trigger svg {
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .ac-action-trigger.is-open svg { transform: rotate(180deg); }
+
+  .ac-action-trigger.is-published { color: #065f46; border-color: #6ee7b7; }
+  .ac-action-trigger.is-rejected  { color: #FF383C; border-color: #FF383C; }
+  .ac-action-trigger.is-archived  { color: #5b21b6; border-color: #c4b5fd; }
+  .ac-action-trigger.is-sold      { color: #E06D31; border-color: #E06D31; }
+
+  .ac-action-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 500;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    overflow: hidden;
+  }
+
+  .ac-action-dropdown.is-open {
+    display: block;
+    animation: acDropIn 0.15s ease;
+  }
+
+  .ac-action-item {
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s;
+    color: #374151;
+  }
+
+  .ac-action-item:hover                     { background: #f3f4f6; }
+  .ac-action-item[data-value="delete"]      { color: #dc2626; }
+  .ac-action-item[data-value="reject"]      { color: #FF383C; }
+  .ac-action-item[data-value="publish"]     { color: #065f46; }
+  .ac-action-item[data-value="archive"]     { color: #5b21b6; }
+  .ac-action-item[data-value="sold"]        { color: #E06D31; }
+
+  .ac-see-ad-btn {
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  /* ── Pagination ── */
+  .ac-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 40px;
+  }
+
+  .ac-page-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ac-page-btn:hover { background: #295A31; color: white; border-color: #295A31; }
+  .ac-page-btn:hover svg { stroke: white; }
+  .ac-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .ac-page-numbers { display: flex; gap: 4px; }
+
+  .ac-page-num {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .ac-page-num:hover  { border-color: #295A31; color: #295A31; }
+  .ac-page-num.active { background: #295A31; color: white; border-color: #295A31; }
+
+  .ac-page-dots {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #9ca3af;
+  }
+
+  /* ── Modal ── */
+  .ac-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .ac-modal {
+    background: var(--color-background);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+
+  .ac-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .ac-modal__title { font-size: 18px; font-weight: 700; margin: 0; }
+
+  .ac-modal__close {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .ac-modal__close:hover { background: #e5e7eb; }
+
+  .ac-modal__body { padding: 20px 24px; }
+
+  .ac-modal__ad-info {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .ac-modal__ad-info strong { color: #111827; }
+
+  .ac-modal__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .ac-required { color: #dc2626; }
+
+  .ac-modal__textarea {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+
+  .ac-modal__textarea:focus { border-color: #295A31; }
+
+  .ac-modal__error {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #dc2626;
+    background: #fef2f2;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .ac-modal__footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .ac-modal__btn-cancel {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .ac-modal__btn-cancel:hover { background: #f3f4f6; }
+
+  .ac-modal__btn-confirm {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-foreground);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .ac-modal__btn-confirm.is-danger       { background: #c63737; }
+  .ac-modal__btn-confirm.is-danger:hover { background: #b91c1c; }
+
+  /* ── Toast ── */
+  .ac-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827;
+    color: white;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 99999;
+    animation: acFadeUp 0.3s ease;
+    white-space: nowrap;
+  }
+
+  @keyframes acFadeUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .ac-table-wrap { overflow-x: auto; }
+    .ac-table { min-width: 900px; }
+  }
+
+  .admin-table-label {
+    display: none;
+  }
+
+  @media (max-width: 700px) {
+    .ac-toolbar { flex-direction: column; align-items: flex-start; }
+    .ac-toolbar__right {
+      width: 100%;
+    }
+
+    .ac-stats-bar {
+      gap: 5px;
+    }
+
+    .ac-stat-pill {
+      gap: 5px;
+      padding: 5px 12px;
+    }
+
+    .ac-table #ac-tbody .ac-tr {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 14px;
+    }
+
+    .ac-table {
+      min-width: 100%;
+    }
+
+    .ac-table #ac-tbody .ac-tr td {
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+    }
+
+    .ac-td-img {
+      width: 100%;
+      height: 120px;
+    }
+
+    .ac-table thead {
+      display: none;
+    }
+
+    .admin-table-label {
+      display: block;
+      padding-bottom: 6px;
+    }
+
+    .ac-td.city-name,
+    .ac-td.wapon-price,
+    .ac-td.date,
+    .ac-td.status {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    'use strict';
+
+    const API = 'https://shopify-gunloupe.addwebprojects.com';
+    const PER_PAGE = 10;
+
+     // ── Get dynamic route ──────────────────────────────────────────────────
+    const R = window.GunloupeRoutes || {};
+    const AD_DETAIL_BASE = R.adDetail || '/pages/detalle-anuncio';
+
+    // ── State ──────────────────────────────────────────────────────────────
+    let allAds = [];
+    let filteredAds = [];
+    let currentPage = 1;
+    let activeFilters = [];
+    let activeSort = 'date_desc';
+    let pendingAction = null;
+
+    // ── DOM refs ───────────────────────────────────────────────────────────
+    const loadingEl  = document.getElementById('ac-loading');
+    const emptyEl    = document.getElementById('ac-empty');
+    const tableWrap  = document.getElementById('ac-table-wrap');
+    const tbody      = document.getElementById('ac-tbody');
+    const paginEl    = document.getElementById('ac-pagination');
+    const modal      = document.getElementById('ac-reason-modal');
+    const modalTitle = document.getElementById('ac-reason-modal-title');
+    const modalAdInfo= document.getElementById('ac-reason-modal-ad-info');
+    const modalLabel = document.getElementById('ac-reason-modal-label');
+    const reasonInput= document.getElementById('ac-reason-input');
+    const reasonError= document.getElementById('ac-reason-error');
+    const confirmBtn = document.getElementById('ac-reason-confirm');
+
+    // ── Custom confirm popup ───────────────────────────────────────────────
+    const customConfirmOverlay  = document.getElementById('ac-customConfirmOverlay');
+    const customConfirmMessage  = document.getElementById('ac-customConfirmMessage');
+    const customConfirmYesBtn   = document.getElementById('ac-customConfirmYes');
+    const customConfirmNoBtn    = document.getElementById('ac-customConfirmCancel');
+    const customConfirmCloseBtn = document.getElementById('ac-customConfirmClose');
+
+    let _confirmCallback = null;
+
+    function customConfirm(message, onConfirm, opts) {
+      opts = opts || {};
+      customConfirmMessage.textContent = message;
+      customConfirmYesBtn.textContent  = opts.confirmLabel || 'Yes';
+      customConfirmYesBtn.classList.toggle('is-danger', !!opts.danger);
+      _confirmCallback = onConfirm;
+      customConfirmOverlay.style.display = 'flex';
+    }
+
+    function closeCustomConfirm() {
+      customConfirmOverlay.style.display = 'none';
+      _confirmCallback = null;
+    }
+
+    customConfirmYesBtn.addEventListener('click', function () {
+      const cb = _confirmCallback;
+      closeCustomConfirm();
+      if (cb) cb();
+    });
+    customConfirmNoBtn.addEventListener('click', closeCustomConfirm);
+    customConfirmCloseBtn.addEventListener('click', closeCustomConfirm);
+    customConfirmOverlay.addEventListener('click', function (e) {
+      if (e.target === customConfirmOverlay) closeCustomConfirm();
+    });
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function formatDate(str) {
+      if (!str) return '—';
+      return new Date(str).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatPrice(val, adCurrency) {
+      if (!val) return 'N/A';
+      const n = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+      if (isNaN(n) || n === 0) return 'N/A';
+
+      const sourceCurrency = adCurrency || 'EUR';
+      const currency = localStorage.getItem('currency') || 'EUR';
+      const rate = parseFloat(localStorage.getItem('eur_to_usd') || '1.08');
+      const nInEur = sourceCurrency === 'USD' ? n / rate : n;
+
+      if (currency === 'USD') return '$' + Math.round(nInEur * rate);
+      return nInEur.toLocaleString('en-US') + '€';
+    }
+
+    function parseImages(ad) {
+      try {
+        const arr = JSON.parse(ad.ad_images || '[]');
+        if (arr.length) return arr[0];
+      } catch {}
+      return ad.product_image || '';
+    }
+
+    function statusLabel(s) {
+      const map = {
+        pending: '{{ "custom.under_review" | t }}', published: '{{ "custom.published" | t }}', rejected: '{{ "custom.rejected" | t }}',
+        archived: '{{ "custom.archived" | t }}', sold: '{{ "custom.sold" | t }}', deleted: '{{ "custom.deleted" | t }}', deactivated: '{{ "custom.deactivated" | t }}'
+      };
+      return map[s] || s;
+    }
+
+    function showToast(msg, isError) {
+      const toast = document.getElementById('ac-toast');
+      document.getElementById('ac-toast-msg').textContent = msg;
+      toast.style.background = isError ? '#dc2626' : '#111827';
+      toast.style.display = 'flex';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // ── Fetch ──────────────────────────────────────────────────────────────
+    async function fetchAds() {
+      loadingEl.style.display = 'flex';
+      emptyEl.style.display   = 'none';
+      tableWrap.style.display  = 'none';
+      paginEl.style.display    = 'none';
+
+      try {
+        const res  = await fetch(API + '/admin/ads?t=' + Date.now());
+        const data = await res.json();
+        allAds = data.ads || [];
+        updateStats();
+        applyFilterAndSort();
+      } catch (e) {
+        loadingEl.style.display = 'none';
+        showToast('{{ "custom.ads_load_failed" | t }}', true);
+      }
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────────────
+    function updateStats() {
+      const counts = { pending: 0, published: 0, rejected: 0, archived: 0, sold: 0, deleted: 0 };
+      allAds.forEach(a => { if (counts[a.ad_status] !== undefined) counts[a.ad_status]++; });
+      Object.keys(counts).forEach(k => {
+        const el = document.getElementById('stat-' + k);
+        if (el) el.textContent = counts[k];
+      });
+    }
+
+    // ── Filter + Sort ──────────────────────────────────────────────────────
+    function applyFilterAndSort(preservePage) {
+      let ads = [...allAds];
+
+      if (activeFilters.length > 0) {
+        ads = ads.filter(a => activeFilters.includes(a.ad_status));
+      }
+
+      // Ad ordering uses the numeric part of the metaobject gid, not createdAt.
+      // The API's `createdAt` is really the metaobject's updatedAt (Shopify
+      // exposes no createdAt for metaobjects), so it means "last modified" —
+      // incrementing a view counter or editing an ad re-dated it and pushed it
+      // to the top. Metaobject IDs increase with creation, so they give true
+      // newest-first order.
+      function adOrder(ad) {
+        var n = parseInt(String((ad && ad.id) || '').split('/').pop(), 10);
+        return isNaN(n) ? 0 : n;
+      }
+      ads.sort((a, b) => {
+        if (activeSort === 'date_desc') return adOrder(b) - adOrder(a);
+        if (activeSort === 'date_asc')  return adOrder(a) - adOrder(b);
+        if (activeSort === 'name_asc') {
+          const nameA = (a.seller_name || a.seller_email || '').trim();
+          const nameB = (b.seller_name || b.seller_email || '').trim();
+          return nameA.localeCompare(nameB);
+        }
+
+        if (activeSort === 'name_desc') {
+          const nameA = (a.seller_name || a.seller_email || '').trim();
+          const nameB = (b.seller_name || b.seller_email || '').trim();
+          return nameB.localeCompare(nameA);
+        }
+        return 0;
+      });
+
+      filteredAds = ads;
+
+      if (!preservePage) {
+        currentPage = 1;
+      } else {
+        const totalPages = Math.max(1, Math.ceil(filteredAds.length / PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+      }
+
+      renderTable();
+    }
+
+    // ── Render table ───────────────────────────────────────────────────────
+    function renderTable() {
+      loadingEl.style.display = 'none';
+
+      if (!filteredAds.length) {
+        emptyEl.style.display   = 'flex';
+        tableWrap.style.display = 'none';
+        paginEl.style.display   = 'none';
+        return;
+      }
+
+      emptyEl.style.display   = 'none';
+      tableWrap.style.display = 'block';
+
+      const totalPages = Math.ceil(filteredAds.length / PER_PAGE);
+      const start      = (currentPage - 1) * PER_PAGE;
+      const pageAds    = filteredAds.slice(start, start + PER_PAGE);
+
+      tbody.innerHTML = pageAds.map(ad => renderRow(ad)).join('');
+
+      // ── Bind custom dropdown triggers ──
+      tbody.querySelectorAll('.ac-action-trigger').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          document.querySelectorAll('.ac-action-dropdown.is-open').forEach(d => {
+            if (d !== this.parentElement.querySelector('.ac-action-dropdown')) {
+              d.classList.remove('is-open');
+            }
+          });
+          document.querySelectorAll('.ac-action-trigger.is-open').forEach(b => {
+            if (b !== this) b.classList.remove('is-open');
+          });
+          const dropdown = this.parentElement.querySelector('.ac-action-dropdown');
+          if (!dropdown) return;
+          const isOpen = dropdown.classList.contains('is-open');
+          dropdown.classList.toggle('is-open', !isOpen);
+          this.classList.toggle('is-open', !isOpen);
+        });
+      });
+
+      // ── Bind custom dropdown items ──
+      tbody.querySelectorAll('.ac-action-item').forEach(item => {
+        item.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const dropdown = this.closest('.ac-action-dropdown');
+          const wrap     = this.closest('.ac-action-select-wrap');
+          const btn      = wrap.querySelector('.ac-action-trigger');
+          const action   = this.dataset.value;
+          const adId     = btn.dataset.adId;
+          const adTitle  = btn.dataset.adTitle;
+
+          dropdown.classList.remove('is-open');
+          btn.classList.remove('is-open');
+
+          if (action === 'reject' || action === 'archive') {
+            openReasonModal(action, adId, adTitle, btn);
+          } else if (action === 'delete') {
+            // ── Custom confirm instead of native alert ──
+            customConfirm(
+              `{{ "custom.delete_confirm_heading" | t }}`,
+              function () { updateAdStatus(adId, 'deleted', '', btn); },
+              { confirmLabel: '{{ "custom.Yes_delete" | t }}', danger: true }
+            );
+          } else if (action === 'publish') {
+            updateAdStatus(adId, 'published', '', btn);
+          } else if (action === 'sold') {
+            updateAdStatus(adId, 'sold', '', btn);
+          }
+        });
+      });
+
+      if (totalPages > 1) {
+        paginEl.style.display = 'flex';
+        renderPagination(totalPages);
+      } else {
+        paginEl.style.display = 'none';
+      }
+
+      if (typeof updatePrices === 'function') updatePrices();
+    }
+
+    // ── Render row ─────────────────────────────────────────────────────────
+    function renderRow(ad) {
+      const imgSrc = parseImages(ad);
+      const imgHtml = imgSrc
+        ? `<img src="${imgSrc}" alt="${ad.firearm_brand || ''}" loading="lazy" />`
+        : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5">
+               <rect x="3" y="3" width="18" height="18" rx="2"/>
+               <circle cx="8.5" cy="8.5" r="1.5"/>
+               <polyline points="21 15 16 10 5 21"/>
+             </svg>
+           </div>`;
+
+      const numericId   = ad.id.split('/').pop();
+      const status      = ad.ad_status || 'pending';
+      const isDeleted   = status === 'deleted';
+      const disabledAttr = isDeleted ? 'disabled' : '';
+
+      let triggerClass  = 'ac-action-trigger';
+      let selectedLabel = '{{ 'custom.select_action' | t }}';
+
+      if (status === 'published')  { triggerClass += ' is-published'; selectedLabel = '{{ 'custom.published' | t }}'; }
+      else if (status === 'rejected')  { triggerClass += ' is-rejected';  selectedLabel = '{{ 'custom.rejected' | t }}'; }
+      else if (status === 'sold')      { triggerClass += ' is-sold';      selectedLabel = '{{ 'custom.sold' | t }}'; }
+      else if (status === 'pending')   { triggerClass += ' is-pending';   selectedLabel = '{{ 'custom.under_review' | t }}'; }
+
+      const options   = buildOptions(status);
+      const adminNote = ad.admin_note
+        ? `<div class="ac-admin-note hidden" title="${ad.admin_note}">Note: ${ad.admin_note}</div>` : '';
+
+      return `
+      <tr class="ac-tr${isDeleted ? ' is-deleted' : ''}" data-ad-id="${ad.id}">
+        <td class="ac-td ac-td-img-wrapper">
+          <div class="admin-table-label">{{ 'custom.image' | t }}:</div>
+          <div class="ac-td-img">${imgHtml}</div>
+        </td>
+        <td class="ac-td wapon-name">
+          <div class="admin-table-label">{{ 'custom.advert_title' | t }}:</div>
+          <div class="ac-ad-title">${ad.firearm_brand || ''} || ${ad.firearm_model || ''}</div>
+          <div class="ac-ad-sub">${ad.firearm_type || ''} ${ad.firearm_caliber ? '· ' + ad.firearm_caliber : ''}</div>
+        </td>
+        <td class="ac-td seller-name">
+          <div class="admin-table-label">{{ 'custom.seller' | t }}:</div>
+          <div class="ac-seller-name">${ad.seller_name || ad.seller_email || '—'}</div>
+          <div class="ac-seller-alias">${ad.seller_email ? `<a href="mailto:${ad.seller_email}" style="color:inherit;text-decoration:none;">${ad.seller_email}</a>` : ''}</div>
+        </td>
+        <td class="ac-td city-name">
+          <div class="admin-table-label">{{ 'custom.city' | t }}:</div>
+          ${ad.city || '—'}</td>
+        <td class="ac-td wapon-price">
+          <div class="admin-table-label">{{ 'custom.price' | t }}:</div>
+          <span class="price" data-price="${ad.price || 0}" data-currency="${ad.currency || 'EUR'}">${formatPrice(ad.price, ad.currency)}</span>
+        </td>
+        <td class="ac-td date" style="white-space:nowrap;">
+          <div class="admin-table-label">{{ 'custom.posted_on' | t }}:</div>
+          ${formatDate(ad.createdAt)}</td>
+        <td class="ac-td status">
+          <div class="admin-table-label">{{ 'custom.status' | t }}:</div>
+          <span class="ac-status-badge ${status} btn-div">${statusLabel(status)}</span>
+          ${adminNote}
+        </td>
+        <td class="ac-td btn-div">
+          <div class="admin-table-label">{{ 'custom.action' | t }}:</div>
+          <div class="ac-action-wrap">
+            <div class="ac-action-select-wrap">
+              <button
+                class="${triggerClass}"
+                type="button"
+                data-ad-id="${ad.id}"
+                data-ad-title="${(ad.firearm_brand || '') + ' ' + (ad.firearm_model || '')}"
+                data-current-status="${status}"
+                ${disabledAttr}
+              >
+                <span class="ac-action-trigger__label">${selectedLabel}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              ${!isDeleted ? `
+              <ul class="ac-action-dropdown">
+                ${options}
+              </ul>` : ''}
+            </div>
+            <a href="${AD_DETAIL_BASE}?handle=${numericId}&admin=1" class="button is-small button-secondary ac-see-ad-btn">{{ "custom.see_ad" | t }}</a>
+          </div>
+        </td>
+      </tr>`;
+    }
+
+    // ── Build dropdown options ─────────────────────────────────────────────
+    function buildOptions(currentStatus) {
+      const allOptions = [
+        { value: 'publish', label: '{{ "custom.publish" | t  }}',       show: ['pending', 'rejected', 'archived', 'deactivated'] },
+        { value: 'reject',  label: '{{ 'custom.reject' | t }}',         show: ['pending', 'published'] },
+        { value: 'archive', label: '{{ 'custom.archive' | t }}',        show: ['pending', 'published', 'rejected'] },
+        { value: 'sold',    label: '{{ 'custom.mark_as_sold' | t }}',   show: ['published'] },
+        { value: 'delete',  label: '{{ 'custom.delete' | t }}',         show: ['pending', 'published', 'rejected', 'archived', 'sold', 'deactivated'] },
+      ];
+      return allOptions
+        .filter(o => o.show.includes(currentStatus))
+        .map(o => `<li class="ac-action-item" data-value="${o.value}">${o.label}</li>`)
+        .join('');
+    }
+
+    // ── Close dropdowns when clicking outside ──────────────────────────────
+    document.addEventListener('click', function () {
+      document.querySelectorAll('.ac-action-dropdown.is-open').forEach(d => d.classList.remove('is-open'));
+      document.querySelectorAll('.ac-action-trigger.is-open').forEach(b => b.classList.remove('is-open'));
+    });
+
+    // ── Reason modal ───────────────────────────────────────────────────────
+    function openReasonModal(action, adId, adTitle, triggerBtn) {
+      pendingAction = { action, adId, adTitle, triggerBtn };
+      const isReject = action === 'reject';
+      modalTitle.textContent = isReject ? '{{ "custom.reject_ad" | t  }}' : '{{ "custom.archive_ad" | t  }}';
+      modalLabel.innerHTML   = isReject
+        ? '{{ "custom.rejection_For_reason" | t }} <span class="ac-required">*</span>'
+        : '{{ "custom.archive_For_reason" | t }} <span class="ac-required">*</span>';
+      modalAdInfo.innerHTML  = `<strong>${adTitle}</strong><br>{{ 'custom.notify_seller_email' | t }}`;
+      reasonInput.value       = '';
+      reasonInput.placeholder = isReject
+        ? '{{ "custom.explain_rejection" | t  }}...'
+        : '{{ "custom.explain_ad_archived" | t  }}...';
+      reasonError.style.display = 'none';
+      confirmBtn.className = 'ac-modal__btn-confirm' + (isReject ? ' is-danger' : '');
+      confirmBtn.textContent = isReject ? '{{ "custom.reject_ad" | t  }}' : '{{ "custom.archive_ad" | t  }}';
+      modal.style.display = 'flex';
+      setTimeout(() => reasonInput.focus(), 100);
+    }
+
+    function closeReasonModal() {
+      modal.style.display = 'none';
+      pendingAction = null;
+    }
+
+    document.getElementById('ac-reason-modal-close').addEventListener('click', closeReasonModal);
+    document.getElementById('ac-reason-cancel').addEventListener('click', closeReasonModal);
+    // modal.addEventListener('click', function (e) { if (e.target === modal) closeReasonModal(); });
+
+    confirmBtn.addEventListener('click', function () {
+      if (!pendingAction) return;
+      const reason = reasonInput.value.trim();
+      if (!reason) { reasonError.style.display = 'block'; return; }
+      reasonError.style.display = 'none';
+      const statusMap = { reject: 'rejected', archive: 'archived' };
+      updateAdStatus(pendingAction.adId, statusMap[pendingAction.action], reason, pendingAction.triggerBtn);
+      closeReasonModal();
+    });
+
+    // ── Update ad status ───────────────────────────────────────────────────
+    // ── Update ad status ───────────────────────────────────────────────────
+    async function updateAdStatus(adId, newStatus, adminNote, triggerBtn) {
+
+      // ── 1. Show loader on button immediately ──────────────────────────
+      const liveTrigger = document.querySelector(`.ac-action-trigger[data-ad-id="${adId}"]`);
+      let originalBtnHTML = '';
+      if (liveTrigger) {
+        originalBtnHTML = liveTrigger.innerHTML;
+        liveTrigger.disabled = true;
+        liveTrigger.innerHTML = `
+          <span class="ac-action-trigger__label">{{ 'custom.updating' | t }}...</span>
+          <span class="ac-btn-spinner"></span>
+        `;
+      }
+
+      try {
+        const body = { isAdminUpdate: true, adStatus: newStatus };
+        if (adminNote) body.adminNote = adminNote;
+
+        const numericId = adId.split('/').pop();
+        const res  = await fetch(API + '/my-adverts/' + encodeURIComponent(numericId), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // ── 2. Update allAds state ──────────────────────────────────
+          const idx = allAds.findIndex(a => a.id === adId);
+          if (idx > -1) {
+            allAds[idx].ad_status = newStatus;
+            if (adminNote) allAds[idx].admin_note = adminNote;
+          }
+
+          // ── 3. Update badge + button label simultaneously ───────────
+          const tr = document.querySelector(`tr[data-ad-id="${adId}"]`);
+          if (tr) {
+            const badgeEl = tr.querySelector('.ac-status-badge');
+            if (badgeEl) {
+              badgeEl.className   = 'ac-status-badge ' + newStatus + ' btn-div';
+              badgeEl.textContent = statusLabel(newStatus);
+            }
+          }
+
+          if (liveTrigger) {
+            liveTrigger.disabled = false;
+            liveTrigger.dataset.currentStatus = newStatus;
+
+            // Update trigger color class
+            liveTrigger.className = liveTrigger.className
+              .replace(/\bis-published\b|\bis-rejected\b|\bis-sold\b|\bis-pending\b|\bis-archived\b/g, '')
+              .trim();
+            if (newStatus === 'published')  liveTrigger.classList.add('is-published');
+            else if (newStatus === 'rejected') liveTrigger.classList.add('is-rejected');
+            else if (newStatus === 'sold')     liveTrigger.classList.add('is-sold');
+
+            liveTrigger.innerHTML = `
+              <span class="ac-action-trigger__label">${statusLabel(newStatus)}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            `;
+
+            // Rebuild dropdown options for new status
+            const dropdown = liveTrigger.parentElement.querySelector('.ac-action-dropdown');
+            if (dropdown) {
+              dropdown.innerHTML = buildOptions(newStatus);
+              // Rebind click events on new items
+              dropdown.querySelectorAll('.ac-action-item').forEach(item => {
+                item.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  const action   = this.dataset.value;
+                  const btn      = liveTrigger;
+                  const aId      = btn.dataset.adId;
+                  const aTitle   = btn.dataset.adTitle;
+                  dropdown.classList.remove('is-open');
+                  btn.classList.remove('is-open');
+                  if (action === 'reject' || action === 'archive') {
+                    openReasonModal(action, aId, aTitle, btn);
+                  } else if (action === 'delete') {
+                    customConfirm(
+                      `{{ "custom.delete_confirm_heading" | t }}`,
+                      function () { updateAdStatus(aId, 'deleted', '', btn); },
+                      { confirmLabel: '{{ "custom.Yes_delete" | t }}', danger: true }
+                    );
+                  } else if (action === 'publish') {
+                    updateAdStatus(aId, 'published', '', btn);
+                  } else if (action === 'sold') {
+                    updateAdStatus(aId, 'sold', '', btn);
+                  }
+                });
+              });
+            }
+          }
+
+          updateStats();
+          showToast('{{ "custom.done" | t }}! ' + statusLabel(newStatus));
+
+        } else {
+          // ── Restore button on failure ───────────────────────────────
+          if (liveTrigger) {
+            liveTrigger.disabled = false;
+            liveTrigger.innerHTML = originalBtnHTML;
+          }
+          showToast('{{ "custom.update_failed" | t }}', true);
+        }
+      } catch (e) {
+        // ── Restore button on error ─────────────────────────────────
+        if (liveTrigger) {
+          liveTrigger.disabled = false;
+          liveTrigger.innerHTML = originalBtnHTML;
+        }
+        showToast('{{ "custom.network_error" | t }}', true);
+      }
+    }
+
+    // ── Pagination ─────────────────────────────────────────────────────────
+    function renderPagination(totalPages) {
+      const nums    = document.getElementById('ac-page-numbers');
+      nums.innerHTML = '';
+      const prevBtn = document.getElementById('ac-prev-page');
+      const nextBtn = document.getElementById('ac-next-page');
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+
+      const pages = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('...');
+        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+        if (currentPage < totalPages - 2) pages.push('...');
+        pages.push(totalPages);
+      }
+
+      pages.forEach(p => {
+        if (p === '...') {
+          const dots = document.createElement('span');
+          dots.className   = 'ac-page-dots';
+          dots.textContent = '...';
+          nums.appendChild(dots);
+        } else {
+          const btn = document.createElement('button');
+          btn.className   = 'ac-page-num' + (p === currentPage ? ' active' : '');
+          btn.textContent = p;
+          btn.addEventListener('click', () => {
+            currentPage = p;
+            renderTable();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+          nums.appendChild(btn);
+        }
+      });
+    }
+
+    document.getElementById('ac-prev-page').addEventListener('click', () => {
+      if (currentPage > 1) { currentPage--; renderTable(); }
+    });
+    document.getElementById('ac-next-page').addEventListener('click', () => {
+      const total = Math.ceil(filteredAds.length / PER_PAGE);
+      if (currentPage < total) { currentPage++; renderTable(); }
+    });
+
+    // ── Filter dropdown ────────────────────────────────────────────────────
+    const filterTrigger = document.getElementById('ac-filter-trigger');
+    const filterPopover = document.getElementById('ac-filter-popover');
+    const filterLabel   = document.getElementById('ac-filter-label');
+    const filterClear   = document.getElementById('ac-filter-clear');
+    const filterChecks  = document.querySelectorAll('.ac-filter-check');
+
+    function updateFilterLabel() {
+      if (!activeFilters.length) {
+        filterLabel.textContent = '{{ "custom.all" | t }}';
+        filterTrigger.classList.remove('has-selection');
+      } else {
+        const labelMap = {
+          pending: '{{ "custom.under_review" | t }}', published: '{{ "custom.publish" | t }}', rejected: '{{ "custom.status_rejected" | t }}',
+          archived: '{{ "custom.archived" | t }}', sold: '{{ "custom.sold" | t }}', deleted: '{{ "custom.deleted" | t }}'
+        };
+        const labels = activeFilters.map(f => labelMap[f] || f);
+        filterLabel.textContent = labels.length <= 2
+          ? labels.join(', ')
+          : labels[0] + ' +' + (labels.length - 1);
+        filterTrigger.classList.add('has-selection');
+      }
+    }
+
+    function syncCheckboxes() {
+      filterChecks.forEach(cb => { cb.checked = activeFilters.includes(cb.value); });
+    }
+
+    function syncStatPills() {
+      document.querySelectorAll('.ac-stat-pill').forEach(pill => {
+        pill.classList.remove('is-active');
+        const filter = pill.dataset.filter;
+        if (filter === 'all' && activeFilters.length === 0) {
+          pill.classList.add('is-active');
+        } else if (activeFilters.length === 1 && activeFilters[0] === filter) {
+          pill.classList.add('is-active');
+        }
+      });
+    }
+
+    filterTrigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isOpen = filterPopover.classList.contains('is-open');
+      filterPopover.classList.toggle('is-open', !isOpen);
+      filterTrigger.classList.toggle('is-open', !isOpen);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!document.getElementById('ac-filter-dropdown-wrap').contains(e.target)) {
+        filterPopover.classList.remove('is-open');
+        filterTrigger.classList.remove('is-open');
+      }
+    });
+
+    filterClear.addEventListener('click', function () {
+      activeFilters = [];
+      syncCheckboxes();
+      updateFilterLabel();
+    });
+
+    document.getElementById('ac-apply').addEventListener('click', function () {
+      activeFilters = Array.from(filterChecks).filter(cb => cb.checked).map(cb => cb.value);
+      updateFilterLabel();
+      syncStatPills();
+      filterPopover.classList.remove('is-open');
+      filterTrigger.classList.remove('is-open');
+      applyFilterAndSort(false);
+    });
+
+    document.getElementById('ac-stats-bar').addEventListener('click', function (e) {
+      const pill = e.target.closest('.ac-stat-pill');
+      if (!pill) return;
+      const filter = pill.dataset.filter;
+
+      if (filter === 'all') {
+        activeFilters = [];
+      } else {
+        activeFilters = [filter];
+      }
+
+      syncCheckboxes();
+      updateFilterLabel();
+      syncStatPills();
+      applyFilterAndSort(false);
+    });
+
+    document.getElementById('ac-reset').addEventListener('click', () => {
+      activeFilters = [];
+      activeSort    = 'date_desc';
+      syncCheckboxes();
+      updateFilterLabel();
+      syncStatPills();
+      document.getElementById('ac-sort').value = 'date_desc';
+      applyFilterAndSort(false);
+    });
+
+    document.getElementById('ac-sort').addEventListener('change', function () {
+      activeSort = this.value;
+      applyFilterAndSort(false);
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    fetchAds();
+
+    // ── Silent background refresh every 30s ───────────────────────────────
+    // Only re-fetches if no modal is open — safe for admin workflow
+    setInterval(async function () {
+      const reasonModalOpen  = document.getElementById('ac-reason-modal').style.display === 'flex';
+      const confirmModalOpen = document.getElementById('ac-customConfirmOverlay').style.display === 'flex';
+
+      // Don't refresh if admin is actively doing something
+      if (reasonModalOpen || confirmModalOpen) return;
+
+      try {
+        const res       = await fetch(API + '/admin/ads?t=' + Date.now());
+        const data      = await res.json();
+        const freshAds  = data.ads || [];
+
+        // Only re-render if ad count changed
+        if (freshAds.length !== allAds.length) {
+          allAds = freshAds;
+          updateStats();
+          applyFilterAndSort(true);
+        }
+      } catch (e) {
+        // Silent fail — no toast for background refresh
+      }
+    }, 30000);
+
+  })();
+</script>
+
+{% else %}
+
+<div style="text-align:center;padding:100px 24px;">
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"
+    style="margin: 0 auto; margin-bottom:16px;">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+  <h2 style="font-size:22px;color:#111;margin:0 0 8px;">Access Denied</h2>
+  <p style="color:#6b7280;">You don't have permission to view this page.</p>
+  <a href="/"
+    style="display:inline-block;margin-top:20px;padding:10px 24px;background:#295A31;color:white;border-radius:8px;text-decoration:none;font-size:14px;">Go
+    Home</a>
+</div>
+
+{% endif %}
+
+{% schema %}
+{
+"name": "Ads Console",
+"settings": [
+{ "type": "header", "content": "Layout" },
+{ "type": "range", "id": "padding_top", "label": "Padding Top", "min": 0, "max": 100, "step": 4, "default": 0 },
+{ "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 100, "step": 4, "default": 40 }
+],
+"presets": [{ "name": "Ads Console" }]
+}
+{% endschema %}

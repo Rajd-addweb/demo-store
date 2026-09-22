@@ -1,0 +1,28 @@
+{% assign limit_count = 500 %}
+
+<div class="product-grid search-results">
+
+  <p class="search-count" id="searchCount">{{ search.results_count }} products found</p>
+
+  {% for product in search.results limit: limit_count %}
+    {% if product.object_type == 'product' %}
+
+      <div class="resource-list__item">
+        {% render 'product-card', product: product %}
+      </div>
+
+    {% endif %}
+  {% endfor %}
+
+  {% if search.results_count == 0 %}
+    <div id="noSearchResults" class="no-products" style="width: 300px;margin: 0 auto;">
+        <img
+          src="https://cdn.shopify.com/s/files/1/0977/9986/4694/files/no-result.svg?v=1776939321"
+          alt="No products found"
+          width="200"
+          height="200"
+        >
+      </div>
+  {% endif %}
+
+</div>

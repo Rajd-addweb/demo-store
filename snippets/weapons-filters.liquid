@@ -1,0 +1,1054 @@
+{%- comment -%}
+  TEMPORARY — THIS SPRINT ONLY: the Peso filter UI below is hidden (see the
+  `continue` block further down), so this fetch has nothing left to feed —
+  commented out to stop firing pointless Storefront API calls on every
+  collection page load. Restore together with that `continue` block.
+{%- endcomment -%}
+{%- comment -%}
+<!-- PESO RANGE SLIDER WITH STOREFRONT API + REAL-TIME FILTERING -->
+<script>
+(function() {
+  'use strict';
+  
+  const STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+  const SHOP_DOMAIN = 'gunloupe.myshopify.com';
+  const API_VERSION = '2024-01';
+  
+  // Get collection handle from URL
+  const collectionHandle = window.location.pathname.split('/')[2];
+  
+  console.log('Fetching all peso values for collection:', collectionHandle);
+  
+  async function fetchAllPesoValues() {
+    try {
+      const pesoKgValues = new Set();
+      const pesoLbsValues = new Set();
+      let hasNextPage = true;
+      let cursor = null;
+      
+      while (hasNextPage) {
+        let query;
+        if (cursor) {
+          query = `
+            query {
+              collection(handle: "${collectionHandle}") {
+                products(first: 250, after: "${cursor}") {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  edges {
+                    node {
+                      id
+                      variants(first: 100) {
+                        edges {
+                          node {
+                            id
+                            metafield(namespace: "custom", key: "peso_kg") {
+                              value
+                            }
+                            metafield2: metafield(namespace: "custom", key: "peso_pounds") {
+                              value
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `;
+        } else {
+          query = `
+            query {
+              collection(handle: "${collectionHandle}") {
+                products(first: 250) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  edges {
+                    node {
+                      id
+                      variants(first: 100) {
+                        edges {
+                          node {
+                            id
+                            metafield(namespace: "custom", key: "peso_kg") {
+                              value
+                            }
+                            metafield2: metafield(namespace: "custom", key: "peso_pounds") {
+                              value
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `;
+        }
+        
+        const response = await fetch(
+          `https://${SHOP_DOMAIN}/api/${API_VERSION}/graphql.json`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN,
+            },
+            body: JSON.stringify({ query }),
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (data.errors) {
+          console.error('GraphQL Error:', data.errors);
+          break;
+        }
+        
+        data.data.collection.products.edges.forEach(productEdge => {
+          const product = productEdge.node;
+          product.variants.edges.forEach(variantEdge => {
+            const variant = variantEdge.node;
+            
+            if (variant.metafield && variant.metafield.value) {
+              pesoKgValues.add(variant.metafield.value);
+            }
+            if (variant.metafield2 && variant.metafield2.value) {
+              pesoLbsValues.add(variant.metafield2.value);
+            }
+          });
+        });
+        
+        hasNextPage = data.data.collection.products.pageInfo.hasNextPage;
+        cursor = data.data.collection.products.pageInfo.endCursor;
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      const sortedKg = Array.from(pesoKgValues).map(v => parseFloat(v)).sort((a, b) => a - b);
+      const sortedLbs = Array.from(pesoLbsValues).map(v => parseFloat(v)).sort((a, b) => a - b);
+      
+      console.log('All peso kg values:', sortedKg);
+      console.log('All peso lbs values:', sortedLbs);
+      
+      return { kg: sortedKg, lbs: sortedLbs };
+    } catch (error) {
+      console.error('Fetch error:', error);
+      return { kg: [], lbs: [] };
+    }
+  }
+  
+  window.pesoValuesPromise = fetchAllPesoValues();
+})();
+</script>
+{%- endcomment -%}
+
+<div class="gl-filters">
+  {% for filter in collection.filters %}
+
+    {%- assign has_search = false -%}
+    {%- assign is_peso_kg_filter = false -%}
+    {%- assign is_peso_pounds_filter = false -%}
+    {%- if filter.values.size > 0 -%}
+      {%- assign first_param = filter.values[0].param_name | downcase -%}
+      {%- if first_param contains 'peso_kg' -%}
+        {%- assign is_peso_kg_filter = true -%}
+      {%- elsif first_param contains 'peso_pound' or first_param contains 'peso_lbs' -%}
+        {%- assign is_peso_pounds_filter = true -%}
+      {%- elsif first_param contains 'marca'
+          or first_param contains 'modelo'
+          or first_param contains 'calibr'
+          or first_param contains 'sub_tipo'
+          or first_param contains 'modalidad'
+          or first_param contains 'tipo_de_culata'
+          or first_param contains 'longitud' -%}
+        {%- assign has_search = true -%}
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- comment -%}
+      TEMPORARY — THIS SPRINT ONLY: client asked to pull the custom Peso
+      (weight) range SLIDER for now, but the filter itself should still
+      appear — just rendered like any other filter (plain checkbox list),
+      not hidden entirely. Forcing these back to false here (after they were
+      just detected above) makes it fall through the elsif chain to the
+      generic "else" branch at the bottom of this loop, same as Rosca/
+      Cargador extraible/etc. To restore the slider next sprint: delete
+      the two "assign ... = false" lines below (and the data-gl-peso-unit
+      attribute a few lines down, whose JS toggle becomes redundant once the
+      slider's own metric/imperial toggle takes over again) — nothing else
+      changed, the kg/lbs slider markup below and the fetchAllPesoValues()
+      script above are untouched. `is_actual_peso_kg`/`is_actual_peso_pounds`
+      keep track of which one this really is, since the metric/imperial
+      switch in the account menu should still show only one at a time even
+      in this plain-list form (see the script further down).
+    {%- endcomment -%}
+    {%- assign is_actual_peso_kg = is_peso_kg_filter -%}
+    {%- assign is_actual_peso_pounds = is_peso_pounds_filter -%}
+    {%- assign is_peso_kg_filter = false -%}
+    {%- assign is_peso_pounds_filter = false -%}
+
+    <div
+      class="filter-group {% if has_search %}filter-group--search{% endif %} {% if filter.active_values.size > 0 %}withSelectedValue{% endif %}"
+      {% if filter.type == 'price_range' %}data-price-filter{% endif %}
+      {% if is_actual_peso_kg %}data-gl-peso-unit="kg"{% endif %}
+      {% if is_actual_peso_pounds %}data-gl-peso-unit="pounds"{% endif %}
+    >
+
+      {% if filter.type == 'price_range' %}
+        {%- assign range_max = filter.range_max | round -%}
+        {%- assign price_min = filter.min_value.value | default: 0 | round -%}
+        {%- assign price_max = filter.max_value.value | default: range_max | round -%}
+        {%- assign price_active = false -%}
+        {%- if filter.min_value.value or filter.max_value.value -%}{%- assign price_active = true -%}{%- endif -%}
+
+        <button
+          type="button"
+          class="filter-toggle price-filter-toggle"
+          data-toggle-price
+          aria-expanded="{% if price_active %}true{% else %}false{% endif %}"
+        >
+          <span class="filter-title"><span>{{ filter.label }}</span></span>
+          <span class="price-label-display" data-price-label style="{% unless price_active %}display:none;{% endunless %}">
+            {%- if price_active -%}
+              {{ price_min | divided_by: 100.0 | ceil | prepend: localization.country.currency.symbol }}–
+              {{- price_max | divided_by: 100.0 | ceil | prepend: localization.country.currency.symbol }}
+            {%- endif -%}
+          </span>
+          <span class="filter-arrow">{% render 'icon-arrow-down-border' %}</span>
+        </button>
+
+        <div class="filter-content" data-price-content style="{% if price_active %}display:block;{% else %}display:none;{% endif %}">
+          <div
+            class="range-slider"
+            data-price-range-widget
+            data-min="0"
+            data-max="{{ range_max }}"
+            data-current-min="{{ price_min }}"
+            data-current-max="{{ price_max }}"
+          >
+            <div class="slider-track">
+              <div class="slider-progress" data-slider-progress></div>
+            </div>
+            <div class="range-inputs-wrap">
+              <input type="range" class="range-min" data-range-min min="0" max="{{ range_max }}" value="{{ price_min }}" step="1" aria-label="Minimum price">
+              <input type="range" class="range-max" data-range-max min="0" max="{{ range_max }}" value="{{ price_max }}" step="1" aria-label="Maximum price">
+            </div>
+            <div class="range-values-display">
+              <span data-price-min-display></span>
+              <span data-price-max-display></span>
+            </div>
+          </div>
+          
+          {% if price_active %}
+            <div class="filter-reset">
+              <a class="button button-secondary text-block" href="{{ filter.url_to_remove }}"></a>
+            </div>
+          {% endif %}
+        </div>
+
+      {%- elsif is_peso_kg_filter -%}
+        <!-- PESO KG RANGE SLIDER (METRIC) -->
+        <div class="filter-group {% if filter.active_values.size > 0 %}withSelectedValue{% endif %}" data-filter-peso-kg-slider data-peso-type="kg">
+          {%- assign kg_values_sorted = filter.values | map: 'value' | sort -%}
+          {%- assign kg_min_val = kg_values_sorted[0] | plus: 0.0 -%}
+          {%- assign kg_max_val = kg_values_sorted[-1] | plus: 0.0 -%}
+          {%- assign current_min = '' -%}
+          {%- assign current_max = '' -%}
+          {%- if filter.active_values.size > 0 -%}
+            {%- assign active_sorted_kg = filter.active_values | map: 'value' | sort -%}
+            {%- assign current_min = active_sorted_kg[0] | plus: 0.0 -%}
+            {%- assign current_max = active_sorted_kg[-1] | plus: 0.0 -%}
+          {%- endif -%}
+
+          <button
+            type="button"
+            class="filter-toggle"
+            data-toggle-filter
+            aria-expanded="{% if filter.active_values.size > 0 %}true{% else %}false{% endif %}"
+          >
+            <span class="filter-title">
+              <span>{{ filter.label }}</span>
+            </span>
+            <span class="filter-selected-values peso-range-label" data-peso-label style="display: none;"></span>
+            <span class="filter-arrow">{% render 'icon-arrow-down-border' %}</span>
+          </button>
+
+          <div class="filter-content" data-peso-content style="display: none;" data-has-active="{% if current_min != '' %}true{% else %}false{% endif %}">
+            <div class="peso-skeleton" data-peso-skeleton>
+              <div class="peso-skeleton-track"></div>
+              <div class="peso-skeleton-labels">
+                <span class="peso-skeleton-pill"></span>
+                <span class="peso-skeleton-pill"></span>
+              </div>
+            </div>
+            <div class="range-slider" data-peso-range-widget data-param-name="{{ filter.values[0].param_name }}" data-min="{{ kg_min_val }}" data-max="{{ kg_max_val }}" data-current-min="{{ current_min }}" data-current-max="{{ current_max }}" style="display: none;">
+              <div class="slider-track">
+                <div class="slider-progress" data-slider-progress></div>
+              </div>
+              <div class="range-inputs-wrap">
+                <input type="range" class="range-min" data-range-min min="{{ kg_min_val }}" max="{{ kg_max_val }}" value="{{ current_min | default: kg_min_val }}" step="0.01" aria-label="Minimum weight">
+                <input type="range" class="range-max" data-range-max min="{{ kg_min_val }}" max="{{ kg_max_val }}" value="{{ current_max | default: kg_max_val }}" step="0.01" aria-label="Maximum weight">
+              </div>
+              <div class="range-values-display">
+                <span data-peso-min-display>{{ current_min | default: kg_min_val | round: 1 }}</span>
+                <span> - </span>
+                <span data-peso-max-display>{{ current_max | default: kg_max_val | round: 1 }}</span>
+              </div>
+            </div>
+            <div class="filter-reset" data-peso-reset style="display: none;">
+              <a class="button button-secondary text-block" href="#" data-peso-reset-link>{{ 'actions.reset' | t }}</a>
+            </div>
+          </div>
+        </div>
+
+      {%- elsif is_peso_pounds_filter -%}
+        <!-- PESO POUNDS RANGE SLIDER (IMPERIAL) - HIDDEN BY DEFAULT -->
+        <div class="filter-group {% if filter.active_values.size > 0 %}withSelectedValue{% endif %}" data-filter-peso-pounds-slider data-peso-type="pounds" style="display: none;">
+          {%- assign lbs_values_sorted = filter.values | map: 'value' | sort -%}
+          {%- assign lbs_min_val = lbs_values_sorted[0] | plus: 0.0 -%}
+          {%- assign lbs_max_val = lbs_values_sorted[-1] | plus: 0.0 -%}
+          {%- assign current_min_lbs = '' -%}
+          {%- assign current_max_lbs = '' -%}
+          {%- if filter.active_values.size > 0 -%}
+            {%- assign active_sorted_lbs = filter.active_values | map: 'value' | sort -%}
+            {%- assign current_min_lbs = active_sorted_lbs[0] | plus: 0.0 -%}
+            {%- assign current_max_lbs = active_sorted_lbs[-1] | plus: 0.0 -%}
+          {%- endif -%}
+
+          <button
+            type="button"
+            class="filter-toggle"
+            data-toggle-filter
+            aria-expanded="{% if filter.active_values.size > 0 %}true{% else %}false{% endif %}"
+          >
+            <span class="filter-title">
+              <span>{{ filter.label }}</span>
+            </span>
+            <span class="filter-selected-values peso-range-label" data-peso-label style="display: none;"></span>
+            <span class="filter-arrow">{% render 'icon-arrow-down-border' %}</span>
+          </button>
+
+          <div class="filter-content" data-peso-content style="display: none;" data-has-active="{% if current_min_lbs != '' %}true{% else %}false{% endif %}">
+            <div class="peso-skeleton" data-peso-skeleton>
+              <div class="peso-skeleton-track"></div>
+              <div class="peso-skeleton-labels">
+                <span class="peso-skeleton-pill"></span>
+                <span class="peso-skeleton-pill"></span>
+              </div>
+            </div>
+            <div class="range-slider" data-peso-range-widget data-param-name="{{ filter.values[0].param_name }}" data-min="{{ lbs_min_val }}" data-max="{{ lbs_max_val }}" data-current-min="{{ current_min_lbs }}" data-current-max="{{ current_max_lbs }}" style="display: none;">
+              <div class="slider-track">
+                <div class="slider-progress" data-slider-progress></div>
+              </div>
+              <div class="range-inputs-wrap">
+                <input type="range" class="range-min" data-range-min min="{{ lbs_min_val }}" max="{{ lbs_max_val }}" value="{{ current_min_lbs | default: lbs_min_val }}" step="0.01" aria-label="Minimum weight">
+                <input type="range" class="range-max" data-range-max min="{{ lbs_min_val }}" max="{{ lbs_max_val }}" value="{{ current_max_lbs | default: lbs_max_val }}" step="0.01" aria-label="Maximum weight">
+              </div>
+              <div class="range-values-display">
+                <span data-peso-min-display>{{ current_min_lbs | default: lbs_min_val | round: 1 }}</span>
+                <span> - </span>
+                <span data-peso-max-display>{{ current_max_lbs | default: lbs_max_val | round: 1 }}</span>
+                <span> lbs</span>
+              </div>
+            </div>
+            <div class="filter-reset" data-peso-reset style="display: none;">
+              <a class="button button-secondary text-block" href="#" data-peso-reset-link>{{ 'actions.reset' | t }}</a>
+            </div>
+          </div>
+        </div>
+
+      {%- elsif has_search -%}
+        <div class="filter-header home-product-search-wrapper">
+          <div class="form_field-wrapper">
+            <div class="form_field-input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+                <g clip-path="url(#clip0_4162_4606)">
+                  <path d="M416 208C416 253.9 401.1 296.3 376 330.7L502.6 457.4C515.1 469.9 515.1 490.2 502.6 502.7C490.1 515.2 469.8 515.2 457.3 502.7L330.7 376C296.3 401.2 253.9 416 208 416C93.1 416 0 322.9 0 208C0 93.1 93.1 0 208 0C322.9 0 416 93.1 416 208ZM208 352C226.91 352 245.636 348.275 263.106 341.039C280.577 333.802 296.452 323.195 309.823 309.823C323.195 296.452 333.802 280.577 341.039 263.106C348.275 245.636 352 226.91 352 208C352 189.09 348.275 170.364 341.039 152.894C333.802 135.423 323.195 119.548 309.823 106.177C296.452 92.805 280.577 82.198 263.106 74.9613C245.636 67.7247 226.91 64 208 64C189.09 64 170.364 67.7247 152.894 74.9613C135.423 82.198 119.548 92.805 106.177 106.177C92.805 119.548 82.198 135.423 74.9613 152.894C67.7247 170.364 64 189.09 64 208C64 226.91 67.7247 245.636 74.9613 263.106C82.198 280.577 92.805 296.452 106.177 309.823C119.548 323.195 135.423 333.802 152.894 341.039C170.364 348.275 189.09 352 208 352Z" fill="currentColor"/>
+                </g>
+              </svg>
+            </div>
+            <input type="text" class="filter-search" placeholder=" ">
+            <label class="form_label filter-title">
+              <span>{{ filter.label }}</span>
+              {% if filter.active_values.size > 0 %}({{ filter.active_values.size }}){% endif %}
+            </label>
+            {% if filter.active_values.size > 0 %}
+              <div class="filter-selected-values">
+                {% for value in filter.active_values %}
+                  <span class="selected-item">
+                    {{- value.label -}}
+                    {%- unless forloop.last %}, {% endunless -%}
+                  </span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <span class="filter-arrow">{% render 'icon-arrow-down-border' %}</span>
+          </div>
+        </div>
+        <div class="filter-content">
+          <ul>
+            {% for value in filter.values %}
+              <li class="filter-item {% if value.active %}is-active{% endif %} {% if value.count == 0 and value.active == false %}disabled{% endif %}">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="{{ value.param_name }}"
+                    value="{{ value.value }}"
+                    {% if value.active %}checked{% endif %}
+                    {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                  >
+                  <span>
+                    {%- if value.param_name contains 'longitud' and value.label contains 'cm' -%}
+                      {%- assign cm_num = value.label | remove: 'cm' | remove: ' ' | plus: 0.0 -%}
+                      {%- if cm_num > 0 -%}
+                        {%- assign inch_val = cm_num | divided_by: 2.54 | round: 1 -%}
+                        {{ value.label }} ({{ inch_val }}in)
+                      {%- else -%}
+                        {{ value.label }}
+                      {%- endif -%}
+                      {%- else -%}
+                        {{ value.label }}
+                    {%- endif -%}
+                  </span>
+                </label>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if filter.active_values.size > 0 %}
+            <div class="filter-reset">
+              <a class="button button-secondary text-block" href="{{ filter.url_to_remove }}">{{ 'actions.reset' | t }}</a>
+            </div>
+          {% endif %}
+        </div>
+
+      {% else %}
+        <button
+          type="button"
+          class="filter-toggle"
+          data-toggle-filter
+          aria-expanded="{% if filter.active_values.size > 0 %}true{% else %}false{% endif %}"
+        >
+          <span class="filter-title">
+            <span>{{ filter.label }}</span>
+            {% if filter.active_values.size > 0 %}({{ filter.active_values.size }}){% endif %}
+          </span>
+          {% if filter.active_values.size > 0 %}
+            <span class="filter-selected-values">
+              {% for value in filter.active_values -%}
+                {{- value.label }}{%- unless forloop.last %}, {% endunless -%}
+              {%- endfor %}
+            </span>
+          {% endif %}
+          <span class="filter-arrow">{% render 'icon-arrow-down-border' %}</span>
+        </button>
+        <div class="filter-content">
+          {% case filter.type %}
+            {% when 'list' %}
+              <ul>
+                {% for value in filter.values %}
+                  <li class="filter-item {% if value.active %}is-active{% endif %} {% if value.count == 0 and value.active == false %}disabled{% endif %}">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="{{ value.param_name }}"
+                        value="{{ value.value }}"
+                        {% if value.active %}checked{% endif %}
+                        {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                      >
+                      <span>{{ value.label }}</span>
+                    </label>
+                  </li>
+                {% endfor %}
+              </ul>
+          {% endcase %}
+          {% if filter.active_values.size > 0 %}
+            <div class="filter-reset">
+              <a class="button button-secondary text-block" href="{{ filter.url_to_remove }}">{{ 'actions.reset' | t }}</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
+  {% endfor %}
+
+  {% assign total_active = 0 %}
+  {% for filter in collection.filters %}
+    {% assign total_active = total_active | plus: filter.active_values.size %}
+  {% endfor %}
+  <div class="filter-global-reset">
+    <button type="button" id="glViewResults" class="button view-results-btn"
+      data-label="{{ 'custom.view_results' | t | default: 'Ver resultados' }}">
+      {{ 'custom.view_results' | t | default: 'Ver resultados' }}
+    </button>
+    <a href="{{ collection.url }}" class="button button-secondary text-block reset-all-btn">
+       {{ 'custom.reset_all' | t }}{% if total_active > 0 %} ({{ total_active }}){% endif %}
+    </a>
+  </div>
+</div>
+
+<style>
+  /* PESO SLIDER STYLING - MATCHES PRICE FILTER */
+  /* .range-slider {
+    padding: 15px 0;
+  }
+
+  .slider-track {
+    position: relative;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin-bottom: 15px;
+  }
+
+  .slider-progress {
+    height: 100%;
+    background: #4CAF50;
+    border-radius: 3px;
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .range-inputs-wrap {
+    position: relative;
+    margin-top: -30px;
+    margin-bottom: 15px;
+    pointer-events: none;
+  }
+
+  .range-inputs-wrap input {
+    position: absolute;
+    width: 100%;
+    height: 6px;
+    pointer-events: auto;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .range-inputs-wrap input::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: auto;
+  }
+
+  .range-inputs-wrap input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: auto;
+  }
+
+  .range-max {
+    left: 0;
+  }
+
+  .range-min {
+    right: 0;
+  }
+
+  .range-values-display {
+    text-align: center;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #333;
+    margin-top: 10px;
+  } */
+
+  /* SKELETON LOADER — shown while Storefront API fetches real min/max */
+  .peso-skeleton {
+    padding: 15px 0;
+  }
+
+  .peso-skeleton-track {
+    height: 6px;
+    border-radius: 3px;
+    margin-bottom: 15px;
+    background: linear-gradient(90deg, #e0e0e0 25%, #ececec 37%, #e0e0e0 63%);
+    background-size: 400% 100%;
+    animation: peso-shimmer 1.4s ease infinite;
+  }
+
+  .peso-skeleton-labels {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .peso-skeleton-pill {
+    display: inline-block;
+    width: 40px;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, #e0e0e0 25%, #ececec 37%, #e0e0e0 63%);
+    background-size: 400% 100%;
+    animation: peso-shimmer 1.4s ease infinite;
+  }
+
+  @keyframes peso-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+</style>
+
+<script>
+(function() {
+  'use strict';
+  
+  const MEASUREMENT_KEY = 'gunloupe_measurement_unit';
+  const getStoredUnit = () => localStorage.getItem(MEASUREMENT_KEY) || 'metric';
+  const setStoredUnit = (unit) => localStorage.setItem(MEASUREMENT_KEY, unit);
+  
+  // Measurement toggle
+  const toggleMeasurement = (unit) => {
+    const kgSlider = document.querySelector('[data-filter-peso-kg-slider]');
+    const lbsSlider = document.querySelector('[data-filter-peso-pounds-slider]');
+    
+    if (kgSlider && lbsSlider) {
+      if (unit === 'metric') {
+        kgSlider.style.display = 'block';
+        lbsSlider.style.display = 'none';
+      } else if (unit === 'imperial') {
+        kgSlider.style.display = 'none';
+        lbsSlider.style.display = 'block';
+      }
+    }
+  };
+  
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-measures]');
+    if (!btn) return;
+    
+    const unit = btn.getAttribute('data-measures');
+    if (unit === 'metric' || unit === 'imperial') {
+      setStoredUnit(unit);
+      toggleMeasurement(unit);
+      
+      document.querySelectorAll('[data-measures]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  });
+  
+  setTimeout(() => toggleMeasurement(getStoredUnit()), 100);
+
+  // Toggle open/close for peso dropdowns (mirrors data-toggle-price behavior)
+  document.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('.filter-group[data-filter-peso-kg-slider] [data-toggle-filter], .filter-group[data-filter-peso-pounds-slider] [data-toggle-filter]');
+    if (!toggleBtn) return;
+    var panel = toggleBtn.parentElement.querySelector('[data-peso-content]');
+    if (!panel) return;
+    var isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    toggleBtn.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  // Range slider handler - REAL-TIME FILTERING ON DRAG
+  const initRangeSlider = async (widget) => {
+    if (!widget) return;
+    
+    const minInput = widget.querySelector('[data-range-min]');
+    const maxInput = widget.querySelector('[data-range-max]');
+    const displayMin = widget.querySelector('[data-peso-min-display]');
+    const displayMax = widget.querySelector('[data-peso-max-display]');
+    const progress = widget.querySelector('[data-slider-progress]');
+    const paramName = widget.getAttribute('data-param-name');
+    const filterGroup = widget.closest('.filter-group');
+    const button = filterGroup.querySelector('.filter-toggle');
+    const label = button.querySelector('[data-peso-label]');
+    const contentPanel = filterGroup.querySelector('[data-peso-content]');
+    const pesoType = filterGroup.getAttribute('data-peso-type'); // 'kg' or 'pounds'
+    const skeleton = contentPanel ? contentPanel.querySelector('[data-peso-skeleton]') : null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeUrlValues = urlParams.getAll(paramName).map(v => parseFloat(v)).filter(v => !isNaN(v));
+    const hasActive = activeUrlValues.length > 0;
+
+    let allValues = Array.from(document.querySelectorAll(`input[name="${paramName}"]`))
+      .map(inp => parseFloat(inp.value))
+      .filter(v => !isNaN(v))
+      .sort((a, b) => a - b);
+
+    // If native values are missing, fall back to the widget's own data attrs
+    if (!allValues.length) {
+      const dMin = parseFloat(widget.getAttribute('data-min'));
+      const dMax = parseFloat(widget.getAttribute('data-max'));
+      if (!isNaN(dMin) && !isNaN(dMax)) allValues = [dMin, dMax];
+    }
+
+    let realMin = allValues[0];
+    let realMax = allValues[allValues.length - 1];
+
+    // The Liquid-rendered data-min/data-max are scoped to whatever OTHER
+    // filters are currently active (e.g. Modalidad/Tipo/Sub-tipo), so they
+    // can be much narrower than the true collection-wide range. Widen the
+    // fallback bounds to at least cover the actually-selected values —
+    // otherwise setting maxInput.max below the real selected value clamps
+    // maxInput.value down to that narrow max the instant it's assigned
+    // below (native <input type="range"> behavior), and the slider ends up
+    // showing/selecting the wrong (narrowed) max until the async Storefront
+    // API fetch corrects it moments later.
+    if (hasActive) {
+      realMin = Math.min(realMin, ...activeUrlValues);
+      realMax = Math.max(realMax, ...activeUrlValues);
+    }
+
+    // Re-apply the true min/max discovered from the Storefront API
+    // (the Liquid-rendered min/max was capped by Shopify's 100-value filter limit)
+    minInput.min = realMin;
+    minInput.max = realMax;
+    maxInput.min = realMin;
+    maxInput.max = realMax;
+
+    if (hasActive) {
+        minInput.value = Math.min(...activeUrlValues);
+        maxInput.value = Math.max(...activeUrlValues);
+    } else {
+        minInput.value = realMin;
+        maxInput.value = realMax;
+    }
+
+    // Wire up the "Reset" link — build its href by stripping every instance
+    // of this filter's param from the current URL (equivalent to Shopify's
+    // native filter.url_to_remove, but computed client-side so it works
+    // regardless of whether Shopify's Liquid object recognized the value).
+    const resetWrapper = contentPanel ? contentPanel.querySelector('[data-peso-reset]') : null;
+    const resetLink = contentPanel ? contentPanel.querySelector('[data-peso-reset-link]') : null;
+    if (resetWrapper && resetLink) {
+      if (hasActive) {
+        resetWrapper.style.display = 'block';
+        const removeUrl = new URL(window.location.href);
+        const remaining = [];
+        urlParams.forEach((v, k) => { if (k !== paramName) remaining.push([k, v]); });
+        removeUrl.search = new URLSearchParams(remaining).toString();
+        resetLink.href = removeUrl.toString();
+      } else {
+        resetWrapper.style.display = 'none';
+      }
+    }
+    
+    const updateDisplay = (showLabel) => {
+      const min = parseFloat(minInput.value);
+      const max = parseFloat(maxInput.value);
+
+      // These sit at the fixed ends of the track, like axis labels — they
+      // represent the slider's real min/max (e.g. 0.6 - 108.5) and must
+      // stay put no matter what's selected. The current selection is
+      // shown separately, in the label above and the active-filter chip.
+      displayMin.textContent = parseFloat(minInput.min).toFixed(1);
+      displayMax.textContent = parseFloat(maxInput.max).toFixed(1);
+
+      if (label) {
+        if (showLabel) {
+          label.textContent = min.toFixed(1) + ' - ' + max.toFixed(1);
+          label.style.display = '';
+        } else {
+          label.style.display = 'none';
+        }
+      }
+      // Toggle the same class the other filters use so the floating
+      // title shrinks/moves up and makes room for the value line below
+      // it — without this the title paints over the range label.
+      filterGroup.classList.toggle('withSelectedValue', showLabel);
+
+      const minVal = parseFloat(minInput.min);
+      const maxVal = parseFloat(minInput.max);
+      const minPercent = ((min - minVal) / (maxVal - minVal)) * 100;
+      const maxPercent = ((max - minVal) / (maxVal - minVal)) * 100;
+      
+      progress.style.left = minPercent + '%';
+      progress.style.right = (100 - maxPercent) + '%';
+    };
+
+    const applyFilter = () => {
+      const min = parseFloat(minInput.value);
+      const max = parseFloat(maxInput.value);
+      
+      const params = new URLSearchParams(window.location.search);
+      
+      // Remove existing params
+      let keysToDelete = [];
+      for (let key of params.keys()) {
+        if (key === paramName) keysToDelete.push(key);
+      }
+      keysToDelete.forEach(key => params.delete(key));
+      
+      // Add values in range
+      const valuesInRange = allValues.filter(v => v >= min && v <= max);
+      valuesInRange.forEach(val => {
+        params.append(paramName, val);
+      });
+      
+      window.location.href = window.location.pathname + '?' + params.toString();
+    };
+
+    minInput.addEventListener('input', () => {
+      if (parseFloat(minInput.value) > parseFloat(maxInput.value)) {
+        minInput.value = maxInput.value;
+      }
+      updateDisplay(true);
+    });
+
+    maxInput.addEventListener('input', () => {
+      if (parseFloat(maxInput.value) < parseFloat(minInput.value)) {
+        maxInput.value = minInput.value;
+      }
+      updateDisplay(true);
+    });
+
+    minInput.addEventListener('change', applyFilter);
+    maxInput.addEventListener('change', applyFilter);
+
+    updateDisplay(hasActive);
+
+    window.pesoValuesPromise.then(allData => {
+      const apiValues = pesoType === 'kg' ? allData.kg : allData.lbs;
+      if (!apiValues || !apiValues.length) return;
+      allValues = apiValues;
+      realMin = apiValues[0];
+      realMax = apiValues[apiValues.length - 1];
+      if (hasActive) {
+        realMin = Math.min(realMin, ...activeUrlValues);
+        realMax = Math.max(realMax, ...activeUrlValues);
+      }
+      minInput.min = realMin; minInput.max = realMax;
+      maxInput.min = realMin; maxInput.max = realMax;
+      // Swap skeleton out, real slider in — done all at once so nothing "jumps"
+      if (skeleton) skeleton.style.display = 'none';
+      widget.style.display = 'block';
+      if (hasActive) {
+        minInput.value = Math.min(...activeUrlValues);
+        maxInput.value = Math.max(...activeUrlValues);
+      } else {
+        minInput.value = realMin;
+        maxInput.value = realMax;
+      }
+      updateDisplay(hasActive);
+    }).catch(() => {});
+
+    // ---- Fix overlapping thumbs: raise whichever thumb is nearer the press,
+    // so grabbing the max thumb never drags the min thumb (and vice-versa).
+    const inputsWrap = widget.querySelector('.range-inputs-wrap');
+    if (inputsWrap) {
+      inputsWrap.addEventListener('pointerdown', (e) => {
+        const rect = inputsWrap.getBoundingClientRect();
+        const lo = parseFloat(minInput.min), hi = parseFloat(minInput.max);
+        const pressVal = lo + ((e.clientX - rect.left) / rect.width) * (hi - lo);
+        const distMin = Math.abs(pressVal - parseFloat(minInput.value));
+        const distMax = Math.abs(pressVal - parseFloat(maxInput.value));
+        if (distMax <= distMin) { maxInput.style.zIndex = 5; minInput.style.zIndex = 4; }
+        else { minInput.style.zIndex = 5; maxInput.style.zIndex = 4; }
+      });
+    }
+  };
+
+  // Initialize all range sliders (async — waits on Storefront API data)
+  document.querySelectorAll('[data-peso-range-widget]').forEach(w => initRangeSlider(w));
+})();
+</script>
+
+<script>
+  window.GunloupeConfig = {
+    currencySymbol: {{ localization.country.currency.symbol | json }},
+    currencyDecimals: 2
+  };
+</script>
+
+<script>
+  (function () {
+    'use strict';
+
+    var SYMBOL = (window.GunloupeConfig || {}).currencySymbol || '€';
+
+    function centsToParam(cents) {
+      var euros = cents / 100;
+      var fixed = euros.toFixed(2);
+      var parts = fixed.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return parts.join(',');
+    }
+
+    function formatPriceDisplay(cents) {
+      return centsToParam(cents) + SYMBOL;
+    }
+
+    function updatePriceVisuals(widget) {
+      var rMin = widget.querySelector('[data-range-min]');
+      var rMax = widget.querySelector('[data-range-max]');
+      var prog = widget.querySelector('[data-slider-progress]');
+      var dMin = widget.querySelector('[data-price-min-display]');
+      var dMax = widget.querySelector('[data-price-max-display]');
+      var absMax = parseInt(widget.dataset.max, 10);
+      var lo = parseInt(rMin.value, 10);
+      var hi = parseInt(rMax.value, 10);
+
+      prog.style.left = (lo / absMax) * 100 + '%';
+      prog.style.right = ((absMax - hi) / absMax) * 100 + '%';
+      if (dMin) dMin.textContent = formatPriceDisplay(lo);
+      if (dMax) dMax.textContent = formatPriceDisplay(hi);
+
+      var isDefault = lo <= 0 && hi >= absMax;
+      var group = widget.closest('.filter-group');
+      if (group) group.classList.toggle('withSelectedValue', !isDefault);
+
+      var priceGroup = widget.closest('[data-price-filter]');
+      var label = priceGroup && priceGroup.querySelector('[data-price-label]');
+      if (label) {
+        label.style.display = isDefault ? 'none' : '';
+        if (!isDefault) label.textContent = formatPriceDisplay(lo) + ' – ' + formatPriceDisplay(hi);
+      }
+    }
+
+    function applyPriceFilter(widget) {
+      var rMin = widget.querySelector('[data-range-min]');
+      var rMax = widget.querySelector('[data-range-max]');
+      var absMax = parseInt(widget.dataset.max, 10);
+      var lo = parseInt(rMin.value, 10);
+      var hi = parseInt(rMax.value, 10);
+      if (lo > hi) { lo = hi; rMin.value = lo; }
+
+      var params = new URLSearchParams(window.location.search);
+      params.delete('filter.v.price.gte');
+      params.delete('filter.v.price.lte');
+      if (!(lo <= 0 && hi >= absMax)) {
+        params.set('filter.v.price.gte', centsToParam(lo));
+        params.set('filter.v.price.lte', centsToParam(hi));
+      }
+      window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    function initPriceSlider(widget) {
+      if (widget._ready) return;
+      widget._ready = true;
+      var rMin = widget.querySelector('[data-range-min]');
+      var rMax = widget.querySelector('[data-range-max]');
+      if (widget.dataset.currentMin) rMin.value = widget.dataset.currentMin;
+      if (widget.dataset.currentMax) rMax.value = widget.dataset.currentMax;
+      updatePriceVisuals(widget);
+
+      var dragging = false;
+      widget.querySelector('.range-inputs-wrap').addEventListener('pointerdown', function () {
+        dragging = true;
+        var group = widget.closest('.filter-group');
+        if (group) group.classList.add('withSelectedValue');
+      });
+      rMin.addEventListener('input', function () {
+        if (parseInt(rMin.value) > parseInt(rMax.value)) rMin.value = rMax.value;
+        updatePriceVisuals(widget);
+      });
+      rMax.addEventListener('input', function () {
+        if (parseInt(rMax.value) < parseInt(rMin.value)) rMax.value = rMin.value;
+        updatePriceVisuals(widget);
+      });
+      window.addEventListener('pointerup', function () {
+        if (!dragging) return;
+        dragging = false;
+        setTimeout(function () { applyPriceFilter(widget); }, 0);
+      });
+    }
+
+    if (!document._gunloupeToggles) {
+      document._gunloupeToggles = true;
+      document.addEventListener('click', function (e) {
+        var tp = e.target.closest('[data-toggle-price]');
+        if (tp) {
+          var panel = tp.nextElementSibling;
+          if (panel && panel.hasAttribute('data-price-content')) {
+            var open = panel.style.display !== 'none';
+            panel.style.display = open ? 'none' : 'block';
+            tp.setAttribute('aria-expanded', String(!open));
+            if (!open) {
+              var w = panel.querySelector('[data-price-range-widget]');
+              if (w) initPriceSlider(w);
+            }
+          }
+          return;
+        }
+      });
+    }
+
+    function boot() {
+      document.querySelectorAll('[data-price-range-widget]').forEach(function (w) {
+        var panel = w.closest('[data-price-content]');
+        if (!panel || panel.style.display !== 'none') initPriceSlider(w);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+
+    window.GunloupeFilters = window.GunloupeFilters || {};
+    window.GunloupeFilters.init = boot;
+  })();
+</script>
+
+{%- comment -%}
+  TEMPORARY (this sprint) companion to the Peso "show as a normal filter"
+  change above. Before that change, only one of Peso (kg) / Peso (pounds)
+  ever appeared, toggled by the metric/imperial switch in the account menu
+  — that old logic lived inside the (now bypassed) slider script earlier in
+  this file and only knows about the slider's own [data-filter-peso-*-slider]
+  markup, so it no longer finds anything to toggle. This restores the same
+  single-choice behavior for the plain filter-group version instead, via the
+  [data-gl-peso-unit] marker added above. Reads the SAME localStorage/cookie
+  key ('measures' / 'gl_measures') the site-wide Idioma/Medidas/Moneda popup
+  already writes to (see layout/theme.liquid), so it stays in sync with it.
+  Safe to delete this whole block once the slider (and its own toggle) comes
+  back next sprint — at that point neither Peso filter-group will carry
+  data-gl-peso-unit any more, so this script simply has nothing to do.
+{%- endcomment -%}
+<script>
+(function () {
+  'use strict';
+
+  function getCookie(name) {
+    var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return match ? decodeURIComponent(match.pop()) : null;
+  }
+
+  function currentMeasureUnit() {
+    return getCookie('gl_measures') || localStorage.getItem('measures') || 'metric';
+  }
+
+  function applyPesoUnitVisibility() {
+    var unit = currentMeasureUnit();
+    document.querySelectorAll('[data-gl-peso-unit="kg"]').forEach(function (el) {
+      el.style.display = unit === 'metric' ? '' : 'none';
+    });
+    document.querySelectorAll('[data-gl-peso-unit="pounds"]').forEach(function (el) {
+      el.style.display = unit === 'imperial' ? '' : 'none';
+    });
+  }
+
+  applyPesoUnitVisibility();
+  document.addEventListener('DOMContentLoaded', applyPesoUnitVisibility);
+
+  // The Idioma/Medidas/Moneda popup's buttons carry data-measures and don't
+  // reload the page — react live so switching units updates this instantly.
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-measures]')) {
+      setTimeout(applyPesoUnitVisibility, 0);
+    }
+  });
+})();
+</script>

@@ -1,0 +1,2033 @@
+{% comment %}
+  section.my-armorer.liquid — v5.1
+  Fixes applied vs v5:
+  - AC1:  Server error detail (data.message / data.error) surfaced in inline error box
+  - AC3:  All 3 alert() calls replaced with inline error UI (showInlineError / showDeleteError)
+  - AC5:  closePopup() moved to AFTER confirmed success only — form preserved on server error
+  - AC6:  Dismiss (×) button added to armoryValidationErrors box
+  - Brands via Storefront API all_brands metaobject (same as add-ad-popup)
+  - Calibers via Storefront API all_calibers metaobject (same as add-ad-popup)
+  - Smart caliber/barrel slot detection (CALIBER_RE / BARREL_RE)
+  - Single caliber → auto-select + CSS pointer-events:none lock
+  - Multiple calibers → renderCaliberListDirect (no search, product's list only)
+  - No caliber data → full all_calibers list with search
+  - Non-catalogue brand → manual model entry with "Use" button
+  - Labels fix: all hardcoded strings via window._armorerLabels
+{% endcomment %}
+
+<script>
+  window._armorerLabels = {
+    tipo:          {{ 'custom.weapon_type'       | t | json }},
+    subtipo:       {{ 'custom.firearm_subtype'   | t | json }},
+    marca:         {{ 'custom.brand'             | t | json }},
+    modelo:        {{ 'custom.model'             | t | json }},
+    calibre:       {{ 'custom.caliber'           | t | json }},
+    searchModel:   {{ 'custom.search_model'      | t | json }},
+    loadingModels: {{ 'custom.loading_products'  | t | json }},
+    selectBrand:   {{ 'custom.select_brand'      | t | json }},
+    yesDelete:     {{ 'custom.Yes_delete'        | t | json }},
+    noResults:     {{ 'custom.no_results_found'  | t | json }},
+    useLabel:      {{ 'custom.use_label'         | t | json }}
+  };
+</script>
+{% assign user_type = customer.metafields.custom.user_type.value %}
+
+{% unless customer %}
+<div class="comparator-login-prompt">
+  <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+    <circle cx="28" cy="28" r="27" stroke="#295a31" stroke-width="1.5" />
+    <path d="M28 16a6 6 0 100 12 6 6 0 000-12zm0 14c-6.627 0-12 2.686-12 6v2h24v-2c0-3.314-5.373-6-12-6z" fill="#295a31" opacity="0.5" />
+  </svg>
+  <h3>{{ 'custom.signin_armorer' | t }}</h3>
+  <p>{{ 'custom.login_required' | t }}.</p>
+  <a href="{{ routes.storefront_login_url }}" class="button is-small comparator-browse-btn">{{ 'customer.login' | t }}</a>
+  <a href="{{ routes.storefront_login_url }}" class="button comparator-browse-btn is-small is-secondary">{{ 'customer.register' | t }} </a>
+</div>
+{% else %}
+  {% assign user_type = customer.metafields.custom.user_type.value %}
+  {% if user_type == 'business' %}
+    <div class="comparator-login-prompt">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <circle cx="28" cy="28" r="27" stroke="#295a31" stroke-width="1.5" />
+        <path d="M28 16a6 6 0 100 12 6 6 0 000-12zm0 14c-6.627 0-12 2.686-12 6v2h24v-2c0-3.314-5.373-6-12-6z" fill="#295a31" opacity="0.5" />
+      </svg>
+      <h3>{{ 'custom.armorer_business_restricted_title' | t }}</h3>
+      <p>{{ 'custom.armorer_business_restricted_desc' | t }}</p>
+      <a href="{{ routes.root_url }}" class="button is-small comparator-browse-btn">
+        {{ 'custom.armorer_business_restricted_cta' | t }}
+      </a>
+    </div>
+  {% else %}
+  <div class="container">
+    <div class="my-armorer-collection_layout">
+      {% assign has_items = false %}
+      {% for item in shop.metaobjects.my_armorer.values %}
+        {% assign current_customer_id = customer.id | append: '' %}
+        {% if item.customer_id == current_customer_id %}
+          {% assign has_items = true %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+      {% unless has_items %}
+      <div class="product-list_empty">
+        <h4>{{ 'custom.no_weapons_collection' | t }}</h4>
+        <div class="max-width-medium">
+          <p class="text-wrap-balance">{{ 'custom.add_weapon_instruction' | t }}</p>
+        </div>
+      </div>
+      {% endunless %}
+
+      <div class="products-grid_list-wrap">
+        <div class="products-grid_list" id="armorer-collection-list">
+          {% paginate shop.metaobjects.my_armorer.values by 250 %}
+          {% for item in shop.metaobjects.my_armorer.values %}
+            {% assign current_customer_id = customer.id | append: '' %}
+            {% if item.customer_id == current_customer_id %}
+              {% assign is_custom_model = false %}
+              {% if item.product_handle == blank and item.product_url == blank %}{% assign is_custom_model = true %}{% endif %}
+              {% assign gun_images_raw = item.gun_images %}
+              {% assign gun_images_clean = gun_images_raw | remove: '[' | remove: ']' | remove: '"' | strip %}
+              {% assign product_img = item.product_image %}
+              {% assign placeholder_img = 'https://cdn.shopify.com/s/files/1/0977/9986/4694/files/product-placeholder.svg' %}
+              {%- comment -%}
+                Best image to hand off to the "sell this firearm" ad-creation
+                popup — same priority as the card thumbnail above (uploaded
+                gun_images first, catalog product_image otherwise). Without
+                this, the sell button only ever looked at product_image and
+                silently dropped a user's own uploaded photo.
+              {%- endcomment -%}
+              {% assign sell_image = product_img %}
+              {% if gun_images_clean != blank %}
+                {%- assign gun_images_for_sell = gun_images_raw | remove: '["' | remove: '"]' | split: '","' -%}
+                {% if gun_images_for_sell[0] != blank %}{% assign sell_image = gun_images_for_sell[0] %}{% endif %}
+              {% endif %}
+
+              <div class="products-grid_item" data-metaobject-id="{{ item.system.id }}">
+                <div class="product-card_component">
+                  <div class="product-card_thumb-wrap">
+                    {% if gun_images_clean != blank %}
+                      {%- assign gun_images = gun_images_raw | remove: '["' | remove: '"]' | split: '","' -%}
+                      {% if gun_images.size > 1 %}
+                      <div class="armorer-slider" data-slider>
+                        <div class="armorer-slider_track-wrap"><div class="armorer-slider_track">
+                          {% for img_url in gun_images %}<div class="armorer-slider_slide"><img width="" height="" src="{{ img_url }}" alt="{{ item.model }}" class="product-card_thumb-image layer" loading="lazy"></div>{% endfor %}
+                        </div></div>
+                        <button type="button" class="armorer-slider_btn armorer-slider_btn--prev" aria-label="Previous"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                        <button type="button" class="armorer-slider_btn armorer-slider_btn--next" aria-label="Next"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        <div class="armorer-slider_dots">{% for img_url in gun_images %}<span class="armorer-slider_dot{% if forloop.first %} is-active{% endif %}"></span>{% endfor %}</div>
+                      </div>
+                      {% else %}
+                      <img width="" height="" src="{{ gun_images[0] }}" alt="{{ item.model }}" class="product-card_thumb-image layer" loading="lazy">
+                      {% endif %}
+                    {% elsif product_img != blank %}
+                    <img width="" height="" src="{{ product_img }}" alt="{{ item.model }}" class="product-card_thumb-image layer" loading="lazy">
+                    {% else %}
+                    <img width="" height="" src="{{ placeholder_img }}" alt="No image" class="product-card_thumb-image layer">
+                    {% endif %}
+                  </div>
+
+                  <div class="product-card_details-wrap">
+                    {% if item.custom_gun_name != blank %}<h3 class="product-card_heading heading-style-h4">{{ item.custom_gun_name }}</h3>{% endif %}
+                    <div class="product-card_specs-wrap u-vflex-stretch-top u-gap-xxsmall">
+                      <ul role="list" class="product-card_specs_list u-vflex-stretch-top u-gap-xxsmall w-list-unstyled">
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.model' | t }}</div>
+                          {% if is_custom_model %}<div class="product-card_specs_spec-text text-color-grey">{{ item.model }}</div>
+                          {% else %}<a target="_blank" class="product-card_specs_spec-text text-color-grey" href="{{ all_products[item.product_handle].url }}">{{- item.model }} // {{ item.caliber -}}{%- if item.barrel_length != blank %} // {{ item.barrel_length }}{% endif -%}</a>
+                          {% endif %}
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.status' | t }}</div>
+                          <div class="product-card_specs_spec-text text-color-grey gl-i18n-value">{{ item.status_condition }}</div>
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.date_of_purchase' | t }}</div>
+                          <div class="product-card_specs_spec-text text-color-grey">{{ item.purchase_date }}</div>
+                        </li>
+                      </ul>
+                      <hr class="product-card_specs-separator">
+                      <ul role="list" class="product-card_specs_list u-vflex-stretch-top u-gap-xxsmall w-list-unstyled">
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'content.price' | t }}</div>
+                          <div class="product-card_specs_spec-wrap u-hflex-right-stretch">
+                            <div class="product-card_specs_spec-text is-price price" data-price="0" data-handle="{{ item.product_handle }}" data-caliber="{{ item.caliber }}" data-barrel="{{ item.barrel_length }}" {% if is_custom_model %}data-custom-model="true"{% endif %}>—</div>
+                          </div>
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.firearm_type' | t }}</div>
+                          <div class="product-card_specs_spec-text gl-i18n-value">{{ item.type }}</div>
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.firearm_subtype' | t }}</div>
+                          <div class="product-card_specs_spec-text gl-i18n-value">{{ item.subtype }}</div>
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.brand' | t }}</div>
+                          <div class="product-card_specs_spec-text">{{ item.brand }}</div>
+                        </li>
+                        <li class="product-card_specs_item">
+                          <div class="product-card_specs_label">{{ 'custom.status' | t }}</div>
+                          {% if is_custom_model %}<div class="product-card_specs_spec-text is-catalogo">{{ 'custom.custom_model' | t }}</div>
+                          {% else %}<div data-is-avaliable="" class="product-card_specs_spec-text is-catalogo is-active">{{ 'custom.in_catalogue' | t }}</div>
+                          {% endif %}
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="product-card_button-wrap">
+                      {% if is_custom_model %}<button type="button" class="button is-brand" disabled style="opacity:0.4;cursor:not-allowed;">{{ 'custom.view_model_specifications' | t }}</button>
+                      {% else %}<a class="button is-brand" href="{{ all_products[item.product_handle].url }}">{{ 'custom.view_model_specifications' | t }}</a>{% endif %}
+                      <button type="button" class="button button-secondary is-small js-delete-firearm" data-id="{{ item.system.id }}">{{ 'custom.remove_firearm' | t }}</button>
+                      <button type="button" class="button button-secondary is-small js-edit-firearm"
+                        data-id="{{ item.system.id }}" data-type="{{ item.type }}" data-subtype="{{ item.subtype }}"
+                        data-brand="{{ item.brand }}" data-model="{{ item.model }}" data-caliber="{{ item.caliber }}"
+                        data-barrel-length="{{ item.barrel_length }}" data-custom-gun-name="{{ item.custom_gun_name }}"
+                        data-status="{{ item.status_condition }}" data-purchase-date="{{ item.purchase_date }}"
+                        data-product-url="{{ item.product_url }}" data-product-image="{{ item.product_image }}"
+                        data-product-title="{{ item.product_title }}" data-product-handle="{{ item.product_handle }}"
+                        data-gun-images="{{ item.gun_images | escape }}">{{ 'custom.edit_firearm' | t }}</button>
+                      <button type="button" title="{{ 'custom.compare_title' | t }}" class="product-card_button button button-secondary is-small" data-compare-btn
+                        data-compare-variant="{{ item.product_handle }}--{{ item.caliber }}--{{ item.barrel_length }}"
+                        data-product-handle="{{ item.product_handle }}"
+                        {% if is_custom_model %}disabled style="opacity:0.4;cursor:not-allowed;"{% endif %}>
+                        <div class="product-card_icon icon-1x1-small w-embed after-added" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M9.25 1.69043C8.83516 1.69043 8.5 2.02559 8.5 2.44043C8.5 2.85527 8.83516 3.19043 9.25 3.19043H11.1883L6.47031 7.91074C6.17734 8.20371 6.17734 8.67949 6.47031 8.97246C6.76328 9.26543 7.23906 9.26543 7.53203 8.97246L12.25 4.25215V6.19043C12.25 6.60527 12.5852 6.94043 13 6.94043C13.4148 6.94043 13.75 6.60527 13.75 6.19043V2.44043C13.75 2.02559 13.4148 1.69043 13 1.69043H9.25ZM3.625 2.44043C2.58906 2.44043 1.75 3.27949 1.75 4.31543V11.8154C1.75 12.8514 2.58906 13.6904 3.625 13.6904H11.125C12.1609 13.6904 13 12.8514 13 11.8154V9.19043C13 8.77559 12.6648 8.44043 12.25 8.44043C11.8352 8.44043 11.5 8.77559 11.5 9.19043V11.8154C11.5 12.0217 11.3313 12.1904 11.125 12.1904H3.625C3.41875 12.1904 3.25 12.0217 3.25 11.8154V4.31543C3.25 4.10918 3.41875 3.94043 3.625 3.94043H6.25C6.66484 3.94043 7 3.60527 7 3.19043C7 2.77559 6.66484 2.44043 6.25 2.44043H3.625Z" fill="#295A31"/></svg></div>
+                        <div class="product-card_icon icon-1x1-small w-embed before-added"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.875 1.96875H7.21875C4.74387 1.96875 3.50644 1.96875 2.73759 2.73759C1.96875 3.50644 1.96875 4.74387 1.96875 7.21875V8.53125C1.96875 11.0061 1.96875 12.2436 2.73759 13.0124C3.50644 13.7812 4.74387 13.7812 7.21875 13.7812H7.875" stroke="#295A31" stroke-width="0.984375"/><path d="M7.21875 1.96875H9.84375C11.6999 1.96875 12.628 1.96875 13.2046 2.54538C13.7812 3.12202 13.7812 4.05009 13.7812 5.90625V9.84375C13.7812 11.6999 13.7812 12.628 13.2046 13.2046C12.628 13.7812 11.6999 13.7812 9.84375 13.7812H7.21875" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round" stroke-dasharray="1.64 1.97"/><path d="M7.875 1.3125V14.4375" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round"/></svg></div>
+                        <div class="after-added" style="display:none;">{{ 'custom.go_to_comparison' | t }}</div>
+                        <div class="before-added">{{ 'custom.compare' | t }}</div>
+                      </button>
+                      {% if user_type == 'business' %}
+                        <button type="button" class="button button-secondary is-small open-ad-popup"
+                          data-sell-handle="{{ item.product_handle }}" data-sell-type="{{ item.type }}"
+                          data-sell-subtype="{{ item.subtype }}" data-sell-brand="{{ item.brand }}"
+                          data-sell-model="{{ item.model }}" data-sell-caliber="{{ item.caliber }}"
+                          data-sell-barrel="{{ item.barrel_length }}" data-sell-image="{{ sell_image }}"
+                          data-sell-status="{{ item.status_condition }}" data-sell-purchase-date="{{ item.purchase_date }}"
+                          data-sell-source="my-armorer"
+                          {% if is_custom_model %}disabled style="opacity:0.4;cursor:not-allowed;"{% endif %}>
+                          <div class="product-card_icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#s1)"><path d="M15.6187 4.92189C15.6187 3.87189 14.3719 3.08439 12.6984 3.08439C12.6 3.08439 12.4687 3.08439 12.3375 3.1172L12.3047 2.62501C12.2719 2.29689 12.0094 2.0672 11.7141 2.03439L7.05469 1.57501C6.85781 1.57501 6.66094 1.64064 6.52969 1.77189L0.360938 7.94064C0.0984375 8.20314 0.0984375 8.59689 0.360938 8.85939L5.44688 13.9453C5.57812 14.0766 5.74219 14.1422 5.90625 14.1422C6.07031 14.1422 6.23438 14.0766 6.36562 13.9781L12.5672 7.80939C12.6984 7.67814 12.7969 7.48126 12.7641 7.28439L12.6984 6.72657C14.3719 6.72657 15.5859 5.93907 15.6187 4.92189ZM5.90625 12.6L1.70625 8.43283L7.21875 2.92032L11.0578 3.28126L11.2219 5.05314C11.1234 4.98751 11.0578 4.92189 11.0578 4.88907C11.0578 4.52814 10.7625 4.23282 10.4016 4.23282C10.0406 4.23282 9.74531 4.52814 9.74531 4.88907C9.74531 5.64376 10.4016 6.2672 11.3531 6.56251L11.4187 7.08751L5.90625 12.6ZM12.6984 5.44689C12.6656 5.44689 12.6328 5.44689 12.5672 5.44689L12.4688 4.36407H12.6984C13.7484 4.36407 14.3063 4.75782 14.3391 4.88907C14.3063 5.02032 13.7484 5.44689 12.6984 5.44689Z" fill="var(--color-foreground)"/></g><defs><clipPath id="s1"><rect width="15.75" height="15.75" fill="white"/></clipPath></defs></svg></div>
+                          {{ 'custom.sell_firearm' | t }}
+                        </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+          {% endpaginate %}
+
+          <button type="button" class="product-grid_add-btn_component" id="openPopupBtn">
+            <div class="product-grid_add-btn_layout">
+              <div class="product-grid_add-btn_icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img"><g fill="none"><circle cx="12" cy="12" r="10" stroke="#295a31" stroke-width="1.5"></circle><path d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15" stroke="#295a31" stroke-width="1.5" stroke-linecap="round"></path></g></svg></div>
+              <div class="product-grid_add-btn_label color-primary">{{ 'custom.add_weapon' | t }}</div>
+            </div>
+          </button>
+        </div>
+        <div class="product-grid_empty-slots">
+          <div class="products-grid_list">
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM POPUP -->
+  <div id="popup" class="add-firearm-popup-overlay" style="display:none;">
+    <div class="add-firearm-popup">
+      <div class="add-firearm-popup-title-wrapper">
+        <h4 id="popupTitle">{{ 'custom.add_firearm' | t }}</h4>
+        <div class="btn-cancel-cross" id="closePopupBtn"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#F3F4F3"/><path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295a31" stroke-width="1.19938"/><path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295a31" stroke-width="1.19938" stroke-linecap="round"/></svg></div>
+      </div>
+      <div id="armoryLoader" class="armory-loader-overlay" style="display:none;">
+        <div class="armory-spinner"></div>
+      </div>
+      <div class="my-armorer">
+        <form id="armoryForm" onsubmit="return false;">
+          <input type="hidden" name="customer_id" value="{{ customer.id }}">
+          <div id="armorer-filters">
+            <div class="form-group form-group-firearm-selection">
+              <div class="add-firearm-popup-formtitle">{{ 'custom.firearm_model' | t }}</div>
+
+              <!-- Quick search — searches brand/model across whole catalogue, combined (AND) with any dropdown filters already set -->
+              <div class="input-wrapper arm-quick-search-wrapper">
+                <input type="text" id="arm-quick-search" class="arm-quick-search-input" placeholder="{{ 'custom.gunsafe_globalsearch_input_placeholder' | t }}" autocomplete="off">
+                <div class="arm-quick-search-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+              </div>
+              <div id="arm-quick-search-results" class="arm-quick-search-results" style="display:none;"></div>
+
+              <!-- Type -->
+              <div class="add-firearm-custom-dropdown" data-filter="tipo">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="arm-tipo-label">{{ 'custom.weapon_type' | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu" style="display:none;"><ul id="arm-tipo-list"></ul></div>
+              </div>
+
+              <!-- Subtype -->
+              <div class="add-firearm-custom-dropdown disabled" data-filter="subtipo">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="arm-subtipo-label">{{ 'custom.firearm_subtype' | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu" style="display:none;"><ul id="arm-subtipo-list"></ul></div>
+              </div>
+
+              <!-- Brand — Storefront API all_brands -->
+              <div class="add-firearm-custom-dropdown disabled" data-filter="marca">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="arm-marca-label">{{ 'custom.brand' | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu arm-scrollable-menu" style="display:none;">
+                  <input type="text" id="arm-brand-search" class="filter-search arm-list-search" placeholder="{{ 'custom.search_label' | t }}..." autocomplete="off">
+                  <ul id="arm-marca-list" class="arm-scrollable-list"></ul>
+                </div>
+              </div>
+
+              <!-- Model -->
+              <div class="add-firearm-custom-dropdown disabled filter-group--search" data-filter="modelo">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="arm-modelo-label">{{ 'custom.model' | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu" style="display:none;">
+                  <input type="text" id="arm-model-search" class="filter-search" placeholder="{{ 'custom.search_model' | t }}" autocomplete="off">
+                  <div id="arm-model-results" class="model-results"></div>
+                </div>
+              </div>
+
+              <!-- Caliber — Storefront API all_calibers, locked when single-caliber catalogue model -->
+              <div class="add-firearm-custom-dropdown disabled" data-filter="calibre" id="arm-calibre-wrapper">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="arm-calibre-label">{{ 'custom.caliber' | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu arm-scrollable-menu" style="display:none;">
+                  <input type="text" id="arm-caliber-search" class="filter-search arm-list-search" placeholder="{{ 'custom.search_label' | t }}..." autocomplete="off">
+                  <ul id="arm-calibre-list" class="arm-scrollable-list"></ul>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="armorer-extra">
+            <div class="form-group">
+              <div class="add-firearm-popup-formtitle">{{ 'custom.about_firearm' | t }}</div>
+              <div class="input-wrapper"><input type="text" id="customName" placeholder="{{ 'custom.enter_name' | t }}"></div>
+              <div class="input-wrapper">
+                <label class="upload-box">{{ 'custom.upload_images_label' | t }}<input type="file" id="gunImages" multiple accept="image/*"></label>
+                <div class="upload-icon">{% render 'icon-upload' %}</div>
+                <div id="imagePreview" class="image-preview"></div>
+                <span style="color: #295A31A6;" class="text-size-tiny">*{{ 'custom.image_requirement' | t }} 300×300</span>
+              </div>
+              <div class="add-firearm-custom-dropdown" data-filter="status">
+                <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+                  <span class="filter-title"><span id="statusLabel">{{ "custom.status" | t }}</span></span>
+                </button>
+                <div class="add-firearm-dropdown-menu" style="display:none;">
+                  <ul>
+                    <li><label><input type="radio" name="status" value="Nuevo"><span>{{ 'custom.new' | t }}</span></label></li>
+                    <li><label><input type="radio" name="status" value="Semi nuevo"><span>{{ 'custom.nearly_new' | t }}</span></label></li>
+                    <li><label><input type="radio" name="status" value="Usado"><span>{{ 'custom.used' | t }}</span></label></li>
+                    <li><label><input type="radio" name="status" value="Desactivado"><span>{{ 'custom.deactivated' | t }}</span></label></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="input-wrapper" id="purchaseDateGroup">
+                <label class="form-label">{{ 'custom.date_of_purchase' | t }}</label>
+                <input type="text" readonly inputmode="none" autocomplete="off" id="purchaseDate">
+              </div>
+            </div>
+          </div>
+
+          <!-- AC1 + AC6: Inline error box with dismiss button (replaces alert()) -->
+          <div id="armoryValidationErrors" class="armory-validation-errors" style="display:none;">
+            <button type="button" class="armory-error-dismiss" id="armoryErrorDismiss" aria-label="Dismiss">&#x2715;</button>
+            <div id="armoryErrorContent"></div>
+          </div>
+
+          <div class="popup-actions">
+            <button type="button" class="button button-secondary btn-cancel" id="cancelFirearm">{{ 'content.cancel' | t }}</button>
+            <button type="button" id="saveFirearm" class="button button-primary btn-submit">{{ 'custom.add_firearm' | t }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION -->
+  <div id="deleteConfirmOverlay" class="delete-confirm-overlay" style="display:none;">
+    <div class="delete-confirm-popup">
+      <button type="button" class="delete-confirm-close" id="deleteConfirmClose"><svg width="28" height="28" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#F3F4F3"/><path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295a31" stroke-width="1.19938"/><path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295a31" stroke-width="1.19938" stroke-linecap="round"/></svg></button>
+      <p class="delete-confirm-title">{{ 'custom.Are_you_sure_you_want_to_delete' | t }}</p>
+      <!-- AC3: Inline error for delete failure (replaces alert()) -->
+      <div id="deleteErrorBox" class="armory-validation-errors" style="display:none;margin-bottom:16px;">
+        <div id="deleteErrorContent"></div>
+      </div>
+      <div class="delete-confirm-actions">
+        <button type="button" class="delete-confirm-btn delete-confirm-btn--cancel" id="deleteConfirmCancel">{{ 'custom.No_cancel' | t }}</button>
+        <button type="button" class="delete-confirm-btn delete-confirm-btn--confirm" id="deleteConfirmYes">{{ 'custom.Yes_delete' | t }}</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .add-firearm-custom-dropdown.disabled {opacity: .4;pointer-events: none;}
+    /* ── Sliders ── */
+    .armorer-slider{position:relative;width:100%;height:100%;overflow:hidden}
+    .armorer-slider_track-wrap{overflow:hidden;width:100%;height:100%}
+    .armorer-slider_track{display:flex;transition:transform .35s ease;will-change:transform;height:100%}
+    .armorer-slider_slide{min-width:100%;height:100%;flex-shrink:0}
+    .armorer-slider_slide img{width:100%;height:100%;object-fit:cover;display:block}
+    .armorer-slider_btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0;color:var(--color-foreground);transition:background .2s}
+    .armorer-slider_btn:hover{background:#fff}
+    .armorer-slider_btn--prev{left:8px}
+    .armorer-slider_btn--next{right:8px}
+    .armorer-slider_dots{display:flex;justify-content:center;gap:5px;padding:6px 0 2px;position:absolute;z-index:9;bottom:8px;margin:0 auto;width:100%}
+    .armorer-slider_dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .2s;cursor:pointer}
+    .armorer-slider_dot.is-active{background:var(--color-foreground)}
+    /* ── New-entry skeleton (shown while a just-saved firearm is confirmed) ── */
+    .armorer-skeleton-badge{position:absolute;top:8px;left:8px;z-index:3;background:rgba(0,0,0,.72);color:#fff;font-size:.72rem;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+    .armorer-skeleton-badge .spin{width:10px;height:10px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:armory-spin .8s linear infinite}
+    .armorer-skel-line{border-radius:4px;background:linear-gradient(90deg,#eee 25%,#e0e0e0 37%,#eee 63%);background-size:400% 100%;animation:armorer-shimmer 1.4s ease infinite}
+    @keyframes armorer-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+    /* ── Delete confirm ── */
+    .delete-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:99999}
+    .delete-confirm-popup{background:#fff;border-radius:16px;padding:32px 28px 28px;width:100%;max-width:560px;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+    .delete-confirm-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;padding:0;line-height:0}
+    .delete-confirm-title{font-size:1.25rem;font-weight:600;color:var(--color-foreground);margin:0 0 28px;padding-right:40px}
+    .delete-confirm-actions{display:flex;gap:16px}
+    .delete-confirm-btn{flex:1;padding:16px 20px;border-radius:8px;font-size:1rem;font-weight:500;cursor:pointer;border:none;transition:opacity .2s}
+    .delete-confirm-btn:hover{opacity:.85}
+    .delete-confirm-btn--cancel{background:#fff;color:var(--color-foreground);border:1.5px solid var(--color-foreground)}
+    .delete-confirm-btn--confirm{background:var(--color-primary);color:#fff}
+    .delete-confirm-btn--confirm:disabled{opacity:.6;cursor:not-allowed}
+    /* ── Model results ── */
+    .model-results{max-height:250px;overflow-y:auto}
+    .model-item{display:flex;align-items:center;gap:10px;padding:8px;cursor:pointer;border-bottom:1px solid #eee}
+    .model-item:hover{background:#f5f5f5}
+    .model-img-wrapper{display:flex;align-items:center;width:2rem;height:24px;flex-shrink:0;border:1px solid var(--color-foreground);border-radius:4px;background:#fff;padding:1px}
+    .model-item img{width:100%;height:100%;object-fit:contain}
+    /* ── Popup overlay ── */
+    .add-firearm-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .add-firearm-popup{width:640px;max-height:80vh;overflow:hidden;overflow-y:auto;background:#fff;border-radius:14px;padding:20px;position:relative}
+    .add-firearm-popup .add-firearm-popup-title-wrapper{display:flex;gap:24px;align-items:center;margin-bottom:30px;justify-content:space-between}
+    .add-firearm-popup .add-firearm-popup-title-wrapper h4{margin-bottom:0}
+    .add-firearm-popup .add-firearm-popup-title-wrapper .btn-cancel-cross{cursor:pointer}
+    .add-firearm-popup .form-group{display:flex;flex-direction:column;padding:4px;padding-top:14px;position:relative;border:1px solid color-mix(in srgb,var(--color-foreground) 15%,transparent);border-radius:12px;margin-bottom:24px}
+    .add-firearm-popup .form-group.form-group-firearm-selection,.armorer-extra .form-group{grid-column-gap:1rem;grid-row-gap:1rem}
+    .add-firearm-popup .form-group .add-firearm-popup-formtitle{position:absolute;top:-.6em;left:.75rem !important;background-color:#fff;padding-left:.25rem;padding-right:.25rem;pointer-events:none;text-transform:uppercase}
+    .add-firearm-popup input[type=text],.add-firearm-popup input[type=date],.add-firearm-popup input[type=file],.add-firearm-popup textarea{width:100%;border:1px solid #295A3126;border-radius:8px;padding:15px 12px;margin-bottom:0;outline:none !important;color:var(--color-foreground)}
+    .add-firearm-popup input::placeholder,.add-firearm-popup textarea::placeholder{color:var(--color-foreground) !important}
+    .add-firearm-custom-dropdown,.input-wrapper{position:relative;cursor:pointer;padding:4px;border:1px solid transparent;border-radius:.5rem;background-color:#F3F4F3}
+    .add-firearm-custom-dropdown:after{content:"";position:absolute;right:25px;border-bottom-style:solid;border-bottom-width:2px;border-right-style:solid;border-right-width:2px;top:20px;border-color:var(--color-foreground);background-color:transparent;margin:0;display:inline-block;height:8px;width:8px;transform:rotate(45deg);pointer-events:none}
+    .input-wrapper{background-color:transparent;display:flex;flex-direction:column;width:100%}
+    .input-wrapper .form-label,.custom-dropdown .form-label{top:-.1em;left:.75rem !important;font-size:.85rem;position:absolute;background:#fff;padding-left:.25rem;padding-right:.25rem}
+    .add-firearm-custom-dropdown.open{border-color:color-mix(in srgb,var(--color-foreground) 15%,transparent)}
+    .add-firearm-dropdown-menu{display:none;padding:4px 0}
+    .add-firearm-custom-dropdown.open .add-firearm-dropdown-menu{display:block}
+    .add-firearm-dropdown-toggle{border-radius:.5rem;color:color-mix(in srgb,var(--color-foreground) 75%,var(--color-background));border-style:solid;border-width:.06rem;border-color:color-mix(in srgb,var(--color-foreground) 15%,transparent);background-color:#0000;width:100%;min-width:auto;min-height:3rem;margin-bottom:0;font-size:1rem;transition-property:border;transition-duration:.2s;transition-timing-function:ease;padding:.75rem 1.2rem 1rem;text-align:left;cursor:pointer;position:relative}
+    .add-firearm-dropdown-menu ul{display:flex;list-style:none;flex-direction:column;padding:0;grid-column-gap:.25rem;grid-row-gap:.25rem;align-items:stretch}
+    .add-firearm-dropdown-menu ul li{background-color:#0000;border-radius:.5rem;flex-direction:row;justify-content:space-between;align-items:center;margin-bottom:0;padding:.35rem .5rem;transition-property:color,background-color;transition-duration:.2s,.2s;transition-timing-function:ease,ease;display:flex;position:relative;font-size:1rem;cursor:pointer}
+    .add-firearm-dropdown-menu ul li:hover{background-color:color-mix(in hsl,var(--color-foreground) 10%,transparent)}
+    .add-firearm-dropdown-menu ul li label{position:relative;width:100%;display:flex;align-items:center;gap:6px;cursor:pointer}
+    .add-firearm-dropdown-menu ul li label span{cursor:pointer;display:block;flex:1}
+    .add-firearm-dropdown-menu ul li label input[type=radio]{opacity:0;position:absolute;left:0;width:0;height:0;margin:0;padding:0;border:none}
+    .upload-box{display:block;padding:12px;border:1px dashed #ccc;border-radius:8px;text-align:center;cursor:pointer;width:100%}
+    .upload-box input{display:none}
+    .image-preview{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .image-preview div{position:relative;border:1px solid var(--color-foreground);border-radius:8px}
+    .image-preview img{width:65px;height:45px;object-fit:contain;border-radius:4px}
+    .remove-img{position:absolute;top:-6px;right:-6px;background:red;color:#fff;border-radius:50%;font-size:10px;cursor:pointer;padding:2px 5px;line-height:1}
+    .popup-actions{display:flex;justify-content:space-between;margin-top:15px;gap:16px}
+    .popup-actions button{width:100%}
+    .popup-actions .btn-submit{background-color:var(--color-primary);color:#fff;outline:none !important}
+    .armory-loader-overlay{position:absolute;inset:0;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;border-radius:14px;z-index:10}
+    .armory-spinner{width:48px;height:48px;border:4px solid #e0e0e0;border-top-color:var(--color-foreground);border-radius:50%;animation:armory-spin .8s linear infinite}
+    @keyframes armory-spin{to{transform:rotate(360deg)}}
+    /* ── AC1 + AC3 + AC6: Error box with dismiss button ── */
+    .armory-validation-errors{background-color:#fff3f3;border:1px solid #e53935;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#c62828;font-size:.9rem;position:relative}
+    .armory-validation-errors ul{margin:6px 0 0;padding-left:18px}
+    .armory-validation-errors ul li{margin-bottom:4px}
+    /* AC6: Dismiss button */
+    .armory-error-dismiss{position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:1rem;color:#c62828;line-height:1;padding:2px 4px}
+    .armory-error-dismiss:hover{color:#8b0000}
+    .add-firearm-custom-dropdown.field-error .add-firearm-dropdown-toggle{border-color:#e53935 !important}
+    .form-group.field-error,.input-wrapper.field-error{border-color:#e53935 !important}
+    .upload-box.field-error{border-color:#e53935 !important;border-style:solid}
+    /* Skeletons */
+    .model-skeleton{display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid #f0f0f0}
+    .model-skeleton__img{width:50px;height:50px;border-radius:6px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;flex-shrink:0}
+    .model-skeleton__text{flex:1;display:flex;flex-direction:column;gap:8px}
+    .model-skeleton__line{height:12px;border-radius:6px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+    .model-skeleton__line--wide{width:75%}
+    .model-skeleton__line--narrow{width:45%}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .filter-skeleton{padding:10px 12px;border-radius:6px;list-style:none}
+    .filter-skeleton__line{height:13px;border-radius:6px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;width:60%}
+    .filter-skeleton:nth-child(2) .filter-skeleton__line{width:45%}
+    .filter-skeleton:nth-child(3) .filter-skeleton__line{width:70%}
+    /* Dropdown-button skeleton overlay — hides the field's content while a quick-search
+       pick is resolving its locale-correct value, so no English-then-Spanish flash is visible */
+    .arm-dropdown-skeleton-overlay{position:absolute;inset:0;border-radius:.5rem;background:#fff;display:flex;align-items:center;padding:0 1.2rem;z-index:5}
+    .arm-dropdown-skeleton-overlay__line{height:14px;width:55%;border-radius:6px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+    /* Scrollable brand/caliber lists */
+    .arm-scrollable-menu{display:none;flex-direction:column;max-height:320px;overflow:hidden}
+    [data-filter="marca"].open .arm-scrollable-menu,[data-filter="calibre"].open .arm-scrollable-menu{display:flex !important}
+    .arm-list-search{flex-shrink:0;margin:0; margin-bottom: 6px;width:calc(100% - 16px);padding:8px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:.95rem;box-sizing:border-box;display:block}
+    .arm-scrollable-list{flex:1;overflow-y:auto;overflow-x:hidden;max-height:260px;margin:0;padding:4px 0;list-style:none}
+    .arm-scrollable-list::-webkit-scrollbar{width:4px}
+    .arm-scrollable-list::-webkit-scrollbar-track{background:#f1f1f1;border-radius:2px}
+    .arm-scrollable-list::-webkit-scrollbar-thumb{background:#295A31;border-radius:2px}
+    /* Use button */
+    .arm-use-btn{display:block;width:100%;text-align:left;padding:10px 14px;margin:4px 0;background:#f0f7f1;border:1.5px solid #295A31;border-radius:8px;color:#295A31;font-size:.95rem;cursor:pointer;font-weight:600;font-family:inherit}
+    .arm-use-btn:hover{background:#e0f0e3}
+    /* Caliber locked */
+    #arm-calibre-wrapper.disabled{pointer-events:none}
+    #arm-calibre-wrapper.disabled .filter-toggle{pointer-events:none !important;opacity:0.72;cursor:not-allowed;background:#f0f7f1}
+    #arm-calibre-wrapper.disabled .filter-title span{color:#295A31;font-weight:600}
+    #arm-calibre-wrapper.disabled.open .add-firearm-dropdown-menu{display:none !important}
+    /* Mobile */
+    @media(max-width:700px){.add-firearm-popup{width:calc(100vw - 32px);max-height:90vh;padding:16px}}
+    /* ── Quick search (AC1-AC5) ── */
+    .arm-quick-search-wrapper{position:relative;margin-bottom:0px;background-color:#fff;border:1.5px solid #295A3140}
+    .arm-quick-search-wrapper:after{display:none}
+    .arm-quick-search-input{width:100%;border:none !important;padding:13px 40px 13px 14px !important;font-size:1rem;background:transparent;color:var(--color-foreground)}
+    .arm-quick-search-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#295A3199;pointer-events:none;display:flex}
+    .arm-quick-search-results{max-height:280px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0px;background:#fff}
+    .arm-quick-search-results::-webkit-scrollbar{width:4px}
+    .arm-quick-search-results::-webkit-scrollbar-thumb{background:#295A31;border-radius:2px}
+    .arm-qs-no-results{padding:14px;font-size:.9rem;color:#666;text-align:center}
+    .arm-qs-loading{display:flex;align-items:center;gap:8px;padding:12px 14px;color:#666;font-size:.9rem}
+    .arm-qs-loading .arm-qs-spinner{width:14px;height:14px;border:2px solid #e0e0e0;border-top-color:#295A31;border-radius:50%;animation:armory-spin .7s linear infinite;flex-shrink:0}
+  </style>
+
+  <script>window.GL_LOCALE = {{ request.locale.iso_code | json }};</script>
+  <script>
+    // Same locale-aware value translation classifieds.liquid uses for
+    // firearm type/subtype (canonicalise to English, then render in the
+    // active locale — storage language is irrelevant either way).
+    window.GLI18n = window.GLI18n || (function () {
+      {% render 'gl-ads-value-translations' %}
+
+      var ES_TO_EN = {};
+      Object.keys(EN_TO_ES).forEach(function (en) {
+        var es = EN_TO_ES[en];
+        if (!(es in ES_TO_EN)) ES_TO_EN[es] = en;
+      });
+      // My Gun Safe stores this one without the hyphen ("Semi nuevo") while the
+      // ad system stores it with one ("Semi-nuevo") — accept both as the same
+      // canonical "Nearly New" rather than leaving My Gun Safe's spelling untranslated.
+      ES_TO_EN['Semi nuevo'] = 'Nearly New';
+
+      function locale() {
+        var l = (window.GL_LOCALE || '').toLowerCase();
+        return l === 'en' ? 'en' : 'es';
+      }
+
+      function canonical(value) {
+        if (value == null) return '';
+        var v = String(value).trim();
+        if (EN_TO_ES.hasOwnProperty(v)) return v;
+        if (ES_TO_EN.hasOwnProperty(v)) return ES_TO_EN[v];
+        return v;
+      }
+
+      function t(value, loc) {
+        var target = loc || locale();
+        var canon  = canonical(value);
+        if (target === 'en') return canon;
+        return EN_TO_ES.hasOwnProperty(canon) ? EN_TO_ES[canon] : canon;
+      }
+
+      return { t: t, canonical: canonical, locale: locale };
+    })();
+
+    // Applies GLI18n translation to every rendered card field marked with
+    // gl-i18n-value (type/subtype/status). Accepts an optional root so any
+    // future code that inserts a card without a full page reload can
+    // re-run this for just that new card. Safe to call repeatedly.
+    function applyGlI18n(root) {
+      (root || document).querySelectorAll('.gl-i18n-value').forEach(function (el) {
+        var raw = el.textContent.trim();
+        if (!raw) return;
+        el.textContent = window.GLI18n.t(raw);
+      });
+    }
+    document.addEventListener('DOMContentLoaded', function () { applyGlI18n(); });
+  </script>
+
+  <script>
+    var STATUS_LABELS = {
+      'Nuevo':      '{{ "custom.new" | t }}',
+      'Semi nuevo': '{{ "custom.nearly_new" | t }}',
+      'Usado':      '{{ "custom.used" | t }}',
+      'Desactivado':'{{ "custom.deactivated" | t }}'
+    };
+
+    var _armorerNonCatalogueMsg = {{ 'custom.armorer_non_catalogue_msg' | t | json }};
+
+    var _armorerMismatchMsg = {{ 'custom.armorer_mismatch_msg' | t | json }};
+
+    var _FC = {% if request.locale.iso_code == 'en' %}'/en/collections/firearms'{% else %}'/collections/armas'{% endif %};
+    var STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+    var STOREFRONT_API = 'https://gunloupe.myshopify.com/api/2024-01/graphql.json';
+    var PARAM_TO_KEY = {
+      'filter.p.product_type':'tipo','filter.p.m.custom.sub_tipo_de_arma':'subtipo',
+      'filter.p.m.custom.marca':'marca','filter.p.m.custom.modelo':'modelo',
+      'filter.v.option.calibre':'calibre','filter.v.option.Calibre':'calibre','filter.v.option.caliber':'calibre'
+    };
+
+    (function() {
+      var BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+      var CUSTOMER_ID = '{{ customer.id }}';
+
+      // ── State ────────────────────────────────────────────────────────────────
+      var _brandsCache = null, _calibersCache = null, _catalogueBrandsCache = null;
+      var _brandsLoading = false, _calibersLoading = false;
+      var sf = {tipo:'',subtipo:'',marca:'',modelo:'',calibre:''};
+      var selectedProduct = null, allProducts = [], uploadedImages = [], existingImages = [];
+      var pendingDeleteId = null, pendingDeleteCard = null, editingId = null;
+      var searchInputPrevValue = ''; // holds the Model field's "committed" value, for restore-on-blur
+      var isFetching = false, armFilterFetchGen = 0, armProductFetchGen = 0, armProductFetchDone = false;
+      var armBrandIsCatalogue = false;
+
+      var popup = document.getElementById('popup');
+      var popupTitle = document.getElementById('popupTitle');
+      var saveBtn = document.getElementById('saveFirearm');
+      var searchInput = document.getElementById('arm-model-search');
+      var resultsEl = document.getElementById('arm-model-results');
+      var imagePreviewEl = document.getElementById('imagePreview');
+      var deleteOverlay = document.getElementById('deleteConfirmOverlay');
+      var deleteConfirm = document.getElementById('deleteConfirmYes');
+
+      // ── AC6: Dismiss button wiring ────────────────────────────────────────────
+      var dismissBtn = document.getElementById('armoryErrorDismiss');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', function() {
+          var box = document.getElementById('armoryValidationErrors');
+          if (box) { box.style.display = 'none'; }
+        });
+      }
+
+      // ── AC1 + AC3: Inline error functions (replaces all alert() calls) ────────
+      function showInlineError(message) {
+        var box = document.getElementById('armoryValidationErrors');
+        var content = document.getElementById('armoryErrorContent');
+        if (!box || !content) return;
+        content.innerHTML = '<strong>' + message + '</strong>';
+        box.style.display = 'block';
+        box.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      }
+
+      function showDeleteError(message) {
+        var box = document.getElementById('deleteErrorBox');
+        var content = document.getElementById('deleteErrorContent');
+        if (!box || !content) return;
+        content.innerHTML = '<strong>' + message + '</strong>';
+        box.style.display = 'block';
+      }
+
+      function hideDeleteError() {
+        var box = document.getElementById('deleteErrorBox');
+        if (box) box.style.display = 'none';
+      }
+
+      // ── Storefront API helpers ────────────────────────────────────────────────
+      async function fetchAllMetaobjects(type) {
+        var results = [], cursor = null, hasMore = true, attempts = 0;
+        while (hasMore && attempts < 10) {
+          attempts++;
+          var after = cursor ? (', after: "' + cursor + '"') : '';
+          var q = '{metaobjects(type:"' + type + '",first:250' + after + '){pageInfo{hasNextPage endCursor}edges{node{fields{key value}}}}}';
+          try {
+            var r = await fetch(STOREFRONT_API, {
+              method:'POST',
+              headers:{'Content-Type':'application/json','X-Shopify-Storefront-Access-Token':STOREFRONT_TOKEN},
+              body:JSON.stringify({query:q})
+            });
+            if (!r.ok) break;
+            var d = await r.json();
+            if (d.errors) break;
+            var mo = d && d.data && d.data.metaobjects; if (!mo) break;
+            hasMore = mo.pageInfo && mo.pageInfo.hasNextPage;
+            cursor = mo.pageInfo && mo.pageInfo.endCursor;
+            (mo.edges || []).forEach(function(e) {
+              var f = (e.node.fields || []).find(function(x){return x.key==='name';});
+              if (f && f.value) results.push(f.value);
+            });
+          } catch(err) { break; }
+        }
+        return results;
+      }
+
+      function renderBrandList(brands) {
+        var ul = document.getElementById('arm-marca-list'); if (!ul) return;
+        if (!brands.length) { ul.innerHTML = '<li style="padding:8px 12px;color:#999;">' + {{ 'custom.no_brands_found' | t | json }} + '</li>'; return; }
+        ul.innerHTML = brands.map(function(n) {
+          var s = n.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+          return '<li data-brand="'+s+'"><label><input type="radio" name="arm-marca" value="'+s+'"><span>'+s+'</span></label></li>';
+        }).join('');
+      }
+
+      function renderCaliberList(calibers) {
+        var ul = document.getElementById('arm-calibre-list'); if (!ul) return;
+        if (!calibers.length) { ul.innerHTML = '<li style="padding:8px 12px;color:#999;">' + {{ 'custom.no_calibers_found' | t | json }} + '</li>'; return; }
+        var cs = document.getElementById('arm-caliber-search'); if(cs) cs.style.display = '';
+        ul.innerHTML = calibers.map(function(n) {
+          var s = n.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+          return '<li data-caliber="'+s+'"><label><input type="radio" name="arm-calibre" value="'+s+'"><span>'+s+'</span></label></li>';
+        }).join('');
+      }
+
+      function renderCaliberListDirect(cals) {
+        var ul = document.getElementById('arm-calibre-list'); if (!ul) return;
+        var cs = document.getElementById('arm-caliber-search'); if(cs) cs.style.display = 'none';
+        ul.innerHTML = cals.map(function(n) {
+          var s = n.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+          return '<li data-caliber="'+s+'"><label><input type="radio" name="arm-calibre" value="'+s+'"><span>'+s+'</span></label></li>';
+        }).join('');
+      }
+
+      async function loadBrands() {
+        if (_brandsCache) { renderBrandList(_brandsCache); return _brandsCache; }
+        if (_brandsLoading) return;
+        _brandsLoading = true;
+        var ul = document.getElementById('arm-marca-list');
+        if (ul) ul.innerHTML = '<li style="padding:8px 12px;opacity:0.5;">Loading brands...</li>';
+        var brands = await fetchAllMetaobjects('all_brands');
+        brands.sort(function(a,b){return a.localeCompare(b);});
+        _brandsCache = brands; _brandsLoading = false;
+        renderBrandList(brands);
+        return brands;
+      }
+
+      async function loadCalibers() {
+        if (_calibersCache) { renderCaliberList(_calibersCache); return _calibersCache; }
+        if (_calibersLoading) return;
+        _calibersLoading = true;
+        var ul = document.getElementById('arm-calibre-list');
+        if (ul) ul.innerHTML = '<li style="padding:8px 12px;opacity:0.5;">Loading calibers...</li>';
+        var calibers = await fetchAllMetaobjects('all_calibers');
+        _calibersCache = calibers; _calibersLoading = false;
+        renderCaliberList(calibers);
+        return calibers;
+      }
+
+      async function getCatalogueBrands() {
+        if (_catalogueBrandsCache) return _catalogueBrandsCache;
+        // Use the SAME source as loadBrands() (all_brands metaobject via Storefront API)
+        // instead of scraping the collection page's checkbox filters. The two sources
+        // can disagree on exact string formatting even for the same real brand, which
+        // broke armBrandIsCatalogue checks for results coming from quick search.
+        var brands = _brandsCache || await loadBrands();
+        _catalogueBrandsCache = new Set(brands);
+        return _catalogueBrandsCache;
+      }
+
+      // ── Caliber lock/unlock ───────────────────────────────────────────────────
+      function lockCaliber(caliberValue) {
+        var cw = document.getElementById('arm-calibre-wrapper'); if (!cw) return;
+        cw.classList.add('disabled');
+        cw.classList.remove('open');
+        var menu = cw.querySelector('.add-firearm-dropdown-menu'); if (menu) menu.style.display = 'none';
+        sf.calibre = caliberValue;
+        armSetLabel('calibre', caliberValue);
+      }
+
+      function unlockCaliber() {
+        var cw = document.getElementById('arm-calibre-wrapper'); if (!cw) return;
+        cw.classList.remove('disabled');
+        var tb = cw.querySelector('.filter-toggle'); if (tb) tb.disabled = false;
+        cw.querySelectorAll('input').forEach(function(i){i.disabled=false;});
+        var s = cw.querySelector('.filter-search'); if (s) s.disabled = false;
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────────────────
+      function parseFilters(doc) {
+        var result = {tipo:[],subtipo:[],marca:[],modelo:[],calibre:[]};
+        doc.querySelectorAll('.filter-group').forEach(function(group) {
+          var firstInput = group.querySelector('li input[type="checkbox"]'); if (!firstInput) return;
+          var key = PARAM_TO_KEY[firstInput.name]; if (!key) return;
+          var values = Array.from(group.querySelectorAll('li input[type="checkbox"]')).filter(function(i){return !i.disabled;}).map(function(i){return i.value;}).filter(Boolean);
+          if (values.length) result[key] = values;
+        });
+        return result;
+      }
+
+      function armSetEnabled(key, enabled) {
+        var g = document.querySelector('#popup [data-filter="'+key+'"]'); if (!g) return;
+        g.classList.toggle('disabled', !enabled);
+        g.querySelectorAll('input').forEach(function(i){i.disabled=!enabled;});
+        var s = g.querySelector('.filter-search'); if (s) s.disabled = !enabled;
+        var tb = g.querySelector('.filter-toggle'); if (tb) tb.disabled = !enabled;
+      }
+
+      function armSetLabel(key, value) {
+        if (key === 'status') { var el = document.getElementById('statusLabel'); if (el) el.textContent = STATUS_LABELS[value] || value; return; }
+        var el = document.getElementById('arm-'+key+'-label'); if (el) el.textContent = value;
+      }
+
+      // Shows/hides a skeleton overlay directly on top of a dropdown's closed button,
+      // hiding its current text entirely so no English-then-Spanish flash is visible
+      // while quick search resolves the locale-correct value in the background.
+      function armShowDropdownSkeleton(key) {
+        var dd = document.querySelector('#popup [data-filter="'+key+'"]'); if (!dd) return;
+        var btn = dd.querySelector('.filter-toggle'); if (!btn) return;
+        if (btn.querySelector('.arm-dropdown-skeleton-overlay')) return; // already showing
+        var overlay = document.createElement('div');
+        overlay.className = 'arm-dropdown-skeleton-overlay';
+        overlay.innerHTML = '<div class="arm-dropdown-skeleton-overlay__line"></div>';
+        btn.style.position = 'relative';
+        btn.appendChild(overlay);
+      }
+
+      function armHideDropdownSkeleton(key) {
+        var dd = document.querySelector('#popup [data-filter="'+key+'"]'); if (!dd) return;
+        var overlay = dd.querySelector('.arm-dropdown-skeleton-overlay');
+        if (overlay) overlay.remove();
+      }
+
+      function armFilterList(listId, dataAttr, q) {
+        q = (q||'').toLowerCase();
+        document.querySelectorAll('#'+listId+' li[data-'+dataAttr+']').forEach(function(li){
+          li.style.display = (!q || (li.dataset[dataAttr]||'').toLowerCase().includes(q)) ? '' : 'none';
+        });
+      }
+
+      function armOpenDropdown(dd) {
+        if (dd.id === 'arm-calibre-wrapper' && dd.classList.contains('disabled')) return;
+        dd.classList.add('open');
+        var menu = dd.querySelector('.add-firearm-dropdown-menu');
+        if (menu) menu.style.display = dd.querySelector('.arm-scrollable-menu') ? 'flex' : 'block';
+      }
+
+      function armCloseDropdown(dd) {
+        dd.classList.remove('open');
+        var menu = dd.querySelector('.add-firearm-dropdown-menu'); if (menu) menu.style.display = 'none';
+      }
+
+      function makeUseBtn(label, onClickFn) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'arm-use-btn';
+        btn.innerHTML = '&#10003; ' + (window._armorerLabels.useLabel || 'Use') + ' <strong>"' + label + '"</strong>';
+        btn.addEventListener('click', onClickFn);
+        return btn;
+      }
+
+      // ── Type/Subtype filter fetch ──────────────────────────────────────────────
+      async function armLoadTypeFilters() {
+        var ul = document.getElementById('arm-tipo-list');
+        if (ul) ul.innerHTML = '<li class="filter-skeleton"><div class="filter-skeleton__line"></div></li>';
+        try {
+          var r = await fetch(_FC);
+          var parsed = parseFilters(new DOMParser().parseFromString(await r.text(),'text/html'));
+          if (ul) ul.innerHTML = (parsed.tipo||[]).map(function(v){return '<li><label><input type="radio" name="arm-tipo" value="'+v+'"><span>'+v+'</span></label></li>';}).join('');
+        } catch(e){}
+      }
+
+      async function armFetchSubtypes() {
+        var myGen = ++armFilterFetchGen;
+        var ul = document.getElementById('arm-subtipo-list');
+        if (ul) ul.innerHTML = '<li class="filter-skeleton"><div class="filter-skeleton__line"></div></li>';
+        try {
+          var p = new URLSearchParams(); if (sf.tipo) p.append('filter.p.product_type', sf.tipo);
+          var r = await fetch(_FC + '?' + p.toString());
+          var parsed = parseFilters(new DOMParser().parseFromString(await r.text(),'text/html'));
+          if (myGen !== armFilterFetchGen) return;
+          if (ul && parsed.subtipo.length) ul.innerHTML = parsed.subtipo.map(function(v){return '<li><label><input type="radio" name="arm-subtipo" value="'+v+'"><span>'+v+'</span></label></li>';}).join('');
+        } catch(e){}
+      }
+
+      // ── Product fetch + smart caliber/barrel detection ────────────────────────
+      function showModelSkeleton() {
+        if (!resultsEl) return;
+        resultsEl.innerHTML = [1,2,3].map(function(){return '<div class="model-skeleton"><div class="model-skeleton__img"></div><div class="model-skeleton__text"><div class="model-skeleton__line model-skeleton__line--wide"></div><div class="model-skeleton__line model-skeleton__line--narrow"></div></div></div>';}).join('');
+      }
+
+      function showManualHint() {
+        // Genuinely non-catalogue brand — keep allowing free-text model entry.
+        if (searchInput) { searchInput.removeAttribute('readonly'); searchInput.style.opacity=''; searchInput.placeholder = window._armorerLabels.searchModel; }
+        if (!resultsEl) return;
+        resultsEl.innerHTML = '<div style="padding:12px;font-size:.9rem;color:#666;font-style:italic;background:#f9fafb;border-radius:6px;margin:4px;">' + _armorerNonCatalogueMsg + '</div>';
+      }
+
+      function showMismatchHint() {
+        var si = searchInput;
+        if (si) {
+          si.removeAttribute('readonly');
+          si.style.opacity = '';
+          si.placeholder = window._armorerLabels.searchModel;
+        }
+        if (!resultsEl) return;
+        resultsEl.innerHTML = '<div style="padding:12px;font-size:.9rem;color:#666;font-style:italic;background:#f9fafb;border-radius:6px;margin:4px;">' + _armorerMismatchMsg + '</div>';
+      }
+
+      async function armFetchProducts() {
+        if (isFetching) return; isFetching = true;
+        var myGen = armProductFetchGen; // snapshot — if arm-marca changes brand before this resolves, armProductFetchGen will have moved on and this fetch's results must be discarded
+        if (searchInput) { searchInput.setAttribute('readonly','readonly'); searchInput.style.opacity='0.55'; searchInput.placeholder = window._armorerLabels.loadingModels; }
+        try {
+          var p = new URLSearchParams();
+          if (sf.tipo) p.append('filter.p.product_type', sf.tipo);
+          if (sf.subtipo) p.append('filter.p.m.custom.sub_tipo_de_arma', sf.subtipo);
+          if (sf.marca) p.append('filter.p.m.custom.marca', sf.marca);
+          var fetchedProducts = [];
+          // Walk every page of the filtered collection — a single fetch only ever returned
+          // the theme's default page size (commonly 24-50 products), silently dropping any
+          // models beyond that for a brand/type/subtype combination with a larger catalogue.
+          // Stop once a page returns no product cards, or if a page repeats a handle/title
+          // already seen (defensive: some themes redirect an out-of-range ?page=N back to
+          // page 1 instead of returning empty, which would otherwise loop forever).
+          var seenKeys = new Set();
+          for (var page = 1; page <= 50; page++) { // 50-page ceiling as a sane upper bound, not an expected real limit
+            if (myGen !== armProductFetchGen) break; // brand changed mid-pagination — stop early, results will be discarded below anyway
+            var pp = new URLSearchParams(p); pp.set('page', String(page));
+            var doc = new DOMParser().parseFromString(await(await fetch(_FC+'?'+pp.toString())).text(),'text/html');
+            var cards = doc.querySelectorAll('.product-card,.grid-product,.card-wrapper');
+            if (!cards.length) break;
+            var sawNew = false;
+            cards.forEach(function(item){
+              var te = item.querySelector('.product-card__title') || item.querySelector('h3');
+              var title = te && te.textContent && te.textContent.trim();
+              var image = item.querySelector('img') && item.querySelector('img').src;
+              var link = item.querySelector('a') && item.querySelector('a').href;
+              if (!title) return;
+              var key = link || title;
+              if (seenKeys.has(key)) return; // already collected — guards against a repeated page
+              seenKeys.add(key); sawNew = true;
+              fetchedProducts.push({title:title,image:image,link:link});
+            });
+            if (!sawNew) break; // this page added nothing new — we've looped back or run out
+          }
+          if (myGen === armProductFetchGen) allProducts = fetchedProducts;
+        } catch(e){}
+        isFetching = false;
+        if (myGen !== armProductFetchGen) return; // brand changed mid-fetch — a non-catalogue brand's showManualHint() (or a newer fetch) already owns the UI now, don't stomp it
+        armProductFetchDone = true; // confirmed (empty or not) for this brand — typing must never re-trigger another fetch from here on
+        if (searchInput) { searchInput.removeAttribute('readonly'); searchInput.style.opacity=''; searchInput.placeholder = window._armorerLabels.searchModel; }
+        var q = (searchInput && searchInput.value || '').trim().toLowerCase();
+        armRenderModelResults(q ? allProducts.filter(function(p){return p.title.toLowerCase().includes(q);}) : allProducts, true);
+      }
+
+      function armExtractHandle(url) { if(!url)return null; var p=url.split('/products/'); return p[1]?p[1].split('?')[0]:null; }
+
+      function armRenderModelResults(products, isFinal) {
+        if (!resultsEl) return;
+        var typed = (searchInput && searchInput.value || '').trim();
+        resultsEl.innerHTML = '';
+
+        if (!products.length) {
+          // True mismatch: brand is confirmed catalogue, fetch is confirmed done,
+          // and the WHOLE combo (not just what was typed) has zero products.
+          if (armBrandIsCatalogue && armProductFetchDone && allProducts.length === 0) {
+            showMismatchHint();
+            return;
+          }
+          if (!typed) {
+            if (isFinal) {
+              showManualHint();
+            } else if (armBrandIsCatalogue && !armProductFetchDone) {
+              var le=document.createElement('div');le.style.cssText='padding:8px 12px;opacity:0.5;font-size:.9rem;';le.textContent=window._armorerLabels.loadingModels+'...';resultsEl.appendChild(le);armFetchProducts();
+            } else if (armBrandIsCatalogue && armProductFetchDone) {
+              showManualHint();
+            }
+            return;
+          }
+          // Catalogue brand, some products exist for this combo, but none match
+          // what was typed — allow a custom entry as an override (unchanged behavior).
+          resultsEl.appendChild(makeUseBtn(typed, function(){armSelectCustomModel(typed);}));
+          return;
+        }
+        var sid = Date.now(); resultsEl.dataset.sessionId = String(sid);
+        products.forEach(function(p) {
+          var handle = p.handle || armExtractHandle(p.link);
+          if (!handle) { armAppendModelRow(p, handle, null, [], sid); return; }
+          fetch('/products/'+handle+'.json').then(function(r){return r.json();}).then(function(jd){
+            if (String(resultsEl.dataset.sessionId) !== String(sid)) return;
+            var prod = jd && jd.product; if (!prod) { armAppendModelRow(p, handle, null, [], sid); return; }
+            var img = (prod.image && prod.image.src) || p.image || null;
+
+            var CALIBER_RE = /^[\d\.]+\s*[x\/\-]\s*[\d\.]+|^\d+\s*mm|\d+\s*(mm|cal|mag|nato|win|rem|spl|acp|luger|para|wmr|lr|short|long|\+p|s&w|sw)|^\.[\d]+/i;
+            var BARREL_RE  = /^\d[\d\.]*\s*cm$/i;
+            var opt1vals=[], opt2vals=[], opt3vals=[];
+            (prod.variants||[]).forEach(function(v){
+              if(v.option1&&v.option1.trim())opt1vals.push(v.option1.trim());
+              if(v.option2&&v.option2.trim())opt2vals.push(v.option2.trim());
+              if(v.option3&&v.option3.trim())opt3vals.push(v.option3.trim());
+            });
+            function slotIsCaliber(vals){return vals.some(function(v){return CALIBER_RE.test(v)&&!BARREL_RE.test(v);});}
+            function slotIsBarrel(vals){return vals.some(function(v){return BARREL_RE.test(v);});}
+            var calSlot=null;
+            if(slotIsCaliber(opt1vals))calSlot='option1';
+            else if(slotIsCaliber(opt2vals))calSlot='option2';
+            else if(slotIsCaliber(opt3vals))calSlot='option3';
+            var barSlot=null;
+            if(slotIsBarrel(opt1vals))barSlot='option1';
+            else if(slotIsBarrel(opt2vals))barSlot='option2';
+            else if(slotIsBarrel(opt3vals))barSlot='option3';
+            var sc=new Set(), cals=[];
+            if(calSlot){ (prod.variants||[]).forEach(function(v){var c=(v[calSlot]||'').trim();if(c&&!sc.has(c)){sc.add(c);cals.push(c);}}); }
+            if(!cals.length){ (prod.variants||[]).forEach(function(v){var c=(v.option1||'').trim();if(c&&c!=='Default Title'&&!sc.has(c)){sc.add(c);cals.push(c);}}); }
+            var sb=new Set(), rows=[];
+            if(barSlot){ (prod.variants||[]).forEach(function(v){var b=(v[barSlot]||'').trim();if(!sb.has(b)){sb.add(b);rows.push(b);}}); }
+
+            var px = Object.assign({}, p, {image:img, calibres:cals});
+            if (!rows.length || (rows.length===1 && !rows[0])) armAppendModelRow(px, handle, null, cals, sid);
+            else rows.forEach(function(b){armAppendModelRow(px, handle, b||null, cals, sid);});
+          }).catch(function(){armAppendModelRow(p, handle, null, [], sid);});
+        });
+        // Custom-entry "Use" option only makes sense when nothing in the catalogue
+        // matched what was typed — once real products are showing, this is a plain
+        // filtered dropdown over the known model list, same as every other brand.
+      }
+
+      function armAppendModelRow(p, handle, barrel, cals, sid) {
+        if (!resultsEl || String(resultsEl.dataset.sessionId) !== String(sid)) return;
+        var el = document.createElement('div'); el.className = 'model-item';
+        el.innerHTML = '<div class="model-img-wrapper"><img src="'+(p.image||'https://via.placeholder.com/50')+'" alt="'+(p.title||'')+'"></div><div style="display:flex;align-items:center;width:100%;gap:8px;"><span>'+(p.title||'')+'</span>'+(barrel?'<span style="margin-left:auto;white-space:nowrap;">'+barrel+'</span>':'')+'</div>';
+        el.addEventListener('click', function(){
+          var display = barrel ? p.title+' // '+barrel : p.title;
+          selectedProduct = {title:p.title, handle:handle, url:p.link||'/products/'+handle, image:p.image||null, barrel:barrel||''};
+          sf.modelo = p.title;
+          if (searchInput) searchInput.value = display;
+          searchInputPrevValue = display;
+          armSetLabel('modelo', display);
+          resultsEl.innerHTML = '';
+          var dd = document.querySelector('#popup [data-filter="modelo"]'); if (dd) armCloseDropdown(dd);
+
+          var calsList = cals || p.calibres || [];
+          if (calsList.length === 1) {
+            renderCaliberListDirect(calsList);
+            var ri = document.querySelector('#arm-calibre-list input[value="'+calsList[0].replace(/"/g,'&quot;')+'"]');
+            if (ri) ri.checked = true;
+            lockCaliber(calsList[0]);
+            armSetEnabled('calibre', false);
+          } else if (calsList.length > 1) {
+            renderCaliberListDirect(calsList);
+            unlockCaliber();
+            sf.calibre = '';
+            armSetLabel('calibre', window._armorerLabels.calibre);
+            armSetEnabled('calibre', true);
+          } else {
+            var cs = document.getElementById('arm-caliber-search'); if (cs) cs.style.display = '';
+            unlockCaliber();
+            sf.calibre = '';
+            armSetLabel('calibre', window._armorerLabels.calibre);
+            loadCalibers();
+            armSetEnabled('calibre', true);
+          }
+        });
+        resultsEl.appendChild(el);
+      }
+
+      function armSelectCustomModel(typed) {
+        selectedProduct = null; sf.modelo = typed; sf.calibre = '';
+        armSetLabel('modelo', typed);
+        if (searchInput) searchInput.value = typed;
+        searchInputPrevValue = typed;
+        if (resultsEl) resultsEl.innerHTML = '';
+        var dd = document.querySelector('#popup [data-filter="modelo"]'); if (dd) armCloseDropdown(dd);
+        armSetLabel('calibre', window._armorerLabels.calibre);
+        document.querySelectorAll('#arm-calibre-list input[type="radio"]').forEach(function(r){r.checked=false;});
+        var cs = document.getElementById('arm-caliber-search'); if (cs) cs.style.display = '';
+        document.querySelectorAll('#arm-calibre-list li[data-caliber]').forEach(function(li){li.style.display='';});
+        unlockCaliber();
+        armSetEnabled('calibre', true);
+      }
+
+      // ── Quick search (AC1–AC5): keyword search via Storefront API, ─────────────
+      // combined (AND) with whatever Type/Subtype/Brand dropdowns are already set.
+      var qsInput = document.getElementById('arm-quick-search');
+      var qsResultsEl = document.getElementById('arm-quick-search-results');
+      var qsDebounceTimer = null;
+      var qsRequestGen = 0;
+      var qsCache = {}; // simple per-keyword cache within this popup session
+
+      function qsBuildSearchQuery(keyword) {
+        // IMPORTANT: do not add a server-side product_type:"..." filter here.
+        // sf.tipo may hold a locale-translated value (e.g. "Escopeta") set after a
+        // previous quick-search pick, but the Storefront API's product_type field
+        // is only ever in its original (English) language — filtering by the
+        // Spanish value server-side silently returns zero matches. Type/Subtype/
+        // Brand are all applied client-side instead (see qsFilterByDropdowns).
+        return keyword;
+      }
+
+      async function qsSearchStorefront(keyword) {
+        var query = qsBuildSearchQuery(keyword);
+        var items = [], cursor = null, hasMore = true, attempts = 0;
+        // @inContext(language: ...) makes productType (a native Shopify field) come back
+        // already localized to the storefront's active language, instead of always being
+        // the shop's default/primary language (confirmed: without @inContext, the Storefront
+        // API uses the primary market regardless of what locale the page itself is on — this
+        // was the root cause of Type showing English on a Spanish-locale visit). Metafields
+        // (marca, subtipo) are NOT included here on purpose: metafield translation via
+        // @inContext is documented as unreliable even when a translation exists, so Subtype
+        // keeps using the existing scrape-based qsFindLocaleValue fallback instead.
+        var qsLang = {% if request.locale.iso_code == 'en' %}'EN'{% else %}'ES'{% endif %};
+        while (hasMore && attempts < 20) { // 20 pages * 250 = up to 5000 matches, effectively unlimited for this catalogue
+          attempts++;
+          var after = cursor ? (', after: ' + JSON.stringify(cursor)) : '';
+          var gql = 'query QuickSearch @inContext(language: ' + qsLang + ') { search(query: ' + JSON.stringify(query) + ', first: 250' + after + ', types: [PRODUCT]) { pageInfo { hasNextPage endCursor } edges { node { ... on Product { title productType handle featuredImage { url } marcaField: metafield(namespace: "custom", key: "marca") { value } subtipoField: metafield(namespace: "custom", key: "sub_tipo_de_arma") { value } } } } } }';
+          try {
+            var r = await fetch(STOREFRONT_API, {
+              method: 'POST',
+              headers: {'Content-Type':'application/json','X-Shopify-Storefront-Access-Token':STOREFRONT_TOKEN},
+              body: JSON.stringify({query: gql})
+            });
+            if (!r.ok) { console.log('[DEBUG qsearch] HTTP not ok', r.status, 'lang=', qsLang); break; }
+            var d = await r.json();
+            if (d.errors) { console.log('[DEBUG qsearch] GraphQL errors', JSON.stringify(d.errors), 'lang=', qsLang); break; }
+            var s = d.data && d.data.search; if (!s) { console.log('[DEBUG qsearch] no search field in response', JSON.stringify(d), 'lang=', qsLang); break; }
+            console.log('[DEBUG qsearch] page', attempts, 'lang=', qsLang, 'edges=', (s.edges||[]).length);
+            hasMore = s.pageInfo && s.pageInfo.hasNextPage;
+            cursor = s.pageInfo && s.pageInfo.endCursor;
+            (s.edges || []).forEach(function(e){
+              var n = e.node;
+              items.push({
+                title: n.title, marca: n.marcaField && n.marcaField.value || '', productType: n.productType,
+                handle: n.handle, image: n.featuredImage && n.featuredImage.url,
+                subtipo: n.subtipoField && n.subtipoField.value || ''
+              });
+            });
+          } catch(err) { console.log('[DEBUG qsearch] threw', err && err.message, 'lang=', qsLang); break; }
+        }
+        console.log('[DEBUG qsearch] total items before filters=', items.length);
+        return items;
+      }
+
+      // Apply Brand filter client-side if already selected. Type/Subtype are NOT
+      // filtered here on purpose: once a value comes from a dropdown or a previous
+      // quick-search pick, it may be the translated (Spanish) text, while this
+      // search's results always carry the original (English) value — filtering by
+      // a mismatched language would silently return zero results.
+      function qsFilterByDropdowns(items) {
+        if (!sf.marca) return items;
+        return items.filter(function(it){ return it.marca === sf.marca; });
+      }
+
+      function qsShowLoading() {
+        if (!qsResultsEl) return;
+        qsResultsEl.style.display = 'block';
+        qsResultsEl.innerHTML = '<div class="arm-qs-loading"><div class="arm-qs-spinner"></div>' + window._armorerLabels.loadingModels + '...</div>';
+      }
+
+      function qsShowNoResults(typed) {
+        if (!qsResultsEl) return;
+        qsResultsEl.style.display = 'block';
+        qsResultsEl.innerHTML = '';
+        var msg = document.createElement('div');
+        msg.className = 'arm-qs-no-results';
+        msg.textContent = window._armorerLabels.noResults || 'No results found';
+        qsResultsEl.appendChild(msg);
+        // No manual/custom-model entry here by design — global search only
+        // matches existing catalogue products. Custom models are entered via
+        // the normal Type → Subtype → Brand → Model flow below.
+      }
+
+      function qsHideResults() {
+        if (!qsResultsEl) return;
+        qsResultsEl.style.display = 'none';
+        qsResultsEl.innerHTML = '';
+      }
+
+      // Render a quick-search result row; clicking it applies caliber/barrel detection
+      // exactly like the existing Model dropdown rows, AND back-fills Type/Subtype/Brand.
+      function qsRenderResults(items, typed, gen) {
+        if (qsRequestGen !== gen || !qsResultsEl) return;
+        qsResultsEl.style.display = 'block';
+        qsResultsEl.innerHTML = '';
+        if (!items.length) { qsShowNoResults(typed); return; }
+
+        items.forEach(function(it){
+          fetch('/products/'+it.handle+'.json').then(function(r){return r.json();}).then(function(jd){
+            if (qsRequestGen !== gen) return;
+            var prod = jd && jd.product;
+            qsAppendRow(it, prod, gen);
+          }).catch(function(){ qsAppendRow(it, null, gen); });
+        });
+      }
+
+      function qsAppendRow(it, prod, gen) {
+        if (qsRequestGen !== gen || !qsResultsEl) return;
+
+        var CALIBER_RE = /^[\d\.]+\s*[x\/\-]\s*[\d\.]+|^\d+\s*mm|\d+\s*(mm|cal|mag|nato|win|rem|spl|acp|luger|para|wmr|lr|short|long|\+p|s&w|sw)|^\.[\d]+/i;
+        var BARREL_RE  = /^\d[\d\.]*\s*cm$/i;
+        var cals = [], rows = [];
+
+        if (prod && prod.variants) {
+          var opt1vals=[], opt2vals=[], opt3vals=[];
+          prod.variants.forEach(function(v){
+            if(v.option1&&v.option1.trim())opt1vals.push(v.option1.trim());
+            if(v.option2&&v.option2.trim())opt2vals.push(v.option2.trim());
+            if(v.option3&&v.option3.trim())opt3vals.push(v.option3.trim());
+          });
+          function slotIsCaliber(vals){return vals.some(function(v){return CALIBER_RE.test(v)&&!BARREL_RE.test(v);});}
+          function slotIsBarrel(vals){return vals.some(function(v){return BARREL_RE.test(v);});}
+          var calSlot=null;
+          if(slotIsCaliber(opt1vals))calSlot='option1';
+          else if(slotIsCaliber(opt2vals))calSlot='option2';
+          else if(slotIsCaliber(opt3vals))calSlot='option3';
+          var barSlot=null;
+          if(slotIsBarrel(opt1vals))barSlot='option1';
+          else if(slotIsBarrel(opt2vals))barSlot='option2';
+          else if(slotIsBarrel(opt3vals))barSlot='option3';
+          var sc=new Set();
+          if(calSlot){ prod.variants.forEach(function(v){var c=(v[calSlot]||'').trim();if(c&&!sc.has(c)){sc.add(c);cals.push(c);}}); }
+          if(!cals.length){ prod.variants.forEach(function(v){var c=(v.option1||'').trim();if(c&&c!=='Default Title'&&!sc.has(c)){sc.add(c);cals.push(c);}}); }
+          var sb=new Set();
+          if(barSlot){ prod.variants.forEach(function(v){var b=(v[barSlot]||'').trim();if(!sb.has(b)){sb.add(b);rows.push(b);}}); }
+        }
+
+        var img = (prod && prod.image && prod.image.src) || it.image || 'https://via.placeholder.com/50';
+        // Same row-per-barrel-length expansion as the normal Model dropdown
+        // (armAppendModelRow) — a product with multiple barrel lengths becomes
+        // one clickable row per length, with the length shown on the right.
+        if (!rows.length || (rows.length===1 && !rows[0])) {
+          qsAppendModelRow(it, img, null, cals, gen);
+        } else {
+          rows.forEach(function(b){ qsAppendModelRow(it, img, b||null, cals, gen); });
+        }
+      }
+
+      function qsAppendModelRow(it, img, barrel, cals, gen) {
+        if (qsRequestGen !== gen || !qsResultsEl) return;
+        var el = document.createElement('div'); el.className = 'model-item';
+        el.innerHTML = '<div class="model-img-wrapper"><img src="'+img+'" alt="'+(it.title||'')+'"></div><div style="display:flex;align-items:center;width:100%;gap:8px;"><div style="display:flex;flex-direction:column;flex:1;"><span>'+(it.title||'')+'</span><span style="font-size:.78rem;color:#888;">'+(it.marca||'')+'</span></div>'+(barrel?'<span style="white-space:nowrap;">'+barrel+'</span>':'')+'</div>';
+        el.addEventListener('click', function(){ qsSelectResult(it, cals, barrel); });
+        qsResultsEl.appendChild(el);
+      }
+
+      // AC1/AC3: selecting a quick-search result back-fills Type/Subtype/Brand/Model
+      // and applies the same caliber lock logic used everywhere else in the popup.
+      // Finds the locale-correct (e.g. Spanish) label for a given filter dimension
+      // by checking which already-known value's filtered collection page contains
+      // this product handle. Uses the SAME scraping mechanism as armFetchProducts,
+      // so it's guaranteed reliable rather than parsing unverified page structure.
+      async function qsFindLocaleValue(paramName, candidateValues, productHandle) {
+        var checks = candidateValues.map(async function(v){
+          try {
+            var p = new URLSearchParams(); p.append(paramName, v);
+            var doc = new DOMParser().parseFromString(await (await fetch(_FC + '?' + p.toString())).text(), 'text/html');
+            var found = Array.from(doc.querySelectorAll('a[href*="/products/"]')).some(function(a){
+              return a.href.indexOf('/products/' + productHandle) !== -1;
+            });
+            return found ? v : null;
+          } catch(e) { return null; }
+        });
+        var results = await Promise.all(checks);
+        return results.find(function(v){ return v !== null; }) || null;
+      }
+
+      async function qsResolveTypeSubtype(it) {
+        armShowDropdownSkeleton('tipo');
+        await armLoadTypeFilters();
+
+        // it.productType is already localized at the source (see qsSearchStorefront's
+        // @inContext directive) — no need to scrape-and-match against the collection
+        // page for Type anymore. This removes a whole batch of extra network requests
+        // from the selection path, which was also contributing to quick-search feeling
+        // slow when picking a result.
+        var finalTipo = it.productType || '';
+        if (!finalTipo) { armSetLabel('tipo', window._armorerLabels.tipo); armHideDropdownSkeleton('tipo'); return; }
+
+        sf.tipo = finalTipo; armSetLabel('tipo', finalTipo);
+        var tr = document.querySelector('#popup [data-filter="tipo"] input[value="'+finalTipo.replace(/"/g,'&quot;')+'"]');
+        if (tr) tr.checked = true;
+        armSetEnabled('subtipo', true);
+        armHideDropdownSkeleton('tipo');
+
+        armShowDropdownSkeleton('subtipo');
+        await armFetchSubtypes();
+
+        // Subtype is a custom metafield, not a native field, so @inContext localization
+        // isn't reliable for it (documented Shopify limitation even when a translation
+        // exists) — try the cheap, already-fetched it.subtipo value first, and only pay
+        // for the scrape-based qsFindLocaleValue lookup if that came back empty.
+        var finalSubtipo = it.subtipo || '';
+        if (!finalSubtipo) {
+          var subtipoList = Array.from(document.querySelectorAll('#arm-subtipo-list input[type="radio"]')).map(function(r){ return r.value; });
+          finalSubtipo = subtipoList.length ? (await qsFindLocaleValue('filter.p.m.custom.sub_tipo_de_arma', subtipoList, it.handle)) || '' : '';
+        }
+        if (finalSubtipo) {
+          sf.subtipo = finalSubtipo; armSetLabel('subtipo', finalSubtipo);
+          var sr = document.querySelector('#popup [data-filter="subtipo"] input[value="'+finalSubtipo.replace(/"/g,'&quot;')+'"]');
+          if (sr) sr.checked = true;
+        } else {
+          armSetLabel('subtipo', window._armorerLabels.subtipo);
+        }
+        armHideDropdownSkeleton('subtipo');
+      }
+
+      async function qsResolveBrand(it) {
+        if (!it.marca) return;
+        armShowDropdownSkeleton('marca');
+        sf.marca = it.marca;
+        await loadBrands();
+        var br = document.querySelector('#popup #arm-marca-list li[data-brand="'+it.marca.replace(/"/g,'&quot;')+'"] input');
+        if (br) br.checked = true;
+        var cb = await getCatalogueBrands();
+        armBrandIsCatalogue = cb.has(it.marca);
+        armSetLabel('marca', it.marca);
+        armHideDropdownSkeleton('marca');
+      }
+
+      async function qsSelectResult(it, cals, barrel) {
+        qsHideResults();
+        if (qsInput) qsInput.value = '';
+        armShowDropdownSkeleton('modelo');
+
+        // Model has zero dependency on Type/Subtype/Brand resolution — it.title/handle/image
+        // are already known synchronously from the click — so set it immediately rather than
+        // waiting on anything below. This also makes the popup feel responsive right away.
+        var qsLocalePrefix = {% if request.locale.iso_code == 'en' %}'/en'{% else %}''{% endif %};
+        // IMPORTANT: must be an absolute URL, not a relative path — Shopify's url-type
+        // product_url field rejects a bare "/products/handle" path with no scheme.
+        // window.location.origin (NOT a hardcoded domain) gives the correct domain whether
+        // the customer is on gunloupe.com, gunloupe.myshopify.com, or a staging domain. The
+        // locale prefix (qsLocalePrefix) is a SEPARATE concern from the domain — this store
+        // puts "/en/" in front of English-locale paths (see _FC above), so product URLs need
+        // the same prefix or an English-locale save would point at a URL missing "/en/".
+        selectedProduct = {title: it.title, handle: it.handle, url: window.location.origin+qsLocalePrefix+'/products/'+it.handle, image: it.image||null, barrel:barrel||''};
+        sf.modelo = it.title;
+        // Show the barrel length alongside the model, exactly like picking from the
+        // normal Model dropdown (e.g. "Beretta 686 SILVER PIGEON I // 71cm").
+        var qsDisplay = barrel ? it.title+' // '+barrel : it.title;
+        if (searchInput) searchInput.value = qsDisplay;
+        searchInputPrevValue = qsDisplay;
+        armSetLabel('modelo', qsDisplay);
+        armHideDropdownSkeleton('modelo');
+        armSetEnabled('modelo', true);
+
+        // Apply caliber logic immediately too — also has no dependency on Type/Subtype/Brand.
+        if (cals && cals.length === 1) {
+          renderCaliberListDirect(cals);
+          var ri = document.querySelector('#arm-calibre-list input[value="'+cals[0].replace(/"/g,'&quot;')+'"]');
+          if (ri) ri.checked = true;
+          lockCaliber(cals[0]);
+          armSetEnabled('calibre', false);
+        } else if (cals && cals.length > 1) {
+          renderCaliberListDirect(cals);
+          unlockCaliber(); sf.calibre = '';
+          armSetLabel('calibre', window._armorerLabels.calibre);
+          armSetEnabled('calibre', true);
+        } else {
+          unlockCaliber(); sf.calibre = '';
+          armSetLabel('calibre', window._armorerLabels.calibre);
+          loadCalibers();
+          armSetEnabled('calibre', true);
+        }
+
+        // Type/Subtype and Brand each unlock their own dropdown as soon as THEY individually
+        // finish, instead of the whole UI waiting on Promise.all for the slower of the two
+        // (usually Brand, since loadBrands() can require several sequential paginated
+        // fetches on a cold cache). Still run concurrently — just no longer gated together.
+        qsResolveTypeSubtype(it).then(function(){ armSetEnabled('subtipo', true); });
+        qsResolveBrand(it).then(function(){ armSetEnabled('marca', true); });
+      }
+
+      // AC2: fire search at 2+ characters, debounced ~300ms to stay within the
+      // 2-second performance target (AC5) without hammering the API on every keystroke.
+      if (qsInput) {
+        qsInput.addEventListener('input', function(){
+          var typed = this.value.trim();
+          clearTimeout(qsDebounceTimer);
+          if (typed.length < 2) { qsHideResults(); return; }
+          qsShowLoading();
+          var myGen = ++qsRequestGen;
+          qsDebounceTimer = setTimeout(async function(){
+            var cacheKey = typed.toLowerCase()+'|'+sf.tipo+'|'+sf.marca+'|'+sf.subtipo;
+            var items;
+            if (qsCache[cacheKey]) { items = qsCache[cacheKey]; }
+            else {
+              items = await qsSearchStorefront(typed);
+              console.log('[DEBUG qsearch] after qsSearchStorefront:', items.length, 'sf.marca=', JSON.stringify(sf.marca));
+              items = qsFilterByDropdowns(items);
+              console.log('[DEBUG qsearch] after qsFilterByDropdowns:', items.length);
+              // Client-side relevance filter...
+              var lq = typed.toLowerCase();
+              items = items.filter(function(it){
+                return (it.title || '').toLowerCase().includes(lq) ||
+                       (it.marca || '').toLowerCase().includes(lq);
+              });
+              console.log('[DEBUG qsearch] after relevance filter:', items.length, 'lq=', JSON.stringify(lq));
+              qsCache[cacheKey] = items;
+            }
+            if (myGen !== qsRequestGen) { console.log('[DEBUG qsearch] superseded by newer keystroke, discarding'); return; }
+            qsRenderResults(items, typed, myGen);
+          }, 300);
+        });
+        qsInput.addEventListener('click', function(e){ e.stopPropagation(); });
+      }
+
+      // ── Dropdown open/close ───────────────────────────────────────────────────
+      document.addEventListener('click', function(e) {
+        var btn = e.target.closest('#popup .filter-toggle');
+        if (!btn) {
+          if (!e.target.closest('#popup .add-firearm-custom-dropdown.open')) {
+            document.querySelectorAll('#popup .add-firearm-custom-dropdown.open').forEach(function(d){armCloseDropdown(d);});
+          }
+          return;
+        }
+        var dd = btn.closest('.add-firearm-custom-dropdown');
+        if (!dd || dd.classList.contains('disabled')) return;
+        var wasOpen = dd.classList.contains('open');
+        document.querySelectorAll('#popup .add-firearm-custom-dropdown.open').forEach(function(d){if(d!==dd)armCloseDropdown(d);});
+        if (!wasOpen) {
+          armOpenDropdown(dd);
+          var filter = dd.dataset.filter;
+          if (filter === 'marca') loadBrands();
+          if (filter === 'calibre' && !selectedProduct) loadCalibers();
+          if (filter === 'modelo' && armBrandIsCatalogue && !allProducts.length && !isFetching && !armProductFetchDone) { showModelSkeleton(); armFetchProducts(); }
+          if (filter === 'modelo' && armBrandIsCatalogue && !allProducts.length && armProductFetchDone) { showMismatchHint(); }
+        } else { armCloseDropdown(dd); }
+      });
+
+      // ── Radio change ──────────────────────────────────────────────────────────
+      document.addEventListener('change', function(e) {
+        if (e.target.matches('#popup [data-filter="tipo"] input[type="radio"]') ||
+            e.target.matches('#popup [data-filter="subtipo"] input[type="radio"]') ||
+            e.target.matches('#popup [data-filter="marca"] input[type="radio"]') ||
+            e.target.matches('#popup [data-filter="calibre"] input[type="radio"]')) {
+
+          var name = e.target.name, value = e.target.value;
+          document.querySelectorAll('#popup .add-firearm-custom-dropdown.open').forEach(function(d){armCloseDropdown(d);});
+
+          if (name === 'arm-tipo') {
+            sf = {tipo:value,subtipo:'',marca:'',modelo:'',calibre:''};
+            selectedProduct = null; allProducts = [];
+            armSetLabel('tipo', value);
+            ['subtipo','marca','modelo','calibre'].forEach(function(k){armSetLabel(k,window._armorerLabels[k]||k);});
+            ['subtipo','marca','modelo','calibre'].forEach(function(k){armSetEnabled(k,false);});
+            unlockCaliber(); armSetEnabled('calibre', false);
+            var cs = document.getElementById('arm-caliber-search'); if(cs)cs.style.display='';
+            if (searchInput) searchInput.value = ''; if (resultsEl) resultsEl.innerHTML = '';
+            armSetEnabled('subtipo', true); armFetchSubtypes();
+
+          } else if (name === 'arm-subtipo') {
+            sf.subtipo=value; sf.marca=sf.modelo=sf.calibre='';
+            selectedProduct=null; allProducts=[];
+            armSetLabel('subtipo', value);
+            ['marca','modelo','calibre'].forEach(function(k){armSetLabel(k,window._armorerLabels[k]||k);});
+            ['marca','modelo','calibre'].forEach(function(k){armSetEnabled(k,false);});
+            unlockCaliber(); armSetEnabled('calibre', false);
+            if (searchInput) searchInput.value = ''; if (resultsEl) resultsEl.innerHTML = '';
+            armSetEnabled('marca', true);
+
+          } else if (name === 'arm-marca') {
+            sf.marca=value; sf.modelo=sf.calibre='';
+            selectedProduct=null; allProducts=[];
+            armProductFetchGen++; // invalidate any in-flight armFetchProducts from the previous brand
+            armProductFetchDone = false; // a new brand means we haven't fetched/confirmed its product list yet
+            armSetLabel('marca', value);
+            ['modelo','calibre'].forEach(function(k){armSetLabel(k,window._armorerLabels[k]||k);});
+            ['modelo','calibre'].forEach(function(k){armSetEnabled(k,false);});
+            unlockCaliber(); armSetEnabled('calibre', false);
+            if (searchInput) searchInput.value = ''; if (resultsEl) resultsEl.innerHTML = '';
+            getCatalogueBrands().then(function(cb){
+              armBrandIsCatalogue = cb.has(value);
+              armSetEnabled('modelo', true);
+              if (!armBrandIsCatalogue) { unlockCaliber(); armSetEnabled('calibre', true); showManualHint(); }
+            });
+
+          } else if (name === 'arm-calibre') {
+            sf.calibre = value; armSetLabel('calibre', value);
+          }
+        }
+
+        if (e.target.name === 'status') {
+          armSetLabel('status', e.target.value);
+          setTimeout(function(){ var d = document.querySelector('#popup [data-filter="status"].open'); if (d) armCloseDropdown(d); }, 120);
+        }
+      });
+
+      // ── Model search input ────────────────────────────────────────────────────
+      if (searchInput) {
+        var searchInputClearedForEdit = false; // true once the field has been cleared for this edit session
+
+        searchInput.addEventListener('focus', function(){
+          searchInputPrevValue = this.value;
+          searchInputClearedForEdit = false;
+        });
+
+        searchInput.addEventListener('keydown', function(){
+          // Clear the old value on the first keystroke of a fresh edit, not on every keystroke
+          if (!searchInputClearedForEdit && this.value === searchInputPrevValue && searchInputPrevValue) {
+            this.value = '';
+            searchInputClearedForEdit = true;
+          }
+        });
+
+        searchInput.addEventListener('blur', function(){
+          // If the user clicked away without typing anything new and without picking
+          // a fresh result, restore whatever was selected before.
+          setTimeout(function(){
+            if (searchInput.value.trim() === '' && searchInputPrevValue) {
+              searchInput.value = searchInputPrevValue;
+              if (resultsEl) resultsEl.innerHTML = '';
+            }
+          }, 150); // small delay so a click on a result row registers first
+        });
+
+        searchInput.addEventListener('input', function(){
+          var typed = this.value.trim(); if (!resultsEl) return;
+          if (!armBrandIsCatalogue) {
+            resultsEl.innerHTML = '';
+            if (typed) resultsEl.appendChild(makeUseBtn(typed, function(){armSelectCustomModel(typed);}));
+            return;
+          }
+          // Catalogue brand: still let the user type a custom model at any time —
+          // being a recognised brand doesn't mean every model under it exists in
+          // the store's product list. Previously a fetch-in-progress (isFetching)
+          // silently swallowed every keystroke until the fetch resolved, which made
+          // typing feel broken/unresponsive while the loading skeleton was showing.
+          if (isFetching) {
+            if (typed) { resultsEl.innerHTML = ''; resultsEl.appendChild(makeUseBtn(typed, function(){armSelectCustomModel(typed);})); }
+            return;
+          }
+          var q = typed.toLowerCase();
+          if (allProducts.length) {
+            // Real catalogue brand with a known product list: typing here is pure
+            // filtering against that list, exactly like every other catalogue brand's
+            // Model dropdown — no "Use" button. armRenderModelResults already appends
+            // one itself when isFinal+typed+zero matches (i.e. nothing in the list
+            // matches what was typed), which is the only case it's actually needed.
+            armRenderModelResults(q ? allProducts.filter(function(p){return p.title.toLowerCase().includes(q);}) : allProducts, true);
+          } else if (armProductFetchDone) {
+            resultsEl.innerHTML = '';
+            if (typed) {
+              resultsEl.appendChild(makeUseBtn(typed, function(){armSelectCustomModel(typed);}));
+            } else {
+              showMismatchHint();
+            }
+          } else if (typed) {
+            // First time we've seen this brand's product list — offer the typed value
+            // immediately while the one-time fetch runs in the background.
+            resultsEl.innerHTML = '';
+            resultsEl.appendChild(makeUseBtn(typed, function(){armSelectCustomModel(typed);}));
+            armFetchProducts();
+          } else { showModelSkeleton(); armFetchProducts(); }
+        });
+        searchInput.addEventListener('click', function(e){e.stopPropagation();});
+      }
+
+      var bsi = document.getElementById('arm-brand-search');
+      if (bsi) { bsi.addEventListener('input',function(){armFilterList('arm-marca-list','brand',this.value);}); bsi.addEventListener('click',function(e){e.stopPropagation();}); }
+      var csi = document.getElementById('arm-caliber-search');
+      if (csi) { csi.addEventListener('input',function(){armFilterList('arm-calibre-list','caliber',this.value);}); csi.addEventListener('click',function(e){e.stopPropagation();}); }
+
+      // ── Open / Close / Reset popup ────────────────────────────────────────────
+      function openAdd() {
+        resetForm(); editingId = null;
+        popupTitle.textContent = '{{ 'custom.add_firearm' | t }}';
+        saveBtn.textContent = '{{ 'custom.add_firearm' | t }}';
+        popup.style.display = 'flex';
+        armLoadTypeFilters();
+        getCatalogueBrands();
+      }
+
+      function openEdit(btn) {
+        resetForm(); editingId = btn.dataset.id;
+        popupTitle.textContent = '{{ 'custom.edit_firearm' | t }}';
+        saveBtn.textContent = '{{ 'custom.update_firearm' | t }}';
+        document.getElementById('customName').value = btn.dataset.customGunName || '';
+        document.getElementById('purchaseDate').value = btn.dataset.purchaseDate || '';
+        var status = btn.dataset.status;
+        if (status) { var r = document.querySelector('[name="status"][value="'+status+'"]'); if (r) r.checked = true; armSetLabel('status', status); }
+        try {
+          var imgs = JSON.parse(btn.dataset.gunImages || '[]');
+          existingImages = imgs.filter(function(u){return u && u.startsWith('http');});
+          existingImages.forEach(function(url){
+            var w=document.createElement('div'),img=document.createElement('img'); img.src=url;
+            var rb=document.createElement('span'); rb.className='remove-img'; rb.textContent='×';
+            rb.addEventListener('click',function(){existingImages=existingImages.filter(function(u2){return u2!==url;});w.remove();});
+            w.appendChild(img); w.appendChild(rb); imagePreviewEl.appendChild(w);
+          });
+        } catch(e){ existingImages=[]; }
+        popup._editData = {tipo:btn.dataset.type,subtipo:btn.dataset.subtype,marca:btn.dataset.brand,modelo:btn.dataset.model,calibre:btn.dataset.caliber,barrel:btn.dataset.barrelLength||'',productTitle:btn.dataset.productTitle,productHandle:btn.dataset.productHandle,productUrl:btn.dataset.productUrl,productImage:btn.dataset.productImage};
+        popup.style.display = 'flex';
+        armLoadTypeFilters();
+        getCatalogueBrands();
+        setTimeout(function(){ prefill(popup._editData); }, 150);
+      }
+
+      async function prefill(d) {
+        if (d.tipo) {
+          sf.tipo=d.tipo; armSetLabel('tipo',d.tipo); armSetEnabled('subtipo',true);
+          var r=document.querySelector('#popup [data-filter="tipo"] input[value="'+d.tipo+'"]'); if(r)r.checked=true;
+          await armFetchSubtypes();
+        }
+        if (d.subtipo) {
+          sf.subtipo=d.subtipo; armSetLabel('subtipo',d.subtipo); armSetEnabled('marca',true);
+          var r=document.querySelector('#popup [data-filter="subtipo"] input[value="'+d.subtipo+'"]'); if(r)r.checked=true;
+        }
+        if (d.marca) {
+          sf.marca=d.marca; armSetLabel('marca',d.marca);
+          await loadBrands();
+          var r=document.querySelector('#popup #arm-marca-list li[data-brand="'+d.marca+'"] input'); if(r)r.checked=true;
+          var cb = await getCatalogueBrands();
+          armBrandIsCatalogue = cb.has(d.marca);
+          armSetEnabled('modelo', true);
+          if (!armBrandIsCatalogue) { unlockCaliber(); armSetEnabled('calibre', true); }
+        }
+        if (d.modelo) {
+          sf.modelo = d.productTitle || d.modelo;
+          var lbl = d.barrel ? d.modelo+' // '+d.barrel : d.modelo;
+          armSetLabel('modelo', lbl);
+          if (searchInput) searchInput.value = lbl;
+          searchInputPrevValue = lbl;
+          if (d.productHandle) {
+            selectedProduct = {title:d.productTitle||d.modelo,handle:d.productHandle,url:d.productUrl||'',image:d.productImage||'',barrel:d.barrel||''};
+          }
+        }
+        if (d.calibre) {
+          sf.calibre = d.calibre;
+          await loadCalibers();
+          var ri = document.querySelector('#arm-calibre-list input[value="'+d.calibre+'"]');
+          if (ri) { ri.checked=true; armSetEnabled('calibre',true); }
+          armSetLabel('calibre', d.calibre);
+          if (d.productHandle) { lockCaliber(d.calibre); }
+        }
+      }
+
+      function closePopup() { popup.style.display='none'; resetForm(); }
+
+      function resetForm() {
+        editingId=null; sf={tipo:'',subtipo:'',marca:'',modelo:'',calibre:''};
+        selectedProduct=null; allProducts=[]; uploadedImages=[]; existingImages=[];
+        armBrandIsCatalogue=false;
+        if (imagePreviewEl) imagePreviewEl.innerHTML='';
+        if (searchInput) searchInput.value=''; if (resultsEl) resultsEl.innerHTML='';
+        searchInputPrevValue='';
+        if (qsInput) qsInput.value=''; qsHideResults(); qsRequestGen++;
+        document.getElementById('customName').value=''; document.getElementById('purchaseDate').value='';
+        document.querySelectorAll('[name="status"]').forEach(function(r){r.checked=false;});
+        document.getElementById('statusLabel').textContent='{{ "custom.status" | t }}';
+        var defaults={tipo:window._armorerLabels.tipo,subtipo:window._armorerLabels.subtipo,marca:window._armorerLabels.marca,modelo:window._armorerLabels.modelo,calibre:window._armorerLabels.calibre};
+        Object.entries(defaults).forEach(function(e){armSetLabel(e[0],e[1]);});
+        ['subtipo','marca','modelo','calibre'].forEach(function(k){armSetEnabled(k,false);});
+        armSetEnabled('tipo',true);
+        var cs=document.getElementById('arm-caliber-search'); if(cs)cs.style.display='';
+        document.querySelectorAll('#popup .add-firearm-dropdown-menu').forEach(function(m){m.style.display='none';});
+        document.querySelectorAll('#popup .add-firearm-custom-dropdown').forEach(function(d){d.classList.remove('open');});
+        document.querySelectorAll('#popup input[type="radio"]').forEach(function(r){r.checked=false;});
+        document.querySelectorAll('.field-error').forEach(function(el){el.classList.remove('field-error');});
+        var errBox=document.getElementById('armoryValidationErrors');
+        var errContent=document.getElementById('armoryErrorContent');
+        if(errBox){errBox.style.display='none';}
+        if(errContent){errContent.innerHTML='';}
+      }
+
+      // ── Bind open/close buttons ───────────────────────────────────────────────
+      var openBtn=document.getElementById('openPopupBtn');
+      var closeBtn=document.getElementById('closePopupBtn');
+      var cancelBtn=document.getElementById('cancelFirearm');
+      if (openBtn) openBtn.addEventListener('click', openAdd);
+      if (closeBtn) closeBtn.addEventListener('click', closePopup);
+      if (cancelBtn) cancelBtn.addEventListener('click', closePopup);
+      popup.addEventListener('click', function(e){if(e.target===popup)closePopup();});
+      var form=document.getElementById('armoryForm'); if(form)form.addEventListener('submit',function(e){e.preventDefault();e.stopPropagation();return false;});
+
+      // ── Sliders ───────────────────────────────────────────────────────────────
+      // Scoped so it can be re-run on just a newly-inserted card (see swapInNewCard)
+      // without re-binding (and double-firing) listeners on cards already on the page.
+      function initArmorerSliders(root){
+        (root||document).querySelectorAll('[data-slider]').forEach(function(slider){
+          if(slider.dataset.sliderBound)return; slider.dataset.sliderBound='1';
+          var track=slider.querySelector('.armorer-slider_track'),slides=slider.querySelectorAll('.armorer-slider_slide'),dots=slider.querySelectorAll('.armorer-slider_dot');
+          var prev=slider.querySelector('.armorer-slider_btn--prev'),next=slider.querySelector('.armorer-slider_btn--next');
+          var cur=0;
+          function go(i){cur=(i+slides.length)%slides.length;track.style.transform='translateX(-'+cur*100+'%)';dots.forEach(function(d,j){d.classList.toggle('is-active',j===cur);});}
+          if(prev)prev.addEventListener('click',function(){go(cur-1);});
+          if(next)next.addEventListener('click',function(){go(cur+1);});
+          dots.forEach(function(d,i){d.addEventListener('click',function(){go(i);});});
+        });
+      }
+      initArmorerSliders();
+
+      // ── Validation ────────────────────────────────────────────────────────────
+      function validate() {
+        var errors=[]; document.querySelectorAll('.field-error').forEach(function(el){el.classList.remove('field-error');});
+        var checks=[
+          [!sf.tipo,    '{{ 'custom.select_firearm_type' | t }}',  '#popup [data-filter="tipo"]'],
+          [!sf.subtipo, '{{ 'custom.select_subtype_error' | t }}', '#popup [data-filter="subtipo"]'],
+          [!sf.marca,   window._armorerLabels.selectBrand,          '#popup [data-filter="marca"]'],
+          [!(selectedProduct?.title||sf.modelo||(searchInput&&searchInput.value.trim())), '{{ 'custom.select_or_enter_model' | t }}', '#popup [data-filter="modelo"]'],
+          [!sf.calibre, '{{ 'custom.select_calibre' | t }}',       '#popup [data-filter="calibre"]'],
+          [!document.querySelector('[name="status"]:checked')?.value, '{{ 'custom.select_status_error' | t }}', '#popup [data-filter="status"]']
+        ];
+        checks.forEach(function(c){if(c[0]){errors.push(c[1]);var el=document.querySelector(c[2]);if(el&&!el.classList.contains('disabled'))el.classList.add('field-error');}});
+        // Image upload is optional in every case now — a new upload, a kept
+        // existing image when editing, a catalogue product's own image, or
+        // (if none of those exist, e.g. a custom/manually-typed model with
+        // no upload) the placeholder shown on the card. Nothing to validate.
+        return errors;
+      }
+
+      function showErrors(errors) {
+        var box=document.getElementById('armoryValidationErrors');
+        var content=document.getElementById('armoryErrorContent');
+        if(!box||!content)return;
+        if(!errors.length){box.style.display='none';content.innerHTML='';return;}
+        content.innerHTML='<strong>{{ 'custom.Please_fix_the_following' | t }}</strong><ul>'+errors.map(function(e){return'<li>'+e+'</li>';}).join('')+'</ul>';
+        box.style.display='block'; box.scrollIntoView({behavior:'smooth',block:'nearest'});
+      }
+
+      // ── Image upload ──────────────────────────────────────────────────────────
+      document.getElementById('gunImages')?.addEventListener('change',function(){
+        var imageErrorEl=document.getElementById('armorer-image-error');
+        if(!imageErrorEl){
+          imageErrorEl=document.createElement('div');imageErrorEl.id='armorer-image-error';
+          imageErrorEl.style.cssText='display:none;color:#c0392b;font-size:0.88rem;margin-top:6px;padding:8px 12px;background:#fef0f0;border-radius:8px;';
+          var preview=document.getElementById('imagePreview');
+          if(preview&&preview.parentNode)preview.parentNode.insertBefore(imageErrorEl,preview);
+        }
+        Array.from(this.files).forEach(function(file){
+          var reader=new FileReader();
+          reader.onload=function(e){
+            var b64=e.target.result; var checker=new Image();
+            checker.onload=function(){
+              if(checker.naturalWidth<300){imageErrorEl.textContent='Min image size 300×300px.';imageErrorEl.style.display='block';return;}
+              imageErrorEl.style.display='none'; uploadedImages.push(b64);
+              var w=document.createElement('div'),img=document.createElement('img');img.src=b64;
+              var rb=document.createElement('span');rb.className='remove-img';rb.textContent='×';
+              rb.addEventListener('click',function(){uploadedImages=uploadedImages.filter(function(u){return u!==b64;});w.remove();});
+              w.appendChild(img);w.appendChild(rb);imagePreviewEl.appendChild(w);
+            };checker.src=b64;
+          };reader.readAsDataURL(file);
+        });this.value='';
+      });
+
+      // ── Save (AC1 + AC3 + AC5 fixes applied) ─────────────────────────────────
+      saveBtn?.addEventListener('click', async function(){
+        var errors=validate(); if(errors.length){showErrors(errors);return;} showErrors([]);
+        var finalModel=selectedProduct?.title||sf.modelo||(searchInput&&searchInput.value)||'';
+        var payload={
+          customer_id:CUSTOMER_ID,
+          customer_name:'{{ customer.first_name | escape }} {{ customer.last_name | escape }}',
+          customer_email:'{{ customer.email | escape }}',
+          theme_id:'{{ theme.id }}',
+          type:sf.tipo, subtype:sf.subtipo, brand:sf.marca,
+          model:finalModel, caliber:sf.calibre,
+          barrel_length:selectedProduct?selectedProduct.barrel||'':'',
+          custom_name:document.getElementById('customName')?.value,
+          condition:document.querySelector('[name="status"]:checked')?.value,
+          purchase_date:document.getElementById('purchaseDate')?.value,
+          product_id:selectedProduct?extractVariantId(selectedProduct.url):undefined,
+          product_title:selectedProduct?.title, product_handle:selectedProduct?.handle,
+          product_url:selectedProduct?.url, product_image:selectedProduct?.image,
+          images:uploadedImages, existing_images:existingImages
+        };
+        var isEdit=!!editingId;
+
+        showSavingOverlay(isEdit?'{{ 'custom.update_firearm' | t }}...':'{{ 'custom.add_firearm' | t }}...');
+
+        try {
+          var url=isEdit?BACKEND_URL+'/my-armorer/'+encodeURIComponent(editingId):BACKEND_URL+'/my-armorer';
+          var resp = await fetch(url,{method:isEdit?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          var data = await resp.json();
+
+          if(data.success){
+            var overlay=document.getElementById('armorer-saving-overlay');if(overlay)overlay.remove();
+            closePopup();
+            var savedId=data.id||data.data?.id||null;
+            if(isEdit){
+              // Editing an existing, already-visible card — unchanged: brief
+              // full-screen wait, then confirm-and-reload as before.
+              showSavingOverlay('{{ 'custom.update_firearm' | t }}...');
+              await pollUntilSaved(CUSTOMER_ID,savedId,editingId);
+            } else {
+              // New entry: show it immediately as a skeleton instead of blocking
+              // the whole page, then swap it for the real card once confirmed.
+              var skeletonImg=(uploadedImages&&uploadedImages[0])||(selectedProduct&&selectedProduct.image)||'';
+              var skeletonEl=insertArmorerSkeleton(skeletonImg);
+              await pollAndSwapNewCard(CUSTOMER_ID,savedId,skeletonEl);
+            }
+          } else {
+            var overlay=document.getElementById('armorer-saving-overlay');if(overlay)overlay.remove();
+            var apiMessage = data.message || data.error || null;
+            var fallback = isEdit ? '{{ 'custom.error_update_firearm' | t }}' : '{{ 'custom.error_saving_firearm' | t }}';
+            showInlineError(apiMessage || fallback);
+          }
+        } catch(e){
+          var overlay=document.getElementById('armorer-saving-overlay');if(overlay)overlay.remove();
+          showInlineError('{{ 'custom.server_error' | t }}');
+        }
+      });
+
+      function showSavingOverlay(msg){
+        var existing=document.getElementById('armorer-saving-overlay');if(existing)existing.remove();
+        var overlay=document.createElement('div');overlay.id='armorer-saving-overlay';
+        overlay.style.cssText='position:fixed;inset:0;background:rgba(255,255,255,0.93);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
+        overlay.innerHTML='<div style="width:56px;height:56px;border:4px solid #e0e0e0;border-top-color:var(--color-foreground);border-radius:50%;animation:armory-spin .8s linear infinite;"></div><div style="font-size:1.1rem;font-weight:600;color:var(--color-foreground);">'+(msg||'Saving...')+'</div><div style="font-size:0.88rem;color:#6b7280;max-width:260px;text-align:center;">{{ 'custom.please_wait' | t }}</div>';
+        document.body.appendChild(overlay);
+      }
+
+      // ── New-entry skeleton (create flow only — edits keep the existing overlay) ──
+      function insertArmorerSkeleton(imgSrc){
+        var list=document.getElementById('armorer-collection-list');
+        var addBtn=document.getElementById('openPopupBtn');
+        if(!list||!addBtn)return null;
+        var el=document.createElement('div');
+        el.className='products-grid_item is-skeleton';
+        el.innerHTML=
+          '<div class="product-card_component">'+
+            '<div class="product-card_thumb-wrap" style="position:relative;">'+
+              '<div class="armorer-skeleton-badge"><span class="spin"></span>{{ "custom.add_firearm" | t }}...</div>'+
+              (imgSrc?'<img src="'+imgSrc+'" class="product-card_thumb-image layer" alt="" style="opacity:.6;">':'')+
+            '</div>'+
+            '<div class="product-card_details-wrap" style="padding:16px;display:flex;flex-direction:column;gap:10px;">'+
+              '<div class="armorer-skel-line" style="height:18px;width:65%;"></div>'+
+              '<div class="armorer-skel-line" style="height:12px;width:90%;"></div>'+
+              '<div class="armorer-skel-line" style="height:12px;width:75%;"></div>'+
+              '<div class="armorer-skel-line" style="height:12px;width:50%;"></div>'+
+            '</div>'+
+          '</div>';
+        list.insertBefore(el,addBtn);
+        el.scrollIntoView({behavior:'smooth',block:'nearest'});
+        return el;
+      }
+
+      // Polls for the newly-created entry the same way pollUntilSaved does, but
+      // swaps the skeleton for the real server-rendered card in place instead of
+      // reloading the page. Falls back to the proven full-reload behavior if the
+      // id is missing or confirmation doesn't arrive in time, so the outcome is
+      // never worse than before — just faster and less disruptive in the common case.
+      async function pollAndSwapNewCard(customerId,savedId,skeletonEl){
+        var rawTargetId=savedId||null;
+        var targetId=rawTargetId?String(rawTargetId).split('/').pop():null;
+        if(!targetId){
+          if(skeletonEl)skeletonEl.remove();
+          await pollUntilSaved(customerId,savedId,null);
+          return;
+        }
+        var maxAttempts=27,interval=1200;
+        for(var i=0;i<maxAttempts;i++){
+          await new Promise(function(r){setTimeout(r,interval);});
+          try{
+            var res=await fetch(window.location.pathname+'?_cb='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache','Pragma':'no-cache'}});
+            var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+            var freshNode=doc.querySelector('[data-metaobject-id="'+targetId+'"]');
+            if(freshNode){
+              var imported=document.importNode(freshNode,true);
+              if(skeletonEl&&skeletonEl.parentNode){skeletonEl.replaceWith(imported);}
+              else{var list=document.getElementById('armorer-collection-list'),addBtn=document.getElementById('openPopupBtn');if(list&&addBtn)list.insertBefore(imported,addBtn);}
+              initArmorerSliders(imported);
+              loadArmorerPrices();
+              return;
+            }
+          }catch(e){}
+        }
+        // Confirmation didn't arrive in the expected window — fall back to the
+        // same guaranteed-correct behavior used everywhere else in this flow.
+        location.href=location.pathname+'?nc='+Date.now();
+      }
+
+      async function pollUntilSaved(customerId,savedId,editedMetaobjectId){
+        var maxAttempts=27,interval=1200; // ~32s total — gives Shopify's metaobject store more
+        // time to propagate the new/updated entry before falling back to an unconditional reload.
+        var currentCount=document.querySelectorAll('#armorer-collection-list .products-grid_item').length;
+        var msgEl=document.querySelector('#armorer-saving-overlay div:nth-child(3)');
+        // The backend's create response already gives us the new entry's metaobject id
+        // (savedId) — use it directly when available instead of the fuzzier count/diff
+        // heuristics below, which can produce false negatives (e.g. if an entry was
+        // also removed elsewhere at the same time, the count comparison alone can miss
+        // a real new entry because the totals happen to land back where they started).
+        // IMPORTANT: savedId comes back from Shopify's GraphQL API as a full GID
+        // (gid://shopify/Metaobject/123...), but data-metaobject-id in the rendered
+        // page is the bare numeric id (item.system.id renders as just the number —
+        // confirmed by how normaliseToGid handles it elsewhere in this codebase).
+        // Extract just the numeric part so the comparison below actually matches.
+        var rawTargetId = editedMetaobjectId || savedId || null;
+        var targetId = rawTargetId ? String(rawTargetId).split('/').pop() : null;
+        for(var i=0;i<maxAttempts;i++){
+          await new Promise(function(r){setTimeout(r,interval);});
+          // After a while, let the user know this is taking longer than usual rather than
+          // appearing frozen — purely informational, polling continues unchanged underneath.
+          if (i === 8 && msgEl) msgEl.textContent = '{{ "custom.please_wait" | t }}';
+          try{
+            var res=await fetch(window.location.pathname+'?_cb='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache','Pragma':'no-cache'}});
+            var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+
+            if (targetId) {
+              // Direct, unambiguous check: does this exact entry now exist on a
+              // freshly fetched copy of the page? Works for both create and edit.
+              if (doc.querySelector('[data-metaobject-id="'+targetId+'"]')) { location.href=location.pathname+'?nc='+Date.now(); return; }
+            } else if(editedMetaobjectId){
+              // Fallback for the (rare) edit case where no id was resolved.
+              if(i>=1){location.href=location.pathname+'?nc='+Date.now();return;}
+            } else {
+              // Fallback for the (rare) create case where the backend didn't return an id.
+              var freshCount=doc.querySelectorAll('#armorer-collection-list .products-grid_item').length;
+              if(freshCount>currentCount){location.href=location.pathname+'?nc='+Date.now();return;}
+              var existingIds=new Set(Array.from(document.querySelectorAll('[data-metaobject-id]')).map(function(el){return el.dataset.metaobjectId;}));
+              var hasNew=false;
+              doc.querySelectorAll('[data-metaobject-id]').forEach(function(el){if(!existingIds.has(el.dataset.metaobjectId))hasNew=true;});
+              if(hasNew){location.href=location.pathname+'?nc='+Date.now();return;}
+            }
+          }catch(e){}
+        }
+        location.href=location.pathname+'?nc='+Date.now();
+      }
+
+      async function pollUntilDeleted(metaobjectId){
+        var maxAttempts=20,interval=1200;
+        for(var i=0;i<maxAttempts;i++){
+          await new Promise(function(r){setTimeout(r,interval);});
+          try{
+            var doc=new DOMParser().parseFromString(await(await fetch(window.location.pathname+'?_cb='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache','Pragma':'no-cache'}})).text(),'text/html');
+            if(!doc.querySelector('[data-metaobject-id="'+metaobjectId+'"]')){location.href=location.pathname+'?nc='+Date.now();return;}
+          }catch(e){}
+        }
+        location.href=location.pathname+'?nc='+Date.now();
+      }
+
+      // ── Delete (AC3 fix applied) ───────────────────────────────────────────────
+      document.addEventListener('click',function(e){
+        var eb=e.target.closest('.js-edit-firearm'); if(eb){openEdit(eb);return;}
+        var db=e.target.closest('.js-delete-firearm');
+        if(db){
+          pendingDeleteId=db.dataset.id;
+          pendingDeleteCard=db.closest('.products-grid_item');
+          hideDeleteError();
+          deleteOverlay.style.display='flex';
+        }
+      });
+
+      function closeDelete(){
+        deleteOverlay.style.display='none';pendingDeleteId=null;pendingDeleteCard=null;
+        hideDeleteError();
+        if(deleteConfirm){deleteConfirm.disabled=false;deleteConfirm.textContent=window._armorerLabels.yesDelete;}
+      }
+      document.getElementById('deleteConfirmCancel')?.addEventListener('click',closeDelete);
+      document.getElementById('deleteConfirmClose')?.addEventListener('click',closeDelete);
+      deleteOverlay?.addEventListener('click',function(e){if(e.target===deleteOverlay)closeDelete();});
+
+      deleteConfirm?.addEventListener('click',async function(){
+        if(!pendingDeleteId)return;
+        hideDeleteError();
+        this.disabled=true;this.textContent='{{ 'custom.deleting' | t }}...';
+        var idToDelete=pendingDeleteId;
+        try{
+          var data=await(await fetch(BACKEND_URL+'/my-armorer/'+encodeURIComponent(idToDelete),{method:'DELETE'})).json();
+          if(data.success){
+            if(pendingDeleteCard){pendingDeleteCard.style.transition='opacity .3s,transform .3s';pendingDeleteCard.style.opacity='0';pendingDeleteCard.style.transform='scale(.95)';}
+            closeDelete();showSavingOverlay('{{ 'custom.deleting' | t }}...');
+            await pollUntilDeleted(idToDelete);
+          } else {
+            this.disabled=false;this.textContent=window._armorerLabels.yesDelete;
+            var apiMessage = data.message || data.error || 'Error deleting firearm.';
+            showDeleteError(apiMessage);
+          }
+        }catch(e){
+          this.disabled=false;this.textContent=window._armorerLabels.yesDelete;
+          showDeleteError('{{ 'custom.server_error' | t }}');
+        }
+      });
+
+      function extractVariantId(url){
+        if(!url)return'';
+        try{return new URL(url.startsWith('http')?url:'https://placeholder.com'+url).searchParams.get('variant')||'';}catch(e){return'';}
+      }
+
+      // ── Prices ────────────────────────────────────────────────────────────────
+      async function loadArmorerPrices(){
+        var priceEls=document.querySelectorAll('#armorer-collection-list .is-price.price');
+        if(!priceEls.length)return;
+        var handleCache={};
+        var fetchPromises=Array.from(priceEls).map(async function(el){
+          if(el.dataset.customModel==='true'){el.dataset.price='0';el.textContent='N/A';return;}
+          var handle=el.dataset.handle,caliber=el.dataset.caliber||'',barrel=el.dataset.barrel||'';
+          if(!handle){el.dataset.price='0';el.textContent='N/A';return;}
+          try{
+            if(!handleCache[handle])handleCache[handle]=fetch('/products/'+handle+'.json').then(function(r){return r.json();});
+            var data=await handleCache[handle];
+            var variants=(data&&data.product&&data.product.variants)||[];
+            var match=variants.find(function(v){return(!caliber||v.option1===caliber)&&(!barrel||v.option2===barrel);})||variants.find(function(v){return v.option1===caliber;})||variants[0];
+            if(match){var eurPrice=parseFloat(match.price);if(eurPrice>0){el.dataset.price=eurPrice.toFixed(0);el.textContent=Math.round(eurPrice)+'€';}else{el.dataset.price='0';el.textContent='N/A';}}
+            else{el.dataset.price='0';el.textContent='N/A';}
+          }catch(e){el.dataset.price='0';el.textContent='N/A';}
+        });
+        await Promise.all(fetchPromises);
+        if(typeof updatePrices==='function')updatePrices();
+      }
+
+      document.addEventListener('DOMContentLoaded',function(){
+        loadArmorerPrices();
+
+        var purchaseDateInput = document.getElementById('purchaseDate');
+        if (purchaseDateInput && window.GunloupeDatePicker) {
+          window.GunloupeDatePicker.attach(purchaseDateInput, {
+            maxDate: 'today',
+            labels: {
+              set: {{ 'custom.date_picker_set' | t | json }},
+              cancel: {{ 'custom.date_picker_cancel' | t | json }},
+              clear: {{ 'custom.date_picker_clear' | t | json }}
+            }
+          });
+        }
+      });
+
+    })();
+  </script>
+
+  <!-- Compare button resolver (unchanged from v4/v5) -->
+  <script>
+    (function(){
+      async function resolveAll(){
+        var btns=document.querySelectorAll('[data-compare-btn][data-compare-variant*="--"]');
+        for(var btn of btns){
+          var parts=btn.dataset.compareVariant.split('--'),handle=parts[0],caliber=parts[1]||'',barrel=parts[2]||'';
+          if(!handle)continue;
+          try{
+            var variants=(await(await fetch('/products/'+handle+'.json')).json())?.product?.variants||[];
+            var m=variants.find(function(v){return(!caliber||v.option1===caliber)&&(!barrel||v.option2===barrel);})||variants.find(function(v){return v.option1===caliber;})||variants[0];
+            if(m)btn.dataset.compareVariant=String(m.id);
+          }catch(e){}
+        }
+        if(window.GunloupeComparator){await window.GunloupeComparator.sync();window.GunloupeComparator.bindButtons();}
+      }
+
+      document.addEventListener('click',async function(e){
+        var btn=e.target.closest('[data-compare-btn]');
+        if(!btn||!btn.dataset.compareVariant?.includes('--'))return;
+        e.stopImmediatePropagation();e.preventDefault();
+        var parts=btn.dataset.compareVariant.split('--'),handle=parts[0],caliber=parts[1]||'',barrel=parts[2]||'';
+        if(!handle)return;btn.disabled=true;
+        try{
+          var variants=(await(await fetch('/products/'+handle+'.json')).json())?.product?.variants||[];
+          var m=variants.find(function(v){return(!caliber||v.option1===caliber)&&(!barrel||v.option2===barrel);})||variants.find(function(v){return v.option1===caliber;})||variants[0];
+          if(!m){btn.disabled=false;return;}
+          var vid=String(m.id);btn.dataset.compareVariant=vid;
+          if(window.GunloupeComparator){
+            var items=await window.GunloupeComparator.getItems();
+            if(items.find(function(i){return i.variantId===vid;}))await window.GunloupeComparator.remove(vid);
+            else await window.GunloupeComparator.add(vid,handle);
+            await window.GunloupeComparator.sync();
+          }
+        }catch(err){console.error('Armorer compare error:',err);}
+        btn.disabled=false;
+      },true);
+
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',resolveAll);
+      else resolveAll();
+    })();
+  </script>
+
+  {% endif %}
+{% endunless %}
+
+{% schema %}
+{
+  "name": "My Armorer",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "padding_top", "label": "Padding Top", "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "select", "id": "layout", "label": "Layout Style", "options": [{ "value": "grid", "label": "Grid" }, { "value": "list", "label": "List" }], "default": "list" },
+    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" }
+  ],
+  "presets": [{ "name": "My Armorer" }]
+}
+{% endschema %}

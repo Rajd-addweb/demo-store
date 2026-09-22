@@ -1,0 +1,134 @@
+<div class="container">
+    <section class="testimonial-marquee">
+
+        <div class="testimonial-marquee__track">
+
+            <!-- First Set -->
+            <div class="testimonial-marquee__group">
+            {% for block in section.blocks %}
+                <div class="testimonial-item" {{ block.shopify_attributes }}>
+                <h3 class="testimonial-name">
+                    {{ block.settings.name }}
+                </h3>
+                <p class="testimonial-text">
+                    {{ block.settings.description }}
+                </p>
+                </div>
+            {% endfor %}
+            </div>
+
+            <!-- Duplicate Set For Seamless Loop -->
+            <div class="testimonial-marquee__group">
+            {% for block in section.blocks %}
+                <div class="testimonial-item">
+                <h4 class="testimonial-name">
+                    {{ block.settings.name }}
+                </h4>
+                <p class="testimonial-text">
+                    {{ block.settings.description }}
+                </p>
+                </div>
+            {% endfor %}
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<style>
+.testimonial-marquee {
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.testimonial-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 24px;
+  animation: testimonial-scroll 24s linear infinite;
+}
+
+.testimonial-marquee:hover .testimonial-marquee__track {
+  animation-play-state: paused;
+}
+
+.testimonial-marquee__group {
+  display: flex;
+  gap: 24px;
+}
+
+.testimonial-item {
+    grid-column-gap: 2rem;
+    grid-row-gap: 2rem;
+    border-radius: 0.5rem;
+    background-color: #f3f4f3;
+    grid-template-rows: auto;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-columns: 1fr;
+    place-items: start;
+    height: 100%;
+    padding: 1.5rem;
+    display: grid;
+    width: 34rem;
+}
+
+.testimonial-name {
+    font-size: 1.25rem;
+    line-height: 1.4;
+}
+
+.testimonial-text {
+  color: #1e4d2b;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .testimonial-item {
+    min-width: 280px;
+    padding: 18px;
+  }
+}
+
+@keyframes testimonial-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Testimonial Marquee",
+  "max_blocks": 15,
+  "blocks": [
+    {
+      "type": "testimonial",
+      "name": "Testimonial",
+      "settings": [
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Customer Name",
+          "default": "John Doe"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Testimonial Text",
+          "default": "Great service and amazing experience."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Testimonial Marquee"
+    }
+  ]
+}
+{% endschema %}

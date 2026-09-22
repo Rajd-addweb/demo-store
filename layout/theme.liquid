@@ -1,0 +1,1212 @@
+<!doctype html>
+<html {% if request.design_mode %} class="shopify-design-mode" {% endif %} lang="{{ request.locale.iso_code }}">
+
+<head>
+  {%- if settings.favicon != blank -%}
+  <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+  {%- endif -%}
+  <meta name="google" content="notranslate">
+
+    <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-K2L9CKMZ');</script>
+  <!-- End Google Tag Manager -->
+
+  {% comment %} This a way to wait for main content to load when navigating to a new page so that the view transitions
+  can work consistently {% endcomment %}
+  {% if settings.transition_to_main_product or settings.page_transition_enabled %}
+  <link rel="expect" href="#MainContent" blocking="render" id="view-transition-render-blocker">
+  {% endif %}
+  {% if customer %}
+  <meta name="customer-id" content="{{ customer.id }}">
+  <meta name="theme-color" content="#295A31">
+  {% endif %}
+  {%- render 'meta-tags' -%}
+  {%- render 'stylesheets' -%}
+  {%- render 'fonts' -%}
+  {%- render 'scripts' -%}
+  {%- render 'theme-styles-variables' -%}
+  {%- render 'color-schemes' -%}
+
+  {% if request.design_mode %}
+  {%- render 'theme-editor' -%}
+  {% endif %}
+
+  <!-- In <head>, BEFORE custom.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js" defer></script>
+
+
+  {{ content_for_header }}
+  <script src="{{ 'component-weight-facet.js' | asset_url }}" defer></script>
+  {% render 'gunloupe-routes' %}
+  {% comment %}
+    Must load before add-ad-popup and any section that builds an ad title —
+    every ad-creation entry point formats firearm_model through this so the
+    same firearm can't end up with two different-looking titles.
+  {% endcomment %}
+  {% render 'gl-ad-title' %}
+  <!-- Google tag (gtag.js) -->
+  <!-- fancy box  -->
+  
+
+</head>
+
+<body class="page-width-{{ settings.page_width }}
+    card-hover-effect-{{ settings.card_hover_effect }}
+    template-{{ template.name }}
+    {% if page.handle %}page-{{ page.handle }}{% endif %}
+    {% if blog.handle %}blog-{{ blog.handle }}{% endif %}
+    {% if article.handle %}article-{{ article.handle }}{% endif %}
+    {% if collection.handle %}collection-{{ collection.handle }}{% endif %}
+    {% if product.handle %}product-{{ product.handle }}{% endif %}
+    {%- if customer -%}
+      {%- assign body_user_type = customer.metafields.custom.user_type.value -%}
+      {%- if body_user_type == 'business' %} business-user{% elsif body_user_type == 'private' %} private-user{% endif -%}
+    {%- endif -%}">
+  {% render 'skip-to-content-link', href: '#MainContent', text: 'accessibility.skip_to_text' %}
+  {%- comment -%}
+    The page's single <h1>. `page.title` is only populated on page templates, so
+    on the home page this rendered as an empty <h1> — the tag existed with no
+    content, which is worse for SEO than having no h1 at all.
+
+    The visible "Bienvenido a gunloupe" and "El mayor buscador de armas" are text
+    blocks: `type_preset: h1` on the first one is a STYLE class
+    (<div class="text-block h1">), not a heading element — snippets/text.liquid
+    only ever emits a div or rte-formatter. So neither of them was ever the h1.
+
+    Giving the home page its own string here keeps exactly one h1 per page and
+    needs no change to the visible layout. Translated via custom.home_h1 so ES
+    and EN each get the right wording.
+  {%- endcomment -%}
+  {%- liquid
+    case template.name
+      when 'index'
+        assign page_h1 = 'custom.home_h1' | t
+      when 'collection'
+        assign page_h1 = collection.title
+      when 'product'
+        assign page_h1 = product.title
+      when 'blog'
+        assign page_h1 = blog.title
+      when 'article'
+        assign page_h1 = article.title
+      else
+        assign page_h1 = page.title
+    endcase
+
+  -%}
+  {%- comment -%}
+    Rendered only when there's a real title to put in it. Cart, search and 404
+    have no title object of their own — an earlier version fell back to
+    shop.name there, but 404 already renders its own visible "Page not found"
+    h1, so that produced two h1s on the same page. An absent h1 is better than
+    a duplicate or an empty one.
+  {%- endcomment -%}
+  {%- if page_h1 != blank -%}
+    <h1 class="is-visually-hidden">{{ page_h1 }}</h1>
+  {%- endif -%}
+
+  {%- comment -%}
+  ============================================================
+  USER TYPE SELECTION OVERLAY
+  - Rendered server-side by Liquid BEFORE any JS loads
+  - Only shown when customer is logged in but has NO user_type set
+  - Blocks all interaction until user selects Private or Business
+  - body overflow:hidden set inline to prevent scrolling immediately
+  - JS in login-entry.js handles the API call and overlay removal
+  ============================================================
+  {%- endcomment -%}
+  {%- if customer -%}
+    {%- assign gl_user_type = customer.metafields.custom.user_type.value -%}
+    {%- if gl_user_type == blank -%}
+      <style>body { overflow: hidden !important; }</style>
+      <div id="gl-user-type-overlay" class="gl-overlay" aria-modal="true" role="dialog" aria-labelledby="gl-overlay-title">
+        <div class="gl-overlay__backdrop"></div>
+        <div class="gl-overlay__panel">
+
+          <!-- Logo -->
+          <div class="gl-overlay__logo">
+            {{ settings.logo | image_url: width: 140 | image_tag: width: 140, height: 46, loading: 'eager' }}
+          </div>
+
+          <!-- Heading -->
+          <h2 class="gl-overlay__title" id="gl-overlay-title">
+            {{ 'custom.user_type_title' | t: default: '¿Cómo usarás Gunloupe?' }}
+          </h2>
+          <p class="gl-overlay__subtitle">
+            {{ 'custom.user_type_subtitle' | t: default: 'Selecciona el tipo de cuenta. No podrás cambiarlo después.' }}
+          </p>
+
+          <!-- Cards -->
+          <div class="gl-overlay__cards">
+
+            <!-- Private -->
+            <button class="gl-type-card" data-type="private" type="button" aria-pressed="false">
+              <div class="gl-type-card__check">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" stroke="#295A31" stroke-width="1.5"/>
+                  <polyline points="5 8.5 7 10.5 11 6" stroke="#295A31" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              {%- comment -%}
+                .gl-type-card__header groups icon + title/desc so mobile CSS
+                can lay them out side-by-side (icon left, text right) instead
+                of the desktop's icon-on-top stack — see @media max-width:540px.
+              {%- endcomment -%}
+              <div class="gl-type-card__header">
+                <div class="gl-type-card__icon">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="14" r="7" stroke="#295A31" stroke-width="2"/>
+                    <path d="M6 34c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="#295A31" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="gl-type-card__heading">
+                  <h3 class="gl-type-card__title">
+                    {{ 'custom.login_private' | t: default: 'Particular' }}
+                  </h3>
+                  <p class="gl-type-card__desc">
+                    {{ 'custom.login_private_desc' | t: default: 'Uso personal' }}
+                  </p>
+                </div>
+              </div>
+              {%- comment -%}
+                Mobile-only "Ver detalles" toggle (issue #103 follow-up): keeps
+                both cards above the fold on short viewports by collapsing the
+                feature list by default there. Hidden entirely on desktop via
+                CSS (.gl-type-card__toggle), where the list stays always-open
+                as before. A <span role="button"> nested in the card, NOT a
+                <button>, since a <button> can't validly contain another one —
+                its own click/keydown handler calls stopPropagation() so it
+                never triggers the card's own selection click handler (see
+                assets/custom.js) — selecting and expanding are independent.
+              {%- endcomment -%}
+              <span class="gl-type-card__toggle" role="button" tabindex="0"
+                aria-expanded="false" aria-controls="gl-type-features-private" data-toggle-features>
+                <span class="gl-type-card__toggle-label">{{ 'custom.user_type_view_details' | t: default: 'Ver detalles' }}</span>
+                {% render 'icon-arrowdown' %}
+              </span>
+              <ul class="gl-type-card__features" id="gl-type-features-private">
+                <li>{{ 'custom.private_feature_1' | t: default: 'Mi Armero Virtual' }}</li>
+                <li>{{ 'custom.private_feature_2' | t: default: 'Favoritos y Comparador' }}</li>
+                <li>{{ 'custom.private_feature_3' | t: default: 'Alertas Personalizadas' }}</li>
+                <li>{{ 'custom.private_feature_4' | t: default: 'Ver ofertas y contactar armerías' }}</li>
+              </ul>
+            </button>
+
+            <!-- Business -->
+            <button class="gl-type-card" data-type="business" type="button" aria-pressed="false">
+              <div class="gl-type-card__check">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" stroke="#295A31" stroke-width="1.5"/>
+                  <polyline points="5 8.5 7 10.5 11 6" stroke="#295A31" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="gl-type-card__header">
+                <div class="gl-type-card__icon">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <rect x="6" y="16" width="28" height="20" rx="2" stroke="#295A31" stroke-width="2"/>
+                    <path d="M14 16v-4a6 6 0 0112 0v4" stroke="#295A31" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M6 24h28" stroke="#295A31" stroke-width="2"/>
+                    <rect x="17" y="21" width="6" height="6" rx="1" stroke="#295A31" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <div class="gl-type-card__heading">
+                  <h3 class="gl-type-card__title">
+                    {{ 'custom.login_business' | t: default: 'Profesional' }}
+                  </h3>
+                  <p class="gl-type-card__desc">
+                    {{ 'custom.login_business_desc' | t: default: 'Armería, tienda o vendedor profesional' }}
+                  </p>
+                </div>
+              </div>
+              <span class="gl-type-card__toggle" role="button" tabindex="0"
+                aria-expanded="false" aria-controls="gl-type-features-business" data-toggle-features>
+                <span class="gl-type-card__toggle-label">{{ 'custom.user_type_view_details' | t: default: 'Ver detalles' }}</span>
+                {% render 'icon-arrowdown' %}
+              </span>
+              <ul class="gl-type-card__features" id="gl-type-features-business">
+                <li>{{ 'custom.business_feature_1' | t: default: 'Integración de Catálogo' }}</li>
+                <li>{{ 'custom.business_feature_2' | t: default: 'Plataforma de Anuncios Clasificados' }}</li>
+                <li>{{ 'custom.business_feature_3' | t: default: 'Campañas 360º y Anuncios Destacados' }}</li>
+                <li>{{ 'custom.business_feature_4' | t: default: 'Seguimiento y Elaboración de Informes' }}</li>
+              </ul>
+            </button>
+
+          </div>
+
+          <!-- Confirm button -->
+          <button id="gl-type-confirm" class="gl-overlay__confirm is-disabled" disabled type="button">
+            <span class="gl-overlay__confirm-label">
+              {{ 'custom.user_type_confirm' | t: default: 'Continuar' }}
+            </span>
+            <span id="gl-type-loading" class="gl-overlay__confirm-loading" style="display:none;">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" class="gl-spin">
+                <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="12"/>
+              </svg>
+            </span>
+          </button>
+
+          <!-- Error message -->
+          <p id="gl-type-error" class="gl-overlay__error" style="display:none;">
+            {{ 'custom.user_type_error' | t: default: 'Error al guardar. Por favor inténtalo de nuevo.' }}
+          </p>
+
+          <!-- Fine print -->
+          <p class="gl-overlay__note">
+            {{ 'custom.user_type_note' | t: default: 'Esta selección es permanente y está vinculada a tu cuenta.' }}
+          </p>
+
+        </div>
+      </div>
+
+      <style>
+        /* Hide header and sub-header while overlay is active — prevents flash */
+        body:has(#gl-user-type-overlay) #header-group {
+          visibility: hidden;
+        }
+        .gl-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .gl-overlay__backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.72);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+        }
+
+        .gl-overlay__panel {
+          position: relative;
+          z-index: 1;
+          background: #ffffff;
+          border-radius: 20px;
+          padding: 40px 36px 32px;
+          width: 100%;
+          max-width: 640px;
+          max-height: 90vh;
+          overflow-y: auto;
+          text-align: center;
+          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+          animation: glPanelIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes glPanelIn {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
+
+        .gl-overlay__logo {
+          margin-bottom: 24px;
+        }
+
+        .gl-overlay__logo img {
+          height: 40px;
+          width: auto;
+          display: inline-block;
+        }
+
+        .gl-overlay__title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin: 0 0 8px;
+          line-height: 1.3;
+        }
+
+        .gl-overlay__subtitle {
+          font-size: 0.9rem;
+          color: #6b7280;
+          margin: 0 0 28px;
+          line-height: 1.5;
+        }
+
+        /* ── Cards ── */
+        .gl-overlay__cards {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          margin-bottom: 24px;
+        }
+
+        .gl-type-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+          padding: 22px 20px 20px;
+          background: #f9fafb;
+          border: 2px solid #e5e7eb;
+          border-radius: 14px;
+          cursor: pointer;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+          width: 100%;
+          font-family: inherit;
+        }
+
+        /* Only devices with a real pointer (mouse/trackpad) get :hover.
+           On touch devices, :hover "sticks" after a tap until the user taps
+           elsewhere — tapping the "Ver detalles" toggle (nested inside this
+           button) was triggering it and making the card look selected/green
+           when it wasn't. (hover: hover) + (pointer: fine) excludes touch. */
+        @media (hover: hover) and (pointer: fine) {
+          .gl-type-card:hover {
+            border-color: #295A31;
+            background: #f0fdf4;
+            box-shadow: 0 4px 16px rgba(41, 90, 49, 0.12);
+            transform: translateY(-2px);
+          }
+        }
+
+        .gl-type-card.is-selected {
+          border-color: #295A31;
+          background: #f0fdf4;
+          box-shadow: 0 6px 20px rgba(41, 90, 49, 0.18);
+        }
+
+        /* Check icon — hidden by default, shown on selected */
+        .gl-type-card__check {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          opacity: 0;
+          transform: scale(0.6);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .gl-type-card.is-selected .gl-type-card__check {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        .gl-type-card__icon {
+          margin-bottom: 14px;
+          width: 48px;
+          height: 48px;
+          background: #fff;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .gl-type-card__title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin: 0 0 6px;
+        }
+
+        .gl-type-card__desc {
+          font-size: 0.8rem;
+          color: #6b7280;
+          margin: 0 0 14px;
+          line-height: 1.4;
+        }
+
+        /* Hidden on desktop — features stay always-open there (unchanged).
+           Only shown/made interactive within the mobile media query below. */
+        .gl-type-card__toggle {
+          display: none;
+          align-items: center;
+          gap: 6px;
+          margin: 0 0 12px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #295A31;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .gl-type-card__toggle svg {
+          transition: transform 0.2s ease;
+        }
+
+        .gl-type-card.is-expanded .gl-type-card__toggle svg {
+          transform: rotate(180deg);
+        }
+
+        .gl-type-card__features {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .gl-type-card__features li {
+          font-size: 0.78rem;
+          color: #374151;
+          padding-left: 16px;
+          position: relative;
+          line-height: 1.4;
+        }
+
+        .gl-type-card__features li::before {
+          content: '✓';
+          position: absolute;
+          left: 0;
+          color: #295A31;
+          font-weight: 700;
+          font-size: 0.75rem;
+        }
+
+        /* ── Confirm button ── */
+        .gl-overlay__confirm {
+          width: 100%;
+          padding: 14px 24px;
+          background: #295A31;
+          color: #ffffff;
+          border: none;
+          border-radius: 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .gl-overlay__confirm:hover:not([disabled]) {
+          background: #1e4324;
+          transform: translateY(-1px);
+        }
+
+        .gl-overlay__confirm.is-disabled,
+        .gl-overlay__confirm[disabled] {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        /* Spinner animation */
+        .gl-spin {
+          animation: glSpin 0.8s linear infinite;
+        }
+
+        @keyframes glSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+
+        /* ── Error ── */
+        .gl-overlay__error {
+          font-size: 0.85rem;
+          color: #dc2626;
+          margin: 0 0 12px;
+          padding: 10px 14px;
+          background: #fef2f2;
+          border-radius: 8px;
+          border: 1px solid #fecaca;
+        }
+
+        /* ── Note ── */
+        .gl-overlay__note {
+          font-size: 0.75rem;
+          color: #9ca3af;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 540px) {
+          .gl-overlay__panel {
+            padding: 28px 20px 24px;
+            border-radius: 16px;
+          }
+
+          .gl-overlay__logo {
+            margin-bottom: 12px;
+          }
+
+          .gl-overlay__subtitle {
+            margin-bottom: 18px;
+          }
+
+          .gl-overlay__cards {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .gl-type-card {
+            padding: 18px 16px;
+          }
+
+          .gl-overlay__title {
+            font-size: 1.4rem !important;
+          }
+
+          /* Issue #103 follow-up: collapse the feature checklist by default
+             so both cards fit above the fold without scrolling (AC1). The
+             toggle becomes visible/interactive only at this breakpoint;
+             desktop is untouched (AC5/AC2). */
+          .gl-type-card__toggle {
+            display: inline-flex;
+            margin-bottom: 0px;
+          }
+
+          .gl-type-card.is-expanded .gl-type-card__toggle {
+            margin-bottom: 12px;
+          }
+
+          .gl-type-card__features {
+            display: none;
+          }
+
+          .gl-type-card.is-expanded .gl-type-card__features {
+            display: flex;
+          }
+
+          /* Icon beside title/subtitle instead of stacked above them —
+             desktop keeps the original vertical layout (rule scoped here). */
+          .gl-type-card__header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+          }
+
+          .gl-type-card__icon {
+            margin-bottom: 0;
+            flex-shrink: 0;
+          }
+
+          .gl-type-card__heading {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .gl-type-card__title {
+            margin-bottom: 2px;
+          }
+
+          .gl-type-card__desc {
+            margin-bottom: 0;
+          }
+        }
+      </style>
+      <script>
+        // If user somehow navigates away while overlay is open,
+        // redirect them back to homepage
+        window.addEventListener('beforeunload', function () {
+          // Only intercept if overlay still exists (type not yet saved)
+          if (document.getElementById('gl-user-type-overlay')) {
+            // Can't cancel beforeunload in modern browsers,
+            // but we can redirect on the new page via sessionStorage flag
+            sessionStorage.setItem('gl_force_home', '1');
+          }
+        });
+
+        // On every page load, check if redirect was forced
+        (function () {
+          if (sessionStorage.getItem('gl_force_home') === '1') {
+            sessionStorage.removeItem('gl_force_home');
+            // Only redirect if user still has no type (overlay will re-appear anyway)
+            // This handles the edge case of direct URL navigation
+            const currentPath = window.location.pathname;
+            const homePaths = ['/', '/en/'];
+            if (!homePaths.includes(currentPath)) {
+              window.location.replace(
+                (window.Shopify?.locale === 'en' ? '/en/' : '/')
+              );
+            }
+          }
+        })();
+      </script>
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- comment -%}
+  ============================================================
+  BUSINESS PROFILE COMPLETION ENFORCEMENT
+  - Runs only for customers with user_type == 'business'
+  - Checks the same required fields as validateBusiness() in customer-profile.js:
+    shop_name, phone, address1, city, country, zip, profile_picture (logo)
+  - If any required field is blank, hard-redirect to /pages/editar-perfil
+    on every page load except the edit-profile page itself
+  - Private users are NOT redirected — they see a one-time info banner instead
+  ============================================================
+  {%- endcomment -%}
+  {%- if customer -%}
+    {%- assign gl_user_type_check = customer.metafields.custom.user_type.value -%}
+
+    {%- if gl_user_type_check == 'business' -%}
+      {%- assign gl_addr = customer.default_address -%}
+      {%- if gl_addr == nil and customer.addresses.size > 0 -%}
+        {%- assign gl_addr = customer.addresses.first -%}
+      {%- endif -%}
+      {%- assign gl_shop_name = customer.metafields.custom.shop_name.value | default: '' -%}
+      {%- assign gl_phone = customer.metafields.custom.phone.value | default: customer.phone | default: '' -%}
+      {%- assign gl_logo = customer.metafields.custom.profile_picture.value | default: '' -%}
+      {%- assign gl_address1 = gl_addr.address1 | default: '' -%}
+      {%- assign gl_city = gl_addr.city | default: '' -%}
+      {%- assign gl_country = gl_addr.country | default: '' -%}
+      {%- assign gl_zip = gl_addr.zip | default: '' -%}
+
+      {%- assign gl_profile_incomplete = false -%}
+      {%- if gl_shop_name == blank or gl_phone == blank or gl_logo == blank or gl_address1 == blank or gl_city == blank or gl_country == blank or gl_zip == blank -%}
+        {%- assign gl_profile_incomplete = true -%}
+      {%- endif -%}
+
+      {%- if gl_profile_incomplete -%}
+        {%- comment -%} Don't redirect if already on the edit-profile page (any locale) {%- endcomment -%}
+        {%- assign gl_current_path = request.path -%}
+        {%- unless gl_current_path contains 'editar-perfil' or gl_current_path contains 'edit-profile' -%}
+          <script>
+            window.location.replace(
+              (window.Shopify && window.Shopify.locale === 'en') ? '/en/pages/edit-profile' : '/pages/editar-perfil'
+            );
+          </script>
+          <style>body { visibility: hidden !important; }</style>
+        {%- endunless -%}
+      {%- endif -%}
+
+    {%- elsif gl_user_type_check == 'private' -%}
+      {%- comment -%}
+        PRIVATE USER — profile completion banner.
+        Shows on EVERY load of the edit-profile page until all fields are
+        filled. Close button dismisses it for the current session only;
+        it returns next visit. Once the profile is complete it never renders.
+      {%- endcomment -%}
+      {%- assign gl_current_path = request.path -%}
+      {%- if gl_current_path contains 'editar-perfil' or gl_current_path contains 'edit-profile' -%}
+
+        {%- assign gl_addr = customer.default_address -%}
+        {%- if gl_addr == nil and customer.addresses.size > 0 -%}
+          {%- assign gl_addr = customer.addresses.first -%}
+        {%- endif -%}
+
+        {%- assign gl_priv_complete = true -%}
+        {%- if customer.first_name == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if customer.last_name == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if customer.metafields.custom.date_of_birth.value == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if customer.metafields.custom.gender.value == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if customer.metafields.custom.phone == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if gl_addr.address1 == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if gl_addr.zip == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if gl_addr.city == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+        {%- if gl_addr.country == blank -%}{%- assign gl_priv_complete = false -%}{%- endif -%}
+
+        {%- unless gl_priv_complete -%}
+          <script>
+            (function () {
+              if (sessionStorage.getItem('gl_private_profile_msg_dismissed') === '1') return;
+
+              document.addEventListener('DOMContentLoaded', function () {
+                var banner = document.createElement('div');
+                banner.id = 'gl-private-profile-banner';
+                banner.style.cssText = 'background:#f0fdf4;border:1px solid #bbf7d0;color:#295A31;padding:12px 44px 12px 20px;text-align:center;font-size:0.9rem;position:relative;z-index:10;';
+
+                var text = document.createElement('span');
+                text.textContent = {{ 'custom.private_profile_optional_note' | t | json }};
+                banner.appendChild(text);
+
+                var close = document.createElement('button');
+                close.type = 'button';
+                close.setAttribute('aria-label', 'Close');
+                close.textContent = '\u00D7';
+                close.style.cssText = 'position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:1.3rem;line-height:1;cursor:pointer;color:#295A31;';
+                close.addEventListener('click', function () {
+                  sessionStorage.setItem('gl_private_profile_msg_dismissed', '1');
+                  banner.remove();
+                });
+                banner.appendChild(close);
+
+                var wrapper = document.querySelector('.profile-page-weapon-header') || document.body;
+                if (wrapper.parentNode) wrapper.parentNode.insertBefore(banner, wrapper);
+              });
+            })();
+          </script>
+        {%- endunless -%}
+
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+
+  <div id="header-group">
+    {% sections 'header-group' %}
+  </div>
+
+  <script>
+    // Inline header height calculation to prevent layout shift
+    // Note: Updates in calculateHeaderGroupHeight() and updateTransparentHeaderOffset()utilities.js should be kept in sync with this function
+    (function setHeaderHeighCustomProperties() {
+      /*
+       * Header calculation functions for maintaining CSS variables
+       * Mimic calculateHeaderGroupHeight() in utilities.js
+       */
+      const header = document.querySelector('header-component');
+      const headerGroup = document.querySelector('#header-group');
+      const hasHeaderSection = headerGroup?.querySelector('.header-section');
+
+      if (!header || !headerGroup) return;
+
+      const headerHeight = header.offsetHeight;
+
+      // Calculate the total height of the header group
+      let headerGroupHeight = 0;
+      const children = headerGroup.children;
+      for (let i = 0; i < children.length; i++) {
+        const element = children[i];
+        if (element === header || !(element instanceof HTMLElement)) continue;
+        headerGroupHeight += element.offsetHeight;
+      }
+
+      // Check for transparent header special case
+      if (header.hasAttribute('transparent') && header.parentElement?.nextElementSibling) {
+        headerGroupHeight += headerHeight;
+      }
+
+      // Set CSS variables
+      document.body.style.setProperty('--header-height', `${headerHeight}px`);
+      document.body.style.setProperty('--header-group-height', `${headerGroupHeight}px`);
+
+      /**
+       * Updates CSS custom properties for transparent header offset calculation
+       * Mimic updateTransparentHeaderOffset() in utilities.js
+       */
+
+      if (!hasHeaderSection || !header?.hasAttribute('transparent')) {
+        document.body.style.setProperty('--transparent-header-offset-boolean', '0');
+        return;
+      }
+
+      const hasImmediateSection = hasHeaderSection.nextElementSibling?.classList.contains('shopify-section');
+
+      const shouldApplyOffset = !hasImmediateSection ? '1' : '0';
+      document.body.style.setProperty('--transparent-header-offset-boolean', shouldApplyOffset);
+    })();
+  </script>
+
+  <main id="MainContent" class="content-for-layout" role="main"
+    data-page-transition-enabled="{{ settings.page_transition_enabled }}"
+    data-product-transition="{{ settings.transition_to_main_product }}" data-template="{{ template }}">
+    {{ content_for_layout }}
+  </main>
+
+  {% sections 'footer-group' %}
+
+  {% render 'search-modal' %}
+
+  {% if settings.quick_add or settings.mobile_quick_add %}
+  {% render 'quick-add-modal' %}
+  {% endif %}
+  {% render 'add-ad-popup' %}
+
+
+  <div id="contactPopup" class="hidden">
+    <div class="popup-box">
+      <div class="contactPopup-title-wrap flex">
+        <h4>{{ 'customer.account.contact_us' | t: default: 'Contact with us' }}</h4>
+        <button onclick="closePopup()" class="close-btn">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8" fill="#F3F4F3" />
+            <path
+              d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z"
+              stroke="#295A31" stroke-width="1.19938" />
+            <path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295A31"
+              stroke-width="1.19938" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="globo-formbuilder" data-id="MTQwNzkx"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.open-contact-popup').forEach((btn) => {
+        btn.addEventListener('click', function (e) {
+          console.log("btn-clocked");
+          e.preventDefault();
+          openPopup();
+        });
+      });
+    });
+  </script>
+
+  <script>
+    function openPopup() {
+      document.getElementById('contactPopup').classList.remove('hidden');
+    }
+
+    function closePopup() {
+      document.getElementById('contactPopup').classList.add('hidden');
+    }
+  </script>
+
+  <script>
+    var BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+    // Seed from the last successfully-fetched rate (cached below) rather
+    // than always starting from a fixed constant — if today's refresh is
+    // slow or fails, this is still far closer to correct than a rate that
+    // was hardcoded once and never updated.
+    var EUR_TO_USD = parseFloat(localStorage.getItem('eur_to_usd')) || 1.08;
+
+    // ── Cookie helpers ───────────────────────────────────────────────────
+    function setCookie(name, value, days) {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+      document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+    }
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    }
+
+    // ── Exchange rate ────────────────────────────────────────────────────
+    // Fetched from our own backend (cached + refreshed daily server-side
+    // via cron), not directly from the third-party API — avoids per-visitor
+    // browser CORS/ad-blocker/network flakiness.
+    async function fetchExchangeRate() {
+      try {
+        const res = await fetch(BACKEND_URL + '/exchange-rate');
+        const data = await res.json();
+        EUR_TO_USD = (data && data.rate) || EUR_TO_USD;
+        localStorage.setItem('eur_to_usd', EUR_TO_USD);
+        updatePrices();
+      } catch (err) {
+        console.error('Exchange rate fetch failed, using fallback.', err);
+      }
+    }
+
+    function setCurrency(currency) {
+      localStorage.setItem('currency', currency);
+      setCookie('gl_currency', currency, 365);
+      updatePrices();
+      updateActiveState(currency);
+      const settingPopup = document.getElementById('settingsPopup');
+      if (settingPopup) settingPopup.classList.add('hidden');
+    }
+
+    function updatePrices() {
+      const currency = localStorage.getItem('currency') || 'EUR';
+
+      document.querySelectorAll('.price').forEach((el) => {
+        const basePrice = parseFloat(el.dataset.price);
+
+        if (!basePrice || basePrice === 0) {
+          el.innerText = 'N/A';
+          return;
+        }
+
+        // Ads carry their own entry currency via data-currency; anything
+        // without one (catalog/variant prices, favorites) is always EUR.
+        const sourceCurrency = el.dataset.currency || 'EUR';
+        const amountInEur = sourceCurrency === 'USD' ? basePrice / EUR_TO_USD : basePrice;
+
+        if (currency === 'USD') {
+          el.innerText = '$' + Math.round(amountInEur * EUR_TO_USD);
+        } else {
+          el.innerText = Math.round(amountInEur) + '€';
+        }
+      });
+
+      // Ad price inputs show the currency inline in their placeholder
+      // (e.g. "Precio (EUR) *"), kept in sync with the toggle here.
+      document.querySelectorAll('.gl-price-input').forEach((el) => {
+        const base = el.dataset.labelBase || '';
+        el.placeholder = base + ' (' + currency + ') *';
+      });
+    }
+
+    function getRawEurPrice(price) {
+      if (!price || price === '0' || price === '0.0') return '0';
+      const num = parseFloat(price);
+      if (isNaN(num) || num === 0) return '0';
+      return num > 1000 ? (num / 100).toFixed(0) : num.toFixed(0);
+    }
+
+    function updateActiveState(activeCurrency) {
+      document.querySelectorAll('.currency-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.currency === activeCurrency);
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.target.classList.contains('currency-btn')) {
+        setCurrency(e.target.dataset.currency);
+      }
+    });
+
+    function cmToIn(cm) {
+      return Math.round((cm / 2.54) * 10) / 10;
+    }
+
+    function kgToLbs(kg) {
+      return Math.round((kg * 2.20462) * 100) / 100;
+    }
+
+    function shouldConvertText(text) {
+      const trimmed = text.trim();
+      if (trimmed.includes('/') || trimmed.includes('(')) return false;
+      return /^\d+(\.\d+)?\s*(cm|kg)$/i.test(trimmed);
+    }
+
+    function applyMeasures(mode) {
+      document.querySelectorAll('.measure-val').forEach(function (el) {
+        const original = el.dataset.original;
+        if (!original) return;
+
+        if (mode === 'imperial') {
+          const cmMatch = original.match(/^(\d+(\.\d+)?)\s*cm$/i);
+          if (cmMatch) { el.textContent = cmToIn(parseFloat(cmMatch[1])) + 'in'; return; }
+          const kgMatch = original.match(/^(\d+(\.\d+)?)\s*kg$/i);
+          if (kgMatch) { el.textContent = kgToLbs(parseFloat(kgMatch[1])) + 'lbs'; return; }
+        } else {
+          el.textContent = original;
+        }
+      });
+    }
+
+    function tagMeasureElements() {
+      const selectors = [
+        '.product-card_specs_spec-text',
+        '.product-table_spec-text',
+        '.spec-value',
+        'td',
+        '.filter-item span',
+        '.gl-filters .filter-item span'
+      ];
+
+      selectors.forEach(function (sel) {
+        document.querySelectorAll(sel).forEach(function (el) {
+          if (el.querySelector('.measure-val')) return;
+          if (el.children.length > 0) return;
+
+          const text = el.textContent.trim();
+          if (!shouldConvertText(text)) return;
+
+          el.innerHTML = '<span class="measure-val" data-original="' + text + '">' + text + '</span>';
+        });
+      });
+    }
+
+    function setMeasures(mode) {
+      localStorage.setItem('measures', mode);
+      setCookie('gl_measures', mode, 365);
+
+      document.querySelectorAll('.measures-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.measures === mode);
+      });
+
+      tagMeasureElements();
+      applyMeasures(mode);
+    }
+
+    function initMeasures() {
+      const cookieMeasures = getCookie('gl_measures');
+      const saved = cookieMeasures || localStorage.getItem('measures') || 'metric';
+
+      localStorage.setItem('measures', saved);
+      setCookie('gl_measures', saved, 365);
+
+      document.querySelectorAll('.measures-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.measures === saved);
+      });
+
+      tagMeasureElements();
+      if (saved === 'imperial') {
+        applyMeasures('imperial');
+      }
+    }
+
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.measures-btn');
+      if (!btn) return;
+      setMeasures(btn.dataset.measures);
+    });
+
+    window.GunloupeRetag = function () {
+      const saved = localStorage.getItem('measures') || 'metric';
+      tagMeasureElements();
+      if (saved === 'imperial') applyMeasures('imperial');
+      // Newly-inserted cards (infinite scroll, search results, sort)
+      // arrive with raw server-rendered EUR prices — re-apply the
+      // selected currency + the zero-price → N/A rule to them too.
+      // Every call site that injects product cards already calls
+      // GunloupeRetag(), so this is the single place needed to fix it.
+      updatePrices();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const cookieCurrency = getCookie('gl_currency');
+      const savedCurrency = cookieCurrency || localStorage.getItem('currency') || 'EUR';
+
+      localStorage.setItem('currency', savedCurrency);
+      setCookie('gl_currency', savedCurrency, 365);
+
+      updateActiveState(savedCurrency);
+      setTimeout(() => {updatePrices();}, 100);
+      document.body.setAttribute('data-currency', savedCurrency);
+      fetchExchangeRate();
+      initMeasures();
+    });
+
+    (function () {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('country')) {
+        url.searchParams.delete('country');
+        window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+      }
+    })();
+  </script>
+
+  <script>
+    window.GunloupeI18n = {
+      go_to_comparison: {{ 'custom.go_to_comparison' | t | json }},
+      close:            {{ 'actions.close' | t | json }},
+      limit_title:      {{ 'custom.comparison_limit_title' | t | json }},
+      limit_message:    {{ 'custom.comparison_limit_message' | t | json }}
+    };
+  </script>
+
+<script>
+(function() {
+  // ============================================================
+  // CONTACT FORM (EN) TRANSLATION — NOT Shopify's translation system
+  // ------------------------------------------------------------
+  // This form is rendered by the "Powerful Contact Form Builder" app
+  // (free tier), which has no built-in multi-language support. The
+  // form's actual text (labels, placeholder, submit button, success/
+  // thank-you message) is set in Spanish inside that app's own admin
+  // settings — it is NOT in this theme and NOT in es.json/en.default.json.
+  //
+  // Because of that, this script does exact-string find/replace on the
+  // rendered form's DOM to fake an English version: it looks for the
+  // literal Spanish text below and swaps it for the English text next
+  // to it. It does not translate a *concept* — it translates the exact
+  // characters currently entered in the form builder app.
+  //
+  // WHAT THIS MEANS IN PRACTICE: if the Spanish text is ever edited in
+  // the Powerful Contact Form Builder app's settings — a single label,
+  // the placeholder, the submit button, or the success message — the
+  // key below stops matching, and the English site will silently keep
+  // showing the OLD Spanish text (no error, no warning). Whoever edits
+  // that app's content must also update the matching key/value pair
+  // here, using the exact new Spanish text as the key.
+  // ============================================================
+  const locale = Shopify.locale || document.documentElement.lang || 'es';
+  if (!locale.startsWith('en')) return;
+
+  const fieldTranslations = {
+    'Nombre': 'Name',
+    'Correo': 'Email',
+    'Teléfono': 'Phone',
+    'Mensaje': 'Message',
+    'Aceptar ': 'Accept ',
+    'política de privacidad': 'privacy policy',
+    'Aceptar política de privacidad': 'Accept privacy policy',  // ← comma was missing here
+    'Enviar': 'Send'
+  };
+
+  const messageTranslations = {
+    '¡Gracias por ponerte en contacto!': 'Thanks for getting in touch!',
+    'Gracias por tu mensaje. Nos pondremos en contacto contigo a la mayor brevedad.': 'Thank you for your message. We will get in touch with you as soon as possible.',
+    '¡Qué tengas un gran día!': 'Have a great day!'
+  };
+
+  function translateTextNodes(el) {
+    el.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const raw = node.textContent;        // ← don't trim, keep the space
+        const trimmed = raw.trim();
+        // Try exact raw match first, then trimmed
+        if (fieldTranslations[raw]) {
+          node.textContent = fieldTranslations[raw];
+        } else if (fieldTranslations[trimmed]) {
+          node.textContent = raw.replace(trimmed, fieldTranslations[trimmed]);
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'A') {
+        translateTextNodes(node);
+      } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'A') {
+        const linkText = node.textContent.trim();
+        if (fieldTranslations[linkText]) node.textContent = fieldTranslations[linkText];
+      }
+    });
+  }
+
+  function translateForm(form) {
+    // Translate all label spans — simple or complex HTML
+    form.querySelectorAll('span.label-content').forEach(el => {
+      const plainText = el.textContent.trim().replace(/\s+/g, ' ');
+      if (el.children.length === 0) {
+        if (fieldTranslations[plainText]) el.textContent = fieldTranslations[plainText];
+      } else {
+        translateTextNodes(el);
+      }
+    });
+
+    // Translate placeholders
+    form.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+      const ph = el.getAttribute('placeholder');
+      if (fieldTranslations[ph]) el.setAttribute('placeholder', fieldTranslations[ph]);
+    });
+
+    // Translate submit button
+    const submitBtn = form.querySelector('button.submit, button[type="submit"]');
+    if (submitBtn && submitBtn.textContent.includes('Enviar')) {
+      submitBtn.innerHTML = '<span class="spinner"></span>Send';
+    }
+
+    // Translate success message if visible
+    const container = form.closest('.globo-form-id-140791') || form.parentElement;
+    if (container) {
+      const successMsg = container.querySelector('.message.success:not(.hidden)');
+      if (successMsg?.offsetParent !== null) {
+        const title = successMsg.querySelector('.gfb__content-title');
+        if (title) {
+          for (let es in messageTranslations) {
+            if (title.textContent.includes(es)) title.textContent = messageTranslations[es];
+          }
+        }
+        successMsg.querySelectorAll('.content p').forEach(p => {
+          for (let es in messageTranslations) {
+            if (p.textContent.includes(es)) p.textContent = messageTranslations[es];
+          }
+        });
+      }
+    }
+  }
+
+  const observer = new MutationObserver(() => {
+    const form = document.querySelector('form[data-id="140791"]');
+    if (form) translateForm(form);
+  });
+
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+
+  const existing = document.querySelector('form[data-id="140791"]');
+  if (existing) translateForm(existing);
+})();
+</script>
+
+  <script src="{{ 'comparator.js' | asset_url }}" defer></script>
+  <script src="{{ 'favorites.js' | asset_url }}" defer></script>
+  <script src="{{ 'gunloupe-datepicker.js' | asset_url }}" defer></script>
+  {% render 'gl-customer-data' %}
+</body>
+
+</html>

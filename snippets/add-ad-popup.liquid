@@ -1,0 +1,2521 @@
+{% comment %}
+  add-ad-popup.liquid — v6 FINAL + CALIBER FIX
+  - Fix: caliber locked when single-caliber catalogue model selected
+  - pointer-events:none on disabled caliber toggle (CSS lock)
+  - Caliber extracted from option1 AND variant.title fallback
+  - ✅ FIXED: Improved CALIBER_RE regex to match "21 Sharp", "22 LR" patterns
+  - ✅ ADDED: Comprehensive debug logging for troubleshooting
+{% endcomment %}
+
+{%- assign skip_armorer_check = true -%}
+
+{% if customer %}
+
+{% unless skip_armorer_check %}
+<div class="ad-popup-overlay" id="not-in-armorer-overlay" style="display:none;">
+  <div class="ad-popup ad-popup-small">
+    <div class="ad-popup-title-wrapper">
+      <h4>{{ 'custom.add_to_armory' | t }}</h4>
+      <div class="btn-cancel-cross" id="not-in-armorer-close">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#F3F4F3"/><path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295A31" stroke-width="1.19938"/><path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295A31" stroke-width="1.19938" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <p style="margin-bottom:24px;color:#666;">{{ 'custom.sell_requirement_message' | t }}</p>
+    <div class="popup-actions">
+      <button class="button button-secondary btn-cancel" id="not-in-armorer-cancel">{{ 'custom.cancel' | t }}</button>
+      <a href="{{ pages['mi-armero'].url }}" class="button is-brand">{{ 'custom.go_to_armorer' | t }}</a>
+    </div>
+  </div>
+</div>
+{% endunless %}
+
+<div class="ad-popup-overlay" id="add-ad-overlay" style="display:none;">
+  <div class="ad-popup">
+    <div class="ad-popup-title-wrapper">
+      <h3>{{ "custom.add_ad" | t }}</h3>
+      <div class="btn-cancel-cross" id="add-ad-close">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#F3F4F3"/><path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295A31" stroke-width="1.19938"/><path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295A31" stroke-width="1.19938" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <div id="ad-prefilled-section" style="display:none;">
+      <div class="form-group form-group-firearm-selection">
+        <div class="ad-popup-formtitle">{{ "custom.firearm_model" | t }}</div>
+        <div class="input-wrapper"><input type="text" id="ad-type" placeholder="{{ 'custom.firearm_type' | t }}" readonly></div>
+        <div class="input-wrapper"><input type="text" id="ad-subtype" placeholder="{{ 'custom.subtype' | t }}" readonly></div>
+        <div class="input-wrapper"><input type="text" id="ad-brand" placeholder="{{ 'custom.brand' | t }}" readonly></div>
+        <div class="input-wrapper"><input type="text" id="ad-model" placeholder="{{ 'custom.firearm_model' | t }}" readonly></div>
+        <div class="input-wrapper">
+          <input type="text" id="ad-caliber-display" placeholder="{{ 'custom.caliber' | t }}" readonly>
+          <input type="hidden" id="ad-caliber-prefilled">
+        </div>
+        <div class="custom-dropdown" id="ad-handedness-wrapper-pf" data-field="firearm_handedness">
+          <button type="button" class="dropdown-toggle" id="ad-handedness-btn-pf" data-default="{{ 'custom.handedness' | t }} *">{{ "custom.handedness" | t }} *</button>
+          <div class="dropdown-menu" style="display:none;">
+            <ul>
+              <li class="dropdown-item"><label><input type="radio" name="ad_handedness_pf" value="Diestro"><span>{{ 'custom.gunval_right_handed' | t }}</span></label></li>
+              <li class="dropdown-item"><label><input type="radio" name="ad_handedness_pf" value="Zurdo"><span>{{ 'custom.gunval_left_handed' | t }}</span></label></li>
+              <li class="dropdown-item"><label><input type="radio" name="ad_handedness_pf" value="Ambidiestro"><span>{{ 'custom.gunval_ambidextrous' | t }}</span></label></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ad-selection-section" style="display:none;">
+      <div class="form-group form-group-firearm-selection">
+        <div class="ad-popup-formtitle">{{ "custom.firearm_model" | t }}</div>
+
+        <div class="add-firearm-custom-dropdown" data-filter="ad-tipo">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-tipo-label">{{ 'custom.weapon_type' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu" style="display:none;"><ul id="ad-tipo-list"></ul></div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled" data-filter="ad-subtipo">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-subtipo-label">{{ 'custom.firearm_subtype' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu" style="display:none;"><ul id="ad-subtipo-list"></ul></div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled" data-filter="ad-marca">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-marca-label">{{ 'custom.brand' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu ad-scrollable-menu" style="display:none;">
+            <input type="text" id="ad-brand-search" class="filter-search ad-list-search" placeholder="{{ 'custom.search_label' | t }}..." autocomplete="off">
+            <ul id="ad-marca-list" class="ad-scrollable-list"></ul>
+          </div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled filter-group--search" data-filter="ad-modelo">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-modelo-label">{{ 'custom.model' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu" style="display:none;">
+            <input type="text" id="ad-model-search" class="filter-search" placeholder="{{ 'custom.search_model' | t }}" autocomplete="off">
+            <div id="ad-model-results" class="model-results"></div>
+          </div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled" data-filter="ad-calibre" id="ad-calibre-wrapper">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-calibre-label">{{ 'custom.caliber' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu ad-scrollable-menu" style="display:none;">
+            <input type="text" id="ad-caliber-search" class="filter-search ad-list-search" placeholder="{{ 'custom.search_label' | t }}..." autocomplete="off">
+            <ul id="ad-calibre-list" class="ad-scrollable-list"></ul>
+          </div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled" data-filter="ad-barrel" id="ad-barrel-wrapper" data-hide-disabled="true" style="display:none;">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-barrel-label">{{ 'custom.barrel_length' | t }}</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu ad-scrollable-menu" style="display:none;">
+            <input type="text" id="ad-barrel-search" class="filter-search ad-list-search" placeholder="{{ 'custom.search_label' | t }}..." autocomplete="off">
+            <ul id="ad-barrel-list" class="ad-scrollable-list"></ul>
+          </div>
+        </div>
+
+        <div class="add-firearm-custom-dropdown disabled" data-filter="ad-handedness" id="ad-handedness-wrapper">
+          <button type="button" class="filter-toggle add-firearm-dropdown-toggle">
+            <span class="filter-title"><span id="ad-handedness-label">{{ 'custom.handedness' | t }} *</span></span>
+          </button>
+          <div class="add-firearm-dropdown-menu" style="display:none;">
+            <ul>
+              <li><label><input type="radio" name="ad-handedness" value="Diestro"><span>{{ 'custom.gunval_right_handed' | t }}</span></label></li>
+              <li><label><input type="radio" name="ad-handedness" value="Zurdo"><span>{{ 'custom.gunval_left_handed' | t }}</span></label></li>
+              <li><label><input type="radio" name="ad-handedness" value="Ambidiestro"><span>{{ 'custom.gunval_ambidextrous' | t }}</span></label></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="ad-popup-formtitle">{{ 'custom.ad_details' | t }}</div>
+      <div class="input-wrapper"><input type="text" id="ad-details" placeholder="{{ 'custom.ad_details' | t }}" readonly style="background:#f9f9f9;"></div>
+      <div class="input-wrapper" style="position:relative;">
+        <label class="form-label">{{ 'accessibility.personalized_name' | t }}</label>
+        <input type="text" id="ad-personalized-name" placeholder="{{ 'accessibility.personalized_name' | t }}">
+      </div>
+      <div class="input-wrapper"><input type="text" id="ad-city" placeholder="{{ 'custom.city' | t }} *" required></div>
+      <div class="form-row-half">
+        <div class="input-wrapper"><input type="number" id="ad-price" class="gl-price-input" data-label-base="{{ 'custom.price' | t }}" placeholder="{{ 'custom.price' | t }} (EUR) *" required></div>
+        <div class="custom-dropdown" id="ad-availability-dropdown" data-field="firearm_availability">
+          <button type="button" class="dropdown-toggle" id="ad-availability-btn" data-default="{{ 'custom.availability' | t }} *">{{ 'custom.availability' | t }} *</button>
+          <div class="dropdown-menu" style="display:none;">
+            <ul>
+              <li class="dropdown-item"><label><input type="radio" name="ad_availability" value="in_stock"><span>{{ 'custom.availability_in_stock' | t }}</span></label></li>
+              <li class="dropdown-item"><label><input type="radio" name="ad_availability" value="wholesaler"><span>{{ 'custom.availability_wholesaler' | t }}</span></label></li>
+              <li class="dropdown-item"><label><input type="radio" name="ad_availability" value="on_demand"><span>{{ 'custom.availability_on_demand' | t }}</span></label></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {%- comment -%} DISPLAY PREFERENCE — private users only {%- endcomment -%}
+    <div class="form-group" id="ad-display-pref-group" style="display:none;">
+      <div class="ad-popup-formtitle">{{ 'custom.display_preference_for_ads' | t: default: 'DISPLAY PREFERENCE FOR ADS' }}</div>
+      <p id="ad-pref-hint" style="font-size:0.82rem;color:#295A31A6;margin:2px 0 8px;line-height:1.45;"></p>
+      <div id="ad-pref-radios" style="display:flex;flex-direction:column;gap:8px;">
+        <label class="ad-pref-radio-lbl" id="ad-pref-fullname-wrap" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.95rem;">
+          <input type="radio" name="ad_display_pref" id="ad-pref-fullname" value="full_name" style="width:auto;">
+          <span>{{ 'custom.display_full_name' | t: default: 'Display full name' }}</span>
+        </label>
+        <label class="ad-pref-radio-lbl" id="ad-pref-alias-wrap" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.95rem;">
+          <input type="radio" name="ad_display_pref" id="ad-pref-alias" value="alias" style="width:auto;">
+          <span>{{ 'custom.display_alias' | t: default: 'Display alias' }}</span>
+        </label>
+      </div>
+      <div class="input-wrapper" id="ad-alias-input-wrap" style="display:none;margin-top:10px;position:relative;">
+        <label class="form-label" for="ad-alias-input">{{ 'customer.account.alias' | t: default: 'Alias' }}</label>
+        <input type="text" id="ad-alias-input"
+          placeholder="{{ 'customer.account.alias' | t: default: 'Alias' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="ad-popup-formtitle">{{ 'custom.firearm_details' | t }}</div>
+      <div class="input-wrapper">
+        <label class="upload-box" for="ad-image-upload">{{ "custom.upload_images_label" | t }}s *<input type="file" multiple accept="image/*" id="ad-image-upload"></label>
+        <div class="upload-icon">{% render 'icon-upload' %}</div>
+        <div class="image-preview" id="ad-image-preview"></div>
+        <span style="color:#295A31A6;" class="text-size-tiny">*{{ 'custom.image_requirement' | t }} 300x300</span>
+      </div>
+      <div class="input-wrapper" style="position:relative;">
+        <label class="form-label">{{ 'custom.description' | t }}</label>
+        <textarea id="ad-description" placeholder="{{ 'custom.more_about_firearm' | t }}" rows="4"></textarea>
+      </div>
+      <div class="custom-dropdown" data-field="firearm_status">
+        <button type="button" class="dropdown-toggle" id="ad-status-btn" data-default="{{ 'custom.status' | t }} *">{{ "custom.status" | t }} *</button>
+        <div class="dropdown-menu" style="display:none;">
+          <ul>
+            <li class="dropdown-item"><label><input type="radio" name="ad_gun_status" value="Nuevo"><span>{{ 'custom.new' | t }}</span></label></li>
+            <li class="dropdown-item"><label><input type="radio" name="ad_gun_status" value="Semi-nuevo"><span>{{ 'custom.nearly_new' | t }}</span></label></li>
+            <li class="dropdown-item"><label><input type="radio" name="ad_gun_status" value="Usado"><span>{{ 'custom.used' | t }}</span></label></li>
+            <li class="dropdown-item"><label><input type="radio" name="ad_gun_status" value="Desactivado"><span>{{ 'custom.deactivated' | t }}</span></label></li>
+          </ul>
+        </div>
+      </div>
+      <div class="input-wrapper" style="position:relative;">
+        <label class="form-label">{{ 'custom.date_of_purchase' | t }}</label>
+        <input type="text" readonly inputmode="none" autocomplete="off" id="ad-purchase-date" class="custom-input">
+      </div>
+      <div class="input-wrapper" style="position:relative;">
+        <label class="form-label">{{ 'custom.phone_number' | t }}</label>
+        <input type="tel" maxlength="20" inputmode="tel" autocomplete="tel" id="ad-seller-phone" placeholder="Ex 999918888">
+      </div>
+    </div>
+
+    <div id="ad-form-error" style="display:none;color:#c0392b;font-size:0.9rem;margin-bottom:12px;padding:10px;background:#fef0f0;border-radius:8px;"></div>
+    <div class="popup-actions">
+      <button class="button button-secondary btn-cancel" id="add-ad-cancel">{{ 'custom.cancel' | t }}</button>
+      <button class="button bg-color-orange is-brand" id="add-ad-submit">
+        <span id="add-ad-submit-text">{{ 'custom.create_ad' | t }}</span>
+        <span id="add-ad-submit-loading" style="display:none;">{{ 'custom.creating' | t }}</span>
+      </button>
+    </div>
+  </div>
+  <div id="add-ad-loader" style="display:none;position:fixed;bottom:0;left:0;width:100%;margin-top:-100%;height:100vh;background:rgba(255,255,255,0.92);align-items:center;justify-content:center;z-index:100;border-radius:14px;flex-direction:column;gap:16px;">
+    <div class="comparator-spinner"></div>
+    <span id="add-ad-loader-msg" style="font-size:0.95rem;color:#295A31;font-weight:500;">{{ 'custom.creating' | t }}...</span>
+  </div>
+</div>
+
+<style>
+  .ad-popup-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999; }
+  .ad-popup { width:640px;max-height:85vh;overflow-y:auto;background:#fff;border-radius:14px;padding:24px;position:relative; }
+  .ad-popup-small { width:480px;max-height:unset; }
+  .ad-popup-title-wrapper { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px; }
+  .ad-popup-title-wrapper h3 { margin:0; }
+  .btn-cancel-cross { cursor:pointer;flex-shrink:0; }
+  .ad-popup .form-group { display:flex;flex-direction:column;gap:10px;padding:16px 12px 12px;position:relative;border:1px solid color-mix(in srgb,var(--color-foreground) 15%,transparent);border-radius:12px;margin-bottom:20px; }
+  .ad-popup .ad-popup-formtitle { position:absolute;top:-0.6em;left:0.75rem;background:#fff;padding:0 0.25rem;font-size:0.8rem;text-transform:uppercase;pointer-events:none;color:var(--color-foreground); }
+  .ad-popup input,.ad-popup textarea { width:100%;border:1px solid #295A3126;border-radius:8px;padding:14px 12px;font-size:1rem;outline:none;background:#fff;color:var(--color-foreground);font-family:inherit; }
+  .ad-popup input[readonly] { background:#f9f9f9;color:#5E8263;cursor:default; }
+  .ad-popup input::placeholder,.ad-popup textarea::placeholder { color:color-mix(in srgb,var(--color-foreground) 50%,transparent); }
+  .ad-popup textarea { resize:vertical;min-height:100px; }
+  .input-wrapper { position:relative;display:flex;flex-direction:column;width:100%; }
+  .input-wrapper .form-label { position:absolute;top:-0.55em;left:0.75rem;font-size:0.8rem;background:#fff;padding:0 0.25rem;color:#5E8263;pointer-events:none;z-index:1; }
+  .ad-popup .custom-dropdown { position:relative;background:#F3F4F3;border-radius:8px;border:1px solid transparent;padding:4px; }
+  .custom-dropdown .form-label { top:-.1em;left:.75rem !important;font-size:.85rem;position:absolute;background:#fff;padding-left:.25rem;padding-right:.25rem }
+  .ad-popup .custom-dropdown::after { content:"";position:absolute;right:20px;top:27px;transform:translateY(-60%) rotate(45deg);border-right:2px solid var(--color-foreground);border-bottom:2px solid var(--color-foreground);width:7px;height:7px;pointer-events:none; }
+  .ad-popup .custom-dropdown.open { border-color:color-mix(in srgb,var(--color-foreground) 15%,transparent); }
+  .ad-popup .dropdown-toggle { width:100%;height:48px;padding:0 40px 0 16px;text-align:left;background:transparent;border:1px solid color-mix(in srgb,var(--color-foreground) 15%,transparent);border-radius:8px;font-size:1rem;cursor:pointer;color:color-mix(in srgb,var(--color-foreground) 75%,transparent); }
+  .ad-popup .dropdown-menu { display:none;background:#fff;border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+  .ad-popup .dropdown-menu ul { list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px; }
+  .ad-popup .dropdown-menu li { border-radius:6px;padding:8px 12px;cursor:pointer;transition:background 0.15s; }
+  .ad-popup .dropdown-menu li:hover { background:color-mix(in srgb,var(--color-foreground) 8%,transparent); }
+  .ad-popup .dropdown-menu li label { cursor:pointer;width:100%;display:block; }
+  .ad-popup .dropdown-menu li label input { position:absolute;opacity:0;pointer-events:none; }
+  .ad-popup .dropdown-menu li label span { display:block;font-size:1rem; }
+  .upload-box { display:flex;align-items:center;justify-content:start;padding:16px;border:1px solid #295A3126;border-radius:8px;text-align:left;cursor:pointer;width:100%;font-size:0.95rem;color:var(--color-foreground);transition:border-color 0.2s;z-index:1; }
+  .upload-icon { position:absolute;right:14px;top:14px;z-index:0; }
+  .upload-box:hover { border-color:var(--color-primary,#295A31); }
+  .upload-box input[type="file"] { display:none; }
+  .image-preview { display:flex;flex-wrap:wrap;gap:8px;margin-top:10px; }
+  .image-preview > div { position:relative;border:1px solid #ddd;border-radius:8px;overflow:hidden; }
+  .image-preview img { width:70px;height:50px;object-fit:contain;display:block; }
+  .remove-img { position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1; }
+  .popup-actions { display:flex;gap:12px;margin-top:20px; }
+  .popup-actions button,.popup-actions a { width:100%;text-align:center; }
+
+  /* Scrollable brand/caliber */
+  .ad-scrollable-menu { display:none;flex-direction:column;max-height:320px;overflow:hidden; }
+  .add-firearm-custom-dropdown.open .ad-scrollable-menu { display:flex !important; }
+  .add-firearm-custom-dropdown.open .add-firearm-dropdown-menu:not(.ad-scrollable-menu) { display:block !important; }
+  .ad-list-search { flex-shrink:0;margin:6px 8px 4px;width:calc(100% - 16px);padding:8px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:.95rem;box-sizing:border-box;display:block; }
+  .ad-scrollable-list { flex:1;overflow-y:auto;overflow-x:hidden;max-height:260px;margin:0;padding:4px 0;list-style:none; }
+  .ad-scrollable-list::-webkit-scrollbar { width:4px; }
+  .ad-scrollable-list::-webkit-scrollbar-track { background:#f1f1f1;border-radius:2px; }
+  .ad-scrollable-list::-webkit-scrollbar-thumb { background:#295A31;border-radius:2px; }
+
+  /* ── CALIBER LOCKED STATE — pointer-events:none is the bulletproof lock ── */
+  #ad-calibre-wrapper.ad-calibre-locked .filter-toggle {
+    pointer-events: none !important;
+    opacity: 0.8;
+    background: #f0f7f1;
+    cursor: not-allowed;
+  }
+  #ad-calibre-wrapper.ad-calibre-locked .filter-toggle .filter-title span {
+    color: #295A31;
+    font-weight: 600;
+  }
+  /* Ensure open state cannot show when locked */
+  #ad-calibre-wrapper.ad-calibre-locked.open .add-firearm-dropdown-menu { display:none !important; }
+
+  /* ── CASCADE DISABLED STATE — a field waiting on its parent (type → subtype
+     → brand → model → caliber → handedness) is visibly dimmed and locked,
+     not just blocked in JS ── */
+  .ad-popup .add-firearm-custom-dropdown.disabled .filter-toggle,
+  .ad-popup .custom-dropdown.disabled .dropdown-toggle {
+    pointer-events: none;
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: #f5f5f5;
+  }
+
+  /* Use button */
+  .ad-use-btn { display:block;width:100%;text-align:left;padding:10px 14px;margin:4px 0;background:#f0f7f1;border:1.5px solid #295A31;border-radius:8px;color:#295A31;font-size:.95rem;cursor:pointer;font-weight:600;font-family:inherit; }
+  .ad-use-btn:hover { background:#e0f0e3; }
+
+  @media (max-width:700px) {
+    .ad-popup { width:calc(100vw - 32px);max-height:90vh;padding:16px; }
+    .ad-popup-small { width:calc(100vw - 32px); }
+  }
+
+  /* Radio label */
+  .ad-pref-radio-lbl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 4px 0;
+    font-size: 16px;
+    color: #295A31;
+    user-select: none;
+  }
+
+  /* Hide default radio */
+  .ad-pref-radio-lbl input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px !important;
+    height: 18px;
+    padding: 0 !important;
+    border: 1px solid #295A31;
+    border-radius: 50%;
+    background: #fff;
+    margin: 0;
+    position: relative;
+    cursor: pointer;
+    transition: all .2s ease;
+    flex-shrink: 0;
+  }
+
+  /* Inner green dot */
+  .ad-pref-radio-lbl input[type="radio"]::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #295A31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform .2s ease;
+  }
+
+  /* Checked */
+  .ad-pref-radio-lbl input[type="radio"]:checked {
+    border-color: #295A31;
+  }
+
+  .ad-pref-radio-lbl input[type="radio"]:checked::after {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* Disabled */
+  .ad-pref-radio-lbl input[type="radio"]:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+  .form-row-half { display:flex; gap:12px; }
+  .form-row-half > .input-wrapper,
+  .form-row-half > .custom-dropdown { flex:1; margin-bottom:0; }
+  @media (max-width: 767px) {
+    .form-row-half {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script>
+  var STATUS_LABELS = {
+    'Nuevo':       '{{ "custom.new" | t }}',
+    'Semi-nuevo':  '{{ "custom.nearly_new" | t }}',
+    'Usado':       '{{ "custom.used" | t }}',
+    'Desactivado': '{{ "custom.deactivated" | t }}'
+  };
+
+  var _adNonCatalogueMsg = {{ 'custom.armorer_non_catalogue_msg' | t | json }};
+
+  var _adMismatchMsg = {{ 'custom.armorer_mismatch_msg' | t | json }};
+
+  var adProductFetchGen = 0, adProductFetchDone = false;
+
+  var AVAILABILITY_LABELS = {
+    'in_stock':   '{{ "custom.availability_in_stock"   | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" }}',
+    'wholesaler': '{{ "custom.availability_wholesaler" | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" }}',
+    'on_demand':  '{{ "custom.availability_on_demand"  | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" }}'
+  };
+
+  var HANDEDNESS_LABELS = {
+    'Diestro':     '{{ "custom.gunval_right_handed" | t }}',
+    'Zurdo':       '{{ "custom.gunval_left_handed"  | t }}',
+    'Ambidiestro': '{{ "custom.gunval_ambidextrous" | t }}'
+  };
+
+  // The raw custom.lateralidad product metafield is stored in English
+  // (confirmed by the same EN→ES map section.weapons-collection.liquid
+  // uses for its filter), but ads store/compare handedness by the Spanish
+  // code above — normalize before matching against HANDEDNESS_LABELS.
+  var HANDEDNESS_EN_TO_ES = {
+    'Right-handed': 'Diestro',
+    'Left-handed':  'Zurdo',
+    'Ambidextrous': 'Ambidiestro'
+  };
+  function canonicalHandedness(raw) {
+    if (!raw) return '';
+    if (HANDEDNESS_LABELS.hasOwnProperty(raw)) return raw;
+    return HANDEDNESS_EN_TO_ES[raw] || '';
+  }
+
+  var SKIP_ARMORER_CHECK = {{ skip_armorer_check | json }};
+
+  var _FC = {% if request.locale.iso_code == 'en' %}'/en/collections/firearms'{% else %}'/collections/armas'{% endif %};
+
+  var STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+  var STOREFRONT_API   = 'https://gunloupe.myshopify.com/api/2024-01/graphql.json';
+
+  var PARAM_TO_KEY = {
+    'filter.p.product_type':              'tipo',
+    'filter.p.m.custom.sub_tipo_de_arma': 'subtipo',
+    'filter.p.m.custom.marca':            'marca',
+    'filter.p.m.custom.modelo':           'modelo',
+    'filter.v.option.calibre':            'calibre',
+    'filter.v.option.Calibre':            'calibre',
+    'filter.v.option.caliber':            'calibre'
+  };
+
+  var _adLabels = {
+    tipo:          {{ 'custom.weapon_type'      | t | json }},
+    subtipo:       {{ 'custom.firearm_subtype'  | t | json }},
+    marca:         {{ 'custom.brand'            | t | json }},
+    modelo:        {{ 'custom.model'            | t | json }},
+    calibre:       {{ 'custom.caliber'          | t | json }},
+    barrel:        {{ 'custom.barrel_length'    | t | json }},
+    handedness:    {{ 'custom.handedness'       | t | json }} + ' *',
+    searchModel:   {{ 'custom.search_model'     | t | json }},
+    loadingModels: {{ 'custom.loading_products' | t | json }}
+  };
+
+  (function () {
+    var BACKEND_URL     = 'https://shopify-gunloupe.addwebprojects.com';
+    var CUSTOMER_ID     = '{{ customer.id }}';
+    var IS_PRIVATE_USER = '{{ customer.metafields.custom.user_type.value }}' !== 'business';
+    var _savedAlias     = {{ customer.metafields.custom.alias.value | default: '' | json }};
+    var _savedDispPref  = {{ customer.metafields.custom.name_display_preference.value | default: 'full_name' | json }};
+    var _chosenAlias    = _savedAlias;
+    var CUSTOMER_NAME   = '{{ customer.first_name }} {{ customer.last_name }}';
+    var CUSTOMER_EMAIL  = '{{ customer.email }}';
+    var THEME_ID        = '{{ theme.id }}';
+
+    // Shared ad-title formatter, rendered by theme.liquid. Guarded the same
+    // way this theme guards window.GunloupeRoutes: if the snippet is ever
+    // missing, fall back to passing the text through unchanged instead of
+    // throwing and taking the whole ad-creation popup down with it. The
+    // server normalises firearm_model on write, so the *stored* title stays
+    // correct either way — only this popup's preview would show raw text.
+    var AdTitle = window.GunloupeAdTitle || {
+      build: function (d) {
+        d = d || {};
+        var m = String(d.model || '').trim();
+        var b = String(d.brand || '').trim();
+        if (b && m.toLowerCase().indexOf(b.toLowerCase()) !== 0) m = (b + ' ' + m).trim();
+        return d.barrel ? m + ' // ' + d.barrel : m;
+      },
+      normaliseModel:  function (v) { return v == null ? '' : String(v).trim(); },
+      normaliseBarrel: function (v) { return v == null ? '' : String(v).trim(); }
+    };
+
+    var _brandsCache = null, _calibersCache = null, _catalogueBrandsCache = null;
+    var _brandsLoading = false, _calibersLoading = false;
+    var _activeCaliberFilter = null;
+    var _barrelsCache = null, _barrelsLoading = false;
+
+    var currentSellData = {}, uploadedImages = [], selectedGunStatus = '', selectedAvailability = '', selectedHandedness = '';
+    var adMode = 'prefilled';
+    var adSf = { tipo: '', subtipo: '', marca: '', modelo: '', calibre: '', barrel: '' };
+    var adSelectedProduct = null, adAllProducts = [], adIsFetching = false;
+    var adBrandIsCatalogue = false, adFilterFetchGen = 0;
+
+    var notInArmorerOverlay = document.getElementById('not-in-armorer-overlay');
+    var addAdOverlay        = document.getElementById('add-ad-overlay');
+    var prefillSection      = document.getElementById('ad-prefilled-section');
+    var selectionSection    = document.getElementById('ad-selection-section');
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Display preference (private users only)
+    // ────────────────────────────────────────────────────────────────────────
+    function initDisplayPref() {
+      var grp = document.getElementById('ad-display-pref-group');
+      if (!grp || !IS_PRIVATE_USER) return;
+      grp.style.display = '';
+
+      var hint        = document.getElementById('ad-pref-hint');
+      var fnWrap      = document.getElementById('ad-pref-fullname-wrap');
+      var fnRadio     = document.getElementById('ad-pref-fullname');
+      var alWrap      = document.getElementById('ad-pref-alias-wrap');
+      var alRadio     = document.getElementById('ad-pref-alias');
+      var alInputWrap = document.getElementById('ad-alias-input-wrap');
+      var alInput     = document.getElementById('ad-alias-input');
+
+      if (_savedDispPref === 'alias') {
+        // Preference already locked in profile — show only alias option (disabled)
+        hint.textContent = '{{ "custom.alias_pref_hint_locked" | t: default: "Based on your profile preference, your alias will be displayed on this ad." }}';
+        if (fnWrap)  fnWrap.style.display = 'none';
+        if (alRadio) { alRadio.checked = true; alRadio.disabled = true; }
+        if (alInputWrap) alInputWrap.style.display = '';
+        if (alInput) { alInput.value = _savedAlias; alInput.disabled = true; alInput.style.background = '#f9f9f9'; }
+      } else {
+        // Let user choose
+        hint.textContent = '{{ "custom.alias_pref_hint_choose" | t: default: "Choose how your name appears on your classified ads." }}';
+        if (fnWrap)  fnWrap.style.display = '';
+        if (alWrap)  alWrap.style.display = '';
+        if (alRadio) alRadio.disabled = false;
+        if (alInput) { alInput.disabled = false; alInput.style.background = ''; }
+
+        // Default: alias selected (privacy-first, per design)
+        if (alRadio)     alRadio.checked = true;
+        if (alInputWrap) alInputWrap.style.display = '';
+
+        if (_savedAlias) {
+          // Alias already exists in profile — show it but lock it.
+          // User must go to Edit Profile to change their alias.
+          if (alInput) {
+            alInput.value            = _savedAlias;
+            alInput.disabled         = true;
+            alInput.style.background = '#f9f9f9';
+            alInput.style.color      = '#5E8263';
+          }
+        } else {
+          // No alias saved yet — user can type one here for the first time
+          if (alInput) {
+            alInput.disabled         = false;
+            alInput.style.background = '';
+            alInput.style.color      = '';
+          }
+        }
+
+        var onFnChange = function () {
+          if (fnRadio && fnRadio.checked && alInputWrap) alInputWrap.style.display = 'none';
+        };
+
+        var onAlChange = function () {
+          if (alRadio && alRadio.checked && alInputWrap) {
+            alInputWrap.style.display = '';
+            // Keep disabled state consistent when switching back to alias
+            if (alInput && _savedAlias) {
+              alInput.disabled         = true;
+              alInput.style.background = '#f9f9f9';
+              alInput.style.color      = '#5E8263';
+            }
+          }
+        };
+
+        if (fnRadio) fnRadio.addEventListener('change', onFnChange);
+        if (alRadio) alRadio.addEventListener('change', onAlChange);
+      }
+    }
+
+    function resetDisplayPref() {
+      var grp = document.getElementById('ad-display-pref-group');
+      if (grp) grp.style.display = 'none';
+
+      var alInput = document.getElementById('ad-alias-input');
+      if (alInput) { alInput.value = ''; alInput.disabled = false; }
+
+      var fnRadio = document.getElementById('ad-pref-fullname');
+      var alRadio = document.getElementById('ad-pref-alias');
+      if (fnRadio) { fnRadio.checked = false; fnRadio.disabled = false; }
+      if (alRadio) { alRadio.checked = false; alRadio.disabled = false; }
+
+      var alWrap = document.getElementById('ad-pref-alias-wrap');
+      if (alWrap) alWrap.style.display = '';
+    }
+
+    function getDisplayName() {
+      if (!IS_PRIVATE_USER) return CUSTOMER_NAME;
+
+      var alRadio = document.getElementById('ad-pref-alias');
+      var alInput = document.getElementById('ad-alias-input');
+
+      if (alRadio && alRadio.checked) {
+        return (alInput && alInput.value.trim()) || _savedAlias || CUSTOMER_NAME;
+      }
+      return CUSTOMER_NAME;
+    }
+
+    async function saveAliasToProfile() {
+      if (!IS_PRIVATE_USER) return;
+
+      var alRadio = document.getElementById('ad-pref-alias');
+      var alInput = document.getElementById('ad-alias-input');
+      if (!alRadio || !alRadio.checked) return;
+
+      var typedAlias = alInput ? alInput.value.trim() : '';
+
+      // Only call backend if alias changed or preference wasn't already 'alias'
+      if (!typedAlias) return;
+      if (typedAlias === _savedAlias && _savedDispPref === 'alias') return;
+
+      try {
+        await fetch(BACKEND_URL + '/customer-profile/' + CUSTOMER_ID + '/alias', {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ alias: typedAlias, nameDisplayPreference: 'alias' })
+        });
+        _savedAlias    = typedAlias;
+        _savedDispPref = 'alias';
+      } catch (e) {
+        console.warn('[DisplayPref] Could not save alias:', e);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Handedness enable / disable — handedness is the last link in the
+    // chain after caliber, so it only becomes selectable once a caliber
+    // value actually exists (either user-picked or auto-locked). Any
+    // upstream change (type/subtype/brand/model) invalidates that and
+    // re-locks it via unlockCaliber() below.
+    // ────────────────────────────────────────────────────────────────────────
+    function setHandednessEnabled(enabled) {
+      // Selection-mode widget — 6th field in the cascade, same
+      // add-firearm-custom-dropdown markup/mechanism as Tipo..Calibre.
+      adSetEnabled('ad-handedness', enabled);
+
+      // Prefilled-mode widget — separate markup family (matches
+      // Status/Availability's custom-dropdown), always enabled once shown.
+      var dd = document.getElementById('ad-handedness-wrapper-pf');
+      if (dd) {
+        dd.classList.toggle('disabled', !enabled);
+        if (!enabled) {
+          dd.classList.remove('open');
+          var menu = dd.querySelector('.dropdown-menu');
+          if (menu) menu.style.display = 'none';
+        }
+        var btn = document.getElementById('ad-handedness-btn-pf');
+        if (btn) btn.disabled = !enabled;
+        dd.querySelectorAll('input[name="ad_handedness_pf"]').forEach(function (i) { i.disabled = !enabled; });
+      }
+    }
+
+    function clearHandednessSelection() {
+      adSetLabel('handedness', _adLabels.handedness);
+      document.querySelectorAll('input[name="ad-handedness"]').forEach(function (r) { r.checked = false; });
+
+      var btn = document.getElementById('ad-handedness-btn-pf');
+      if (btn) btn.textContent = btn.dataset.default;
+      document.querySelectorAll('input[name="ad_handedness_pf"]').forEach(function (r) { r.checked = false; });
+
+      selectedHandedness = '';
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Caliber lock / unlock — CSS class is the bulletproof mechanism
+    // ────────────────────────────────────────────────────────────────────────
+    function lockCaliber(caliberValue) {
+      var cw = document.getElementById('ad-calibre-wrapper');
+      if (!cw) return;
+
+      cw.classList.add('ad-calibre-locked');
+      cw.classList.add('disabled');
+
+      // Close it if open
+      cw.classList.remove('open');
+      var menu = cw.querySelector('.add-firearm-dropdown-menu');
+      if (menu) menu.style.display = 'none';
+
+      adSf.calibre = caliberValue;
+      adSetLabel('calibre', caliberValue);
+
+      // A caliber value now exists (auto-selected) — handedness can open.
+      setHandednessEnabled(true);
+    }
+
+    function unlockCaliber() {
+      var cw = document.getElementById('ad-calibre-wrapper');
+      if (!cw) return;
+
+      cw.classList.remove('ad-calibre-locked');
+      cw.classList.remove('disabled');
+
+      // Re-enable toggle button
+      var tb = cw.querySelector('.filter-toggle');
+      if (tb) tb.disabled = false;
+
+      cw.querySelectorAll('input').forEach(function (i) { i.disabled = false; });
+
+      var s = cw.querySelector('.filter-search');
+      if (s) s.disabled = false;
+
+      // Caliber is no longer settled (either reset or awaiting a fresh pick)
+      // — handedness depends on it, so re-lock it until caliber is chosen again.
+      setHandednessEnabled(false);
+      clearHandednessSelection();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Update details field
+    // ────────────────────────────────────────────────────────────────────────
+    function updateDetailsField() {
+      var ms = document.getElementById('ad-model-search');
+      // Only the casing is normalised here — unlike the ad title, this field
+      // lists the brand as its own segment, so the brand must not be folded
+      // into the model text.
+      var modelVal = AdTitle.normaliseModel(
+        adSelectedProduct ? adSelectedProduct.title : (adSf.modelo || (ms && ms.value.trim()) || '')
+      );
+      var parts = [adSf.tipo, adSf.subtipo, adSf.marca, modelVal, adSf.calibre].filter(Boolean);
+
+      var det = document.getElementById('ad-details');
+      if (det) det.value = parts.join(' / ');
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Storefront API
+    // ────────────────────────────────────────────────────────────────────────
+    async function fetchAllMetaobjects(type) {
+      var results = [], cursor = null, hasMore = true, attempts = 0;
+
+      while (hasMore && attempts < 10) {
+        attempts++;
+        var after = cursor ? (', after: "' + cursor + '"') : '';
+        var q = '{metaobjects(type:"' + type + '",first:250' + after + '){pageInfo{hasNextPage endCursor}edges{node{fields{key value}}}}}';
+
+        try {
+          var r = await fetch(STOREFRONT_API, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+            body:    JSON.stringify({ query: q })
+          });
+          if (!r.ok) break;
+
+          var d = await r.json();
+          if (d.errors) break;
+
+          var mo = d && d.data && d.data.metaobjects;
+          if (!mo) break;
+
+          hasMore = mo.pageInfo && mo.pageInfo.hasNextPage;
+          cursor  = mo.pageInfo && mo.pageInfo.endCursor;
+
+          (mo.edges || []).forEach(function (e) {
+            var f = (e.node.fields || []).find(function (x) { return x.key === 'name'; });
+            if (f && f.value) results.push(f.value);
+          });
+        } catch (err) {
+          break;
+        }
+      }
+
+      console.log('fetchAllMetaobjects(' + type + ') returned', results.length);
+      return results;
+    }
+
+    function renderBrandList(brands) {
+      var ul = document.getElementById('ad-marca-list');
+      if (!ul) return;
+
+      if (!brands.length) {
+        ul.innerHTML = '<li style="padding:8px 12px;color:#999;">' + {{ 'custom.no_brands_found' | t | json }} + '</li>';
+        return;
+      }
+
+      ul.innerHTML = brands.map(function (n) {
+        var s = n.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        return '<li data-brand="' + s + '"><label><input type="radio" name="ad-marca" value="' + s + '"><span>' + s + '</span></label></li>';
+      }).join('');
+    }
+
+    function renderCaliberList(calibers) {
+      var ul = document.getElementById('ad-calibre-list');
+      if (!ul) return;
+
+      if (!calibers.length) {
+        ul.innerHTML = '<li style="padding:8px 12px;color:#999;">' + {{ 'custom.no_calibers_found' | t | json }} + '</li>';
+        return;
+      }
+
+      ul.innerHTML = calibers.map(function (n) {
+        var s = n.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        return '<li data-caliber="' + s + '"><label><input type="radio" name="ad-calibre" value="' + s + '"><span>' + s + '</span></label></li>';
+      }).join('');
+
+      // Re-apply active filter
+      if (_activeCaliberFilter && _activeCaliberFilter.length) {
+        document.querySelectorAll('#ad-calibre-list li[data-caliber]').forEach(function (li) {
+          li.style.display = _activeCaliberFilter.includes(li.dataset.caliber) ? '' : 'none';
+        });
+      }
+    }
+
+    async function loadBrands() {
+      if (_brandsCache) { renderBrandList(_brandsCache); return _brandsCache; }
+      if (_brandsLoading) return;
+
+      _brandsLoading = true;
+
+      var ul = document.getElementById('ad-marca-list');
+      if (ul) ul.innerHTML = '<li style="padding:8px 12px;opacity:0.5;">Loading brands...</li>';
+
+      var brands = await fetchAllMetaobjects('all_brands');
+      brands.sort(function (a, b) { return a.localeCompare(b); });
+
+      _brandsCache = brands;
+      _brandsLoading = false;
+
+      renderBrandList(brands);
+      return brands;
+    }
+
+    async function loadCalibers() {
+      if (_calibersCache) { renderCaliberList(_calibersCache); return _calibersCache; }
+      if (_calibersLoading) return;
+
+      _calibersLoading = true;
+
+      var ul = document.getElementById('ad-calibre-list');
+      if (ul) ul.innerHTML = '<li style="padding:8px 12px;opacity:0.5;">Loading calibers...</li>';
+
+      var calibers = await fetchAllMetaobjects('all_calibers');
+
+      _calibersCache = calibers;
+      _calibersLoading = false;
+
+      renderCaliberList(calibers);
+      return calibers;
+    }
+
+    // Barrel length values don't convert cleanly between cm/in (a 46cm
+    // barrel is marketed as "18in", not the mathematically exact 18.1in) —
+    // both units are curated directly on the all_barrel_length metaobject
+    // rather than computed, so this reads all three fields itself instead
+    // of reusing fetchAllMetaobjects() (which only extracts "name").
+    async function fetchBarrelLengths() {
+      var results = [], cursor = null, hasMore = true, attempts = 0;
+
+      while (hasMore && attempts < 10) {
+        attempts++;
+        var after = cursor ? (', after: "' + cursor + '"') : '';
+        var q = '{metaobjects(type:"all_barrel_length",first:250' + after + '){pageInfo{hasNextPage endCursor}edges{node{fields{key value}}}}}';
+
+        try {
+          var r = await fetch(STOREFRONT_API, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+            body:    JSON.stringify({ query: q })
+          });
+          if (!r.ok) break;
+
+          var d = await r.json();
+          if (d.errors) break;
+
+          var mo = d && d.data && d.data.metaobjects;
+          if (!mo) break;
+
+          hasMore = mo.pageInfo && mo.pageInfo.hasNextPage;
+          cursor  = mo.pageInfo && mo.pageInfo.endCursor;
+
+          (mo.edges || []).forEach(function (e) {
+            var fields = e.node.fields || [];
+            var get = function (key) {
+              var f = fields.find(function (x) { return x.key === key; });
+              return f ? f.value : '';
+            };
+            // The metaobject's "CM" field is stored under the API key "name"
+            // (not "cm") — confirmed against the live Storefront API response.
+            var cm = get('name');
+            if (!cm) return;
+            var inches = get('inches');
+            if (!inches) {
+              inches = cmToIn(parseFloat(cm)) + 'in';
+              console.warn('[Gunloupe] all_barrel_length entry "' + cm + '" is missing Inches — using a computed estimate.');
+            }
+            results.push({ cm: cm, inches: inches, sortOrder: get('sort_order') });
+          });
+        } catch (err) {
+          break;
+        }
+      }
+
+      results.sort(function (a, b) {
+        var ao = parseInt(a.sortOrder, 10), bo = parseInt(b.sortOrder, 10);
+        if (isNaN(ao) && isNaN(bo)) return a.cm.localeCompare(b.cm);
+        if (isNaN(ao)) return 1;
+        if (isNaN(bo)) return -1;
+        return ao - bo;
+      });
+
+      return results;
+    }
+
+    function renderBarrelList(entries, mode) {
+      var ul = document.getElementById('ad-barrel-list');
+      if (!ul) return;
+
+      if (!entries.length) {
+        ul.innerHTML = '<li style="padding:8px 12px;color:#999;">' + {{ 'custom.no_barrel_lengths_found' | t | json }} + '</li>';
+        return;
+      }
+
+      mode = mode || localStorage.getItem('measures') || 'metric';
+      ul.innerHTML = entries.map(function (e) {
+        var shown = (mode === 'imperial' ? e.inches : e.cm)
+          .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        var cmAttr = e.cm.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        var inAttr = e.inches.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        return '<li data-barrel="' + shown + '" data-cm="' + cmAttr + '" data-in="' + inAttr + '"><label><input type="radio" name="ad-barrel" value="' + cmAttr + '"><span>' + shown + '</span></label></li>';
+      }).join('');
+    }
+
+    function updateBarrelLabelForMeasure(mode) {
+      mode = mode || localStorage.getItem('measures') || 'metric';
+      // Once a value is picked, the button shows that value (matching how
+      // Caliber/Handedness display a selection) rather than the field
+      // prompt — only relabel to the "Barrel Length (CM/IN)" prompt if
+      // nothing's been picked yet.
+      if (adSf.barrel) {
+        adSetLabel('barrel', selectedBarrelDisplayValue(mode));
+      } else {
+        adSetLabel('barrel', _adLabels.barrel + ' (' + (mode === 'imperial' ? 'IN' : 'CM') + ')');
+      }
+    }
+
+    // adSf.barrel is always the canonical cm string (see renderBarrelList) —
+    // this looks up the matching cached entry to show it in whichever unit
+    // is currently active.
+    function selectedBarrelDisplayValue(mode) {
+      mode = mode || localStorage.getItem('measures') || 'metric';
+      var entry = (_barrelsCache || []).find(function (e) { return e.cm === adSf.barrel; });
+      if (!entry) return adSf.barrel;
+      return mode === 'imperial' ? entry.inches : entry.cm;
+    }
+
+    async function loadBarrelLengths() {
+      updateBarrelLabelForMeasure();
+
+      if (_barrelsCache) { renderBarrelList(_barrelsCache); return _barrelsCache; }
+      if (_barrelsLoading) return;
+
+      _barrelsLoading = true;
+
+      var ul = document.getElementById('ad-barrel-list');
+      if (ul) ul.innerHTML = '<li style="padding:8px 12px;opacity:0.5;">Loading barrel lengths...</li>';
+
+      var barrels = await fetchBarrelLengths();
+
+      _barrelsCache = barrels;
+      _barrelsLoading = false;
+
+      renderBarrelList(barrels);
+      return barrels;
+    }
+
+    // Live unit toggle while the popup is open — relabels the field and
+    // re-renders the already-cached list from its stored {cm, inches} pairs
+    // (no re-fetch needed); the radio's submitted value stays the cm string
+    // regardless (see renderBarrelList above), so this is purely cosmetic.
+    // Reads the clicked button's own data-measures rather than localStorage,
+    // since this fires during the bubble phase before theme.liquid's
+    // document-level handler (which writes localStorage) runs.
+    document.querySelectorAll('.measures-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var mode = btn.dataset.measures;
+        updateBarrelLabelForMeasure(mode);
+        if (_barrelsCache) renderBarrelList(_barrelsCache, mode);
+      });
+    });
+
+    async function getCatalogueBrands() {
+      if (_catalogueBrandsCache) return _catalogueBrandsCache;
+
+      try {
+        var r = await fetch(_FC);
+        var doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+        var s = new Set();
+
+        doc.querySelectorAll('.filter-group').forEach(function (g) {
+          var fi = g.querySelector('li input[type="checkbox"]');
+          if (!fi || fi.name !== 'filter.p.m.custom.marca') return;
+          g.querySelectorAll('li input[type="checkbox"]').forEach(function (i) { if (i.value) s.add(i.value); });
+        });
+
+        _catalogueBrandsCache = s;
+        return s;
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Extract calibers from product JSON
+    // FIXED: Improved CALIBER_RE regex to match "21 Sharp", "22 LR" patterns
+    // Added comprehensive debug logging for troubleshooting
+    // ────────────────────────────────────────────────────────────────────────
+    function extractCalibersFromProduct(product) {
+      if (!product || !product.variants) return [];
+
+      // ══════════════════════════════════════════════════════════════════════
+      // ✅ CORRECTED: Use proper function to test MULTIPLE patterns
+      // The previous version used || which doesn't work with regex!
+      // ══════════════════════════════════════════════════════════════════════
+      function isCaliberValue(value) {
+        // Pattern 1: Number + space + ammunition name (e.g., "21 Sharp", "22 LR")
+        if (/^\d+\s+(?:sharp|short|long|lr|wmr|wsm|rem|mag|spl|nato|swift|creedmoor|norma|saum|br|ppc|acc|ack|ultra|remington|browning|weatherby|win|winc|colt|para|acp|auto|luger|parabellum|geco|fiocchi|rws|federal|hornady|speer|sierra|nosler|berger)/i.test(value)) {
+          return true;
+        }
+        // Pattern 2: Dot notation or separator (e.g., "9.3x62", ".308")
+        if (/^\.?\d+[x\/\-]\d+/i.test(value)) {
+          return true;
+        }
+        // Pattern 3: Metric with unit (e.g., "9mm", "12mm")
+        if (/^\d+(?:\.\d+)?\s*(?:mm|mag|cal|gauge|ga|bore)/i.test(value)) {
+          return true;
+        }
+        // Pattern 4: Dot notation alone (e.g., ".308", ".270")
+        if (/^\.[\d]+/i.test(value)) {
+          return true;
+        }
+        // Pattern 5: Buckshot (e.g., "#4 buck", "00 shot")
+        if (/^#\d+\s*(?:buck|shot|buckshot|pellet)/i.test(value)) {
+          return true;
+        }
+        return false;
+      }
+
+      var BARREL_RE               = /^\d[\d\.]*\s*(?:cm|in|inches?|centim)/i;
+      var CALIBER_OPTION_NAME_RE  = /calibr[eo]|ammunition|ammo|cartridge|caliber|calibre|bore/i;
+      var BARREL_OPTION_NAME_RE   = /ca[ñn][oó]n|barrel|longitud|length|chamber|twist/i;
+
+      // ──────────────────────────────────────────────────────────────────────
+      // DEBUG LOGGING
+      // ──────────────────────────────────────────────────────────────────────
+      console.group('%c📦 EXTRACT CALIBERS: ' + (product.title || 'Unknown'), 'color:#295A31;font-weight:bold');
+      console.log('Product variants:', product.variants.length);
+
+      var options = product.options || [];
+      var calSlot = null, barSlot = null;
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 1: Detect slots by option name
+      // ──────────────────────────────────────────────────────────────────────
+      console.group('%c🔎 SLOT DETECTION', 'color:#295A31');
+      options.forEach(function (opt, idx) {
+        var name = (typeof opt === 'string') ? opt : (opt.name || '');
+        if (CALIBER_OPTION_NAME_RE.test(name)) {
+          calSlot = 'option' + (idx + 1);
+          console.log('%c✓ CALIBER SLOT', 'color:green', 'Option[' + idx + '] = "' + name + '" → ' + calSlot);
+        }
+        if (BARREL_OPTION_NAME_RE.test(name)) {
+          barSlot = 'option' + (idx + 1);
+          console.log('%c✓ BARREL SLOT', 'color:blue', 'Option[' + idx + '] = "' + name + '" → ' + barSlot);
+        }
+      });
+      console.groupEnd();
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 2: Test variants with CORRECTED pattern matching
+      // ──────────────────────────────────────────────────────────────────────
+      console.group('%c🧪 PATTERN MATCHING (CORRECTED)', 'color:#295A31');
+      product.variants.forEach(function (v, idx) {
+        var o1 = v.option1 || '';
+        var match = isCaliberValue(o1);
+        console.log('Variant[' + idx + ']: "' + o1 + '" ' + (match ? '%c✓ MATCH' : '%c✗ NO MATCH'), match ? 'color:green;font-weight:bold' : 'color:red;font-weight:bold');
+      });
+      console.groupEnd();
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 3: Fallback pattern detection
+      // ──────────────────────────────────────────────────────────────────────
+      if (!calSlot) {
+        console.group('%c⚙️  FALLBACK DETECTION', 'color:#295A31');
+        var opt1vals = [], opt2vals = [], opt3vals = [];
+
+        product.variants.forEach(function (v) {
+          if (v.option1 && v.option1.trim()) opt1vals.push(v.option1.trim());
+          if (v.option2 && v.option2.trim()) opt2vals.push(v.option2.trim());
+          if (v.option3 && v.option3.trim()) opt3vals.push(v.option3.trim());
+        });
+
+        function slotIsCaliber(vals) {
+          return vals.some(function (v) { return isCaliberValue(v) && !BARREL_RE.test(v); });
+        }
+
+        if (slotIsCaliber(opt1vals)) {
+          calSlot = 'option1';
+          console.log('%c✓ option1 matches caliber patterns', 'color:green');
+        } else if (slotIsCaliber(opt2vals)) {
+          calSlot = 'option2';
+          console.log('%c✓ option2 matches caliber patterns', 'color:green');
+        } else if (slotIsCaliber(opt3vals)) {
+          calSlot = 'option3';
+          console.log('%c✓ option3 matches caliber patterns', 'color:green');
+        } else {
+          console.log('%c✗ No slot matched as caliber', 'color:red');
+        }
+        console.groupEnd();
+      }
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 4: Extract calibers
+      // ──────────────────────────────────────────────────────────────────────
+      console.group('%c📋 EXTRACTION from ' + (calSlot || 'NONE'), 'color:#295A31');
+      var seen = new Set(), cals = [];
+
+      if (calSlot) {
+        product.variants.forEach(function (v, idx) {
+          var c = (v[calSlot] || '').trim();
+          var isDup = seen.has(c);
+          var isDefault = c === 'Default Title';
+
+          if (c && !isDefault && !isDup) {
+            seen.add(c);
+            cals.push(c);
+            console.log('%c✓ ' + idx + ':', 'color:green', '"' + c + '" ADDED');
+          } else {
+            console.log('%c✗ ' + idx + ':', 'color:gray', '"' + c + '" (dup=' + isDup + ', default=' + isDefault + ')');
+          }
+        });
+      }
+      console.groupEnd();
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 5: Fallback to option1
+      // ──────────────────────────────────────────────────────────────────────
+      if (!cals.length) {
+        console.group('%c🔄 FALLBACK: option1 extraction', 'color:#295A31');
+        product.variants.forEach(function (v, idx) {
+          var c = (v.option1 || '').trim();
+          if (c && c !== 'Default Title' && !BARREL_RE.test(c) && !seen.has(c)) {
+            seen.add(c);
+            cals.push(c);
+            console.log('%c✓ FALLBACK: ' + idx, 'color:orange', '"' + c + '"');
+          }
+        });
+        console.groupEnd();
+      }
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STEP 6: Summary + warnings
+      // ──────────────────────────────────────────────────────────────────────
+      console.group('%c📊 RESULT', 'color:#295A31;font-weight:bold');
+      console.log('Calibers found:', cals);
+      console.log('Total variants:', product.variants.length);
+
+      if (cals.length === 1 && product.variants.length > 1) {
+        console.warn('%c⚠️  EXTRACTION MISMATCH!', 'color:red;font-weight:bold');
+        console.warn('Only 1 caliber extracted but product has ' + product.variants.length + ' variants');
+      }
+
+      if (cals.length >= 2) {
+        console.log('%c✓ SUCCESS: Multiple calibers found!', 'color:green;font-weight:bold');
+      }
+
+      console.groupEnd();
+      console.groupEnd();
+
+      return cals;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Close / Reset
+    // ────────────────────────────────────────────────────────────────────────
+    function closeAll() {
+      if (notInArmorerOverlay) notInArmorerOverlay.style.display = 'none';
+      addAdOverlay.style.display = 'none';
+      resetForm();
+    }
+
+    if (notInArmorerOverlay) {
+      document.getElementById('not-in-armorer-close').addEventListener('click', closeAll);
+      document.getElementById('not-in-armorer-cancel').addEventListener('click', closeAll);
+      notInArmorerOverlay.addEventListener('click', function (e) {
+        if (e.target === notInArmorerOverlay) closeAll();
+      });
+    }
+
+    document.getElementById('add-ad-close').addEventListener('click', closeAll);
+    document.getElementById('add-ad-cancel').addEventListener('click', closeAll);
+
+    function resetForm() {
+      ['ad-city', 'ad-price', 'ad-personalized-name', 'ad-description', 'ad-purchase-date', 'ad-seller-phone'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      document.getElementById('ad-image-preview').innerHTML = '';
+
+      var le = document.getElementById('add-ad-loader');
+      if (le) le.style.display = 'none';
+
+      var ap = document.querySelector('#add-ad-overlay .ad-popup');
+      if (ap) ap.style.overflow = '';
+
+      document.getElementById('ad-form-error').style.display = 'none';
+
+      var sb = document.getElementById('ad-status-btn');
+      if (sb) sb.textContent = sb.dataset.default;
+      document.querySelectorAll('input[name="ad_gun_status"]').forEach(function (r) { r.checked = false; });
+
+      var avb2 = document.getElementById('ad-availability-btn');
+      if (avb2) avb2.textContent = avb2.dataset.default;
+      document.querySelectorAll('input[name="ad_availability"]').forEach(function (r) { r.checked = false; });
+
+      clearHandednessSelection();
+
+      uploadedImages = [];
+      selectedGunStatus = '';
+      selectedAvailability = '';
+      selectedHandedness = '';
+      currentSellData = {};
+
+      resetSelectionState();
+      resetDisplayPref();
+    }
+
+    function resetSelectionState() {
+      adSf = { tipo: '', subtipo: '', marca: '', modelo: '', calibre: '', barrel: '' };
+      adSelectedProduct = null;
+      adAllProducts = [];
+      adIsFetching = false;
+      adBrandIsCatalogue = false;
+      _activeCaliberFilter = null;
+
+      [
+        { id: 'ad-tipo-label',       k: 'tipo' },
+        { id: 'ad-subtipo-label',    k: 'subtipo' },
+        { id: 'ad-marca-label',      k: 'marca' },
+        { id: 'ad-modelo-label',     k: 'modelo' },
+        { id: 'ad-calibre-label',    k: 'calibre' },
+        { id: 'ad-barrel-label',     k: 'barrel' },
+        { id: 'ad-handedness-label', k: 'handedness' }
+      ].forEach(function (o) {
+        var el = document.getElementById(o.id);
+        if (el) el.textContent = _adLabels[o.k];
+      });
+
+      // unlockCaliber() must run BEFORE the disable loop below — it clears
+      // any stale single-caliber auto-lock from a previous selection, but
+      // it also re-enables the caliber toggle/inputs as a side effect. Run
+      // after adSetEnabled('ad-calibre', false) and it silently undoes that
+      // disable, leaving caliber (and then handedness) clickable before
+      // type/subtype/brand/model have been chosen.
+      unlockCaliber();
+
+      ['ad-subtipo', 'ad-marca', 'ad-modelo', 'ad-calibre', 'ad-barrel', 'ad-handedness'].forEach(function (k) { adSetEnabled(k, false); });
+      adSetEnabled('ad-tipo', true);
+
+      var cw = document.getElementById('ad-calibre-wrapper');
+      if (cw) cw.style.display = '';
+
+      var ms = document.getElementById('ad-model-search');
+      if (ms) ms.value = '';
+
+      var mr = document.getElementById('ad-model-results');
+      if (mr) mr.innerHTML = '';
+
+      var bs = document.getElementById('ad-brand-search');
+      if (bs) { bs.value = ''; adFilterList('ad-marca-list', 'brand', ''); }
+
+      var cs = document.getElementById('ad-caliber-search');
+      if (cs) { cs.style.display = ''; cs.value = ''; adFilterList('ad-calibre-list', 'caliber', ''); }
+
+      var brs = document.getElementById('ad-barrel-search');
+      if (brs) { brs.value = ''; adFilterList('ad-barrel-list', 'barrel', ''); }
+
+      document.querySelectorAll('#ad-selection-section .add-firearm-dropdown-menu').forEach(function (m) { m.style.display = 'none'; });
+      document.querySelectorAll('#ad-selection-section .add-firearm-custom-dropdown').forEach(function (d) { d.classList.remove('open'); });
+      document.querySelectorAll('#ad-selection-section input[type="radio"]').forEach(function (r) { r.checked = false; });
+
+      var det = document.getElementById('ad-details');
+      if (det) det.value = '';
+    }
+
+    function showPrefillMode() {
+      adMode = 'prefilled';
+      prefillSection.style.display = 'block';
+      selectionSection.style.display = 'none';
+      initDisplayPref();
+      // Everything (type/subtype/brand/model/caliber) is already prefilled
+      // from the product, so there's no cascade to wait on here.
+      setHandednessEnabled(true);
+    }
+
+    function showSelectionMode() {
+      adMode = 'selection';
+      prefillSection.style.display = 'none';
+      selectionSection.style.display = 'block';
+      adLoadTypeFilters();
+      getCatalogueBrands();
+      initDisplayPref();
+    }
+
+    function prefillForm(d) {
+      document.getElementById('ad-type').value            = d.type    || '';
+      document.getElementById('ad-subtype').value         = d.subtype || '';
+      document.getElementById('ad-brand').value           = d.brand   || '';
+      // Title text is built by the shared formatter (snippets/gl-ad-title),
+      // which prepends the brand, title-cases the model and appends the
+      // barrel as "// 61cm". Doing it here rather than inline is what keeps
+      // this Sell-button path byte-identical to the catalogue-search path in
+      // collectAdValues() below — the two used to read different fields
+      // (custom.submodelo vs product.title) and produced titles that differed
+      // only in casing for the same firearm. This field is read back verbatim
+      // as the submitted "model" for prefilled ads.
+      document.getElementById('ad-model').value           = AdTitle.build({
+        brand:  d.brand,
+        model:  d.model,
+        barrel: d.barrel
+      });
+      document.getElementById('ad-caliber-display').value = d.caliber || '';
+      document.getElementById('ad-caliber-prefilled').value = d.caliber || '';
+
+      prefillHandedness(d.handle);
+
+      // Brand stays its own segment here, so only the model's casing and the
+      // barrel's unit are normalised — see updateDetailsField() for the
+      // catalogue-search equivalent of this same line.
+      var parts = [
+        d.type,
+        d.subtype,
+        d.brand,
+        AdTitle.normaliseModel(d.model),
+        d.caliber,
+        AdTitle.normaliseBarrel(d.barrel)
+      ].filter(Boolean);
+      document.getElementById('ad-details').value = parts.join(' // ');
+
+      // Prefill Status + Purchase date from the firearm's existing My Armorer data,
+      // since the user already entered these when adding it — no need to ask again.
+      if (d.status) {
+        // My Armorer stores "Semi nuevo" (space); this popup's radios use "Semi-nuevo"
+        // (hyphen) — normalize so the matching radio is found correctly either way.
+        var normalizedStatus = d.status === 'Semi nuevo' ? 'Semi-nuevo' : d.status;
+        var statusRadio = document.querySelector('input[name="ad_gun_status"][value="' + normalizedStatus + '"]');
+        if (statusRadio) {
+          statusRadio.checked = true;
+          selectedGunStatus = normalizedStatus;
+          var sb = document.getElementById('ad-status-btn');
+          if (sb) sb.textContent = STATUS_LABELS[normalizedStatus] || normalizedStatus;
+        }
+      }
+
+      if (d.purchaseDate) {
+        var pd = document.getElementById('ad-purchase-date');
+        if (pd) pd.value = d.purchaseDate;
+      }
+    }
+
+    function parseAdFilters(doc) {
+      var result = { tipo: [], subtipo: [], marca: [], modelo: [], calibre: [] };
+
+      doc.querySelectorAll('.filter-group').forEach(function (g) {
+        var fi = g.querySelector('li input[type="checkbox"]');
+        if (!fi) return;
+
+        var key = PARAM_TO_KEY[fi.name];
+        if (!key) return;
+
+        var vals = Array.from(g.querySelectorAll('li input[type="checkbox"]'))
+          .filter(function (i) { return !i.disabled; })
+          .map(function (i) { return i.value; })
+          .filter(Boolean);
+
+        if (vals.length) result[key] = vals;
+      });
+
+      return result;
+    }
+
+    function adSetEnabled(key, enabled) {
+      var g = document.querySelector('[data-filter="' + key + '"]');
+      if (!g) return;
+
+      g.classList.toggle('disabled', !enabled);
+      g.querySelectorAll('input').forEach(function (i) { i.disabled = !enabled; });
+
+      var s = g.querySelector('.filter-search');
+      if (s) s.disabled = !enabled;
+
+      var tb = g.querySelector('.filter-toggle');
+      if (tb) tb.disabled = !enabled;
+
+      // Fields like barrel length only ever apply to the manual-entry flow —
+      // rather than sitting greyed out for the whole catalogue flow, hide
+      // them entirely until something actually enables them.
+      if (g.dataset.hideDisabled) g.style.display = enabled ? '' : 'none';
+    }
+
+    function adSetLabel(key, value) {
+      var el = document.getElementById('ad-' + key + '-label');
+      if (el) el.textContent = value;
+    }
+
+    function adOpenDropdown(dd) {
+      // Never open a locked caliber
+      if (dd.id === 'ad-calibre-wrapper' && dd.classList.contains('ad-calibre-locked')) return;
+
+      dd.classList.add('open');
+
+      var menu = dd.querySelector('.add-firearm-dropdown-menu');
+      if (menu) menu.style.display = dd.querySelector('.ad-scrollable-menu') ? 'flex' : 'block';
+    }
+
+    function adCloseDropdown(dd) {
+      dd.classList.remove('open');
+
+      var menu = dd.querySelector('.add-firearm-dropdown-menu');
+      if (menu) menu.style.display = 'none';
+    }
+
+    function adFilterList(listId, dataAttr, q) {
+      q = (q || '').toLowerCase();
+
+      document.querySelectorAll('#' + listId + ' li[data-' + dataAttr + ']').forEach(function (li) {
+        li.style.display = (!q || (li.dataset[dataAttr] || '').toLowerCase().includes(q)) ? '' : 'none';
+      });
+    }
+
+    async function adLoadTypeFilters() {
+      var ul = document.getElementById('ad-tipo-list');
+      if (ul) ul.innerHTML = '<li class="filter-skeleton"><div class="filter-skeleton__line"></div></li>';
+
+      try {
+        var r = await fetch(_FC);
+        var parsed = parseAdFilters(new DOMParser().parseFromString(await r.text(), 'text/html'));
+        if (ul) {
+          ul.innerHTML = (parsed.tipo || []).map(function (v) {
+            return '<li><label><input type="radio" name="ad-tipo" value="' + v + '"><span>' + v + '</span></label></li>';
+          }).join('');
+        }
+      } catch (e) {}
+    }
+
+    async function adFetchSubtypes() {
+      var myGen = ++adFilterFetchGen;
+
+      var ul = document.getElementById('ad-subtipo-list');
+      if (ul) ul.innerHTML = '<li class="filter-skeleton"><div class="filter-skeleton__line"></div></li>';
+
+      try {
+        var p = new URLSearchParams();
+        if (adSf.tipo) p.append('filter.p.product_type', adSf.tipo);
+
+        var r = await fetch(_FC + '?' + p.toString());
+        var parsed = parseAdFilters(new DOMParser().parseFromString(await r.text(), 'text/html'));
+
+        if (myGen !== adFilterFetchGen) return;
+
+        if (ul && parsed.subtipo.length) {
+          ul.innerHTML = parsed.subtipo.map(function (v) {
+            return '<li><label><input type="radio" name="ad-subtipo" value="' + v + '"><span>' + v + '</span></label></li>';
+          }).join('');
+        }
+      } catch (e) {}
+    }
+
+    function adShowModelSkeleton() {
+      var r = document.getElementById('ad-model-results');
+      if (!r) return;
+
+      r.innerHTML = [1, 2, 3].map(function () {
+        return '<div class="model-skeleton"><div class="model-skeleton__img"></div><div class="model-skeleton__text"><div class="model-skeleton__line model-skeleton__line--wide"></div><div class="model-skeleton__line model-skeleton__line--narrow"></div></div></div>';
+      }).join('');
+    }
+
+    function adShowManualHint() {
+      if (document.getElementById('ad-model-search')) {
+        var si = document.getElementById('ad-model-search');
+        si.removeAttribute('readonly'); si.style.opacity = ''; si.placeholder = _adLabels.searchModel;
+      }
+      var r = document.getElementById('ad-model-results');
+      if (!r) return;
+      r.innerHTML = '<div style="padding:12px;font-size:.9rem;color:#666;font-style:italic;background:#f9fafb;border-radius:6px;margin:4px;">' + _adNonCatalogueMsg + '</div>';
+    }
+
+    function adShowMismatchHint() {
+      var si = document.getElementById('ad-model-search');
+      if (si) {
+        si.removeAttribute('readonly');
+        si.style.opacity = '';
+        si.placeholder = _adLabels.searchModel;
+      }
+      var r = document.getElementById('ad-model-results');
+      if (!r) return;
+      r.innerHTML = '<div style="padding:12px;font-size:.9rem;color:#666;font-style:italic;background:#f9fafb;border-radius:6px;margin:4px;">' + _adMismatchMsg + '</div>';
+    }
+
+    async function adFetchProducts() {
+      if (adIsFetching) return;
+      adIsFetching = true;
+      var myGen = adProductFetchGen;
+
+      var si = document.getElementById('ad-model-search');
+      if (si) { si.setAttribute('readonly', 'readonly'); si.style.opacity = '0.55'; si.placeholder = _adLabels.loadingModels; }
+
+      try {
+        var p = new URLSearchParams();
+        if (adSf.tipo) p.append('filter.p.product_type', adSf.tipo);
+        if (adSf.subtipo) p.append('filter.p.m.custom.sub_tipo_de_arma', adSf.subtipo);
+        if (adSf.marca) p.append('filter.p.m.custom.marca', adSf.marca);
+
+        var fetchedProducts = [];
+        var seenKeys = new Set();
+        for (var page = 1; page <= 50; page++) {
+          if (myGen !== adProductFetchGen) break; // brand changed mid-pagination — discard
+          var pp = new URLSearchParams(p); pp.set('page', String(page));
+          var doc = new DOMParser().parseFromString(await (await fetch(_FC + '?' + pp.toString())).text(), 'text/html');
+          var cards = doc.querySelectorAll('.product-card,.grid-product,.card-wrapper');
+          if (!cards.length) break;
+          var sawNew = false;
+          cards.forEach(function (item) {
+            var te = item.querySelector('.product-card__title') || item.querySelector('h3');
+            var title = te && te.textContent && te.textContent.trim();
+            var image = item.querySelector('img') && item.querySelector('img').src;
+            var link = item.querySelector('a') && item.querySelector('a').href;
+            if (!title) return;
+            var key = link || title;
+            if (seenKeys.has(key)) return;
+            seenKeys.add(key); sawNew = true;
+            fetchedProducts.push({ title: title, image: image, link: link });
+          });
+          if (!sawNew) break;
+        }
+        if (myGen === adProductFetchGen) adAllProducts = fetchedProducts;
+      } catch (e) {}
+
+      adIsFetching = false;
+      if (myGen !== adProductFetchGen) return; // superseded by a newer brand selection
+      adProductFetchDone = true;
+
+      if (si) { si.removeAttribute('readonly'); si.style.opacity = ''; si.placeholder = _adLabels.searchModel; }
+      var q = (si && si.value || '').trim().toLowerCase();
+      adRenderModelResults(q ? adAllProducts.filter(function (p) { return p.title.toLowerCase().includes(q); }) : adAllProducts, true);
+    }
+
+    function adExtractHandle(url) {
+      if (!url) return null;
+      var p = url.split('/products/');
+      return p[1] ? p[1].split('?')[0] : null;
+    }
+
+    function makeUseBtn(label, onClickFn) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ad-use-btn';
+      btn.innerHTML = '&#10003; Use <strong>"' + label + '"</strong>';
+      btn.addEventListener('click', onClickFn);
+      return btn;
+    }
+
+    function adRenderModelResults(products, isFinal) {
+      var re = document.getElementById('ad-model-results');
+      if (!re) return;
+
+      var typed = (document.getElementById('ad-model-search') && document.getElementById('ad-model-search').value || '').trim();
+      re.innerHTML = '';
+
+      if (!products.length) {
+        // True mismatch: catalogue brand confirmed, fetch confirmed done, and the
+        // whole combo — not just the typed filter — has zero products.
+        if (adBrandIsCatalogue && adProductFetchDone && adAllProducts.length === 0) {
+          adShowMismatchHint();
+          return;
+        }
+        if (!typed) {
+          if (adBrandIsCatalogue && !adProductFetchDone) {
+            var le = document.createElement('div');
+            le.style.cssText = 'padding:8px 12px;opacity:0.5;font-size:.9rem;';
+            le.textContent = _adLabels.loadingModels + '...';
+            re.appendChild(le);
+            adFetchProducts();
+          }
+          return;
+        }
+        // Catalogue brand, some products exist for this combo, but none match
+        // what was typed — allow a custom entry as an override (unchanged).
+        re.appendChild(makeUseBtn(typed, function () { adSelectCustomModel(typed); }));
+        return;
+      }
+
+      var sid = Date.now();
+      re.dataset.sessionId = String(sid);
+
+      products.forEach(function (p) {
+        var handle = p.handle || adExtractHandle(p.link);
+        if (!handle) { adAppendModelRow(p, handle, null, [], sid); return; }
+
+        fetch('/products/' + handle + '.json?t=' + Date.now())
+          .then(function (r) { return r.json(); })
+          .then(function (jd) {
+            if (String(re.dataset.sessionId) !== String(sid)) return;
+
+            var prod = jd && jd.product;
+            if (!prod) { adAppendModelRow(p, handle, null, [], sid); return; }
+
+            var img = (prod.image && prod.image.src) || p.image || null;
+
+            // Smart barrel slot detection — mirrors section.my-armorer.liquid
+            var BARREL_RE_AD = /^\d[\d\.]*\s*cm$/i;
+            var aopt1vals = [], aopt2vals = [], aopt3vals = [];
+
+            (prod.variants || []).forEach(function (v) {
+              if (v.option1 && v.option1.trim()) aopt1vals.push(v.option1.trim());
+              if (v.option2 && v.option2.trim()) aopt2vals.push(v.option2.trim());
+              if (v.option3 && v.option3.trim()) aopt3vals.push(v.option3.trim());
+            });
+
+            function adSlotIsBarrel(vals) {
+              return vals.some(function (v) { return BARREL_RE_AD.test(v); });
+            }
+
+            var barSlot = null;
+            if (adSlotIsBarrel(aopt1vals))      barSlot = 'option1';
+            else if (adSlotIsBarrel(aopt2vals)) barSlot = 'option2';
+            else if (adSlotIsBarrel(aopt3vals)) barSlot = 'option3';
+
+            var sb = new Set(), rows = [];
+            if (barSlot) {
+              (prod.variants || []).forEach(function (v) {
+                var b = (v[barSlot] || '').trim();
+                if (!sb.has(b)) { sb.add(b); rows.push(b); }
+              });
+            }
+
+            // Find the caliber slot once for this product (shared across all barrel rows)
+            var calSlotForProduct = (function () {
+              var CALIBER_OPTION_NAME_RE = /calibr[eo]|ammunition|ammo|cartridge|caliber|calibre|bore/i;
+              var opts = prod.options || [];
+              var slot = null;
+              opts.forEach(function (opt, idx) {
+                var name = (typeof opt === 'string') ? opt : (opt.name || '');
+                if (CALIBER_OPTION_NAME_RE.test(name)) slot = 'option' + (idx + 1);
+              });
+              return slot;
+            })();
+
+            // Build caliber list SCOPED to a specific barrel value — only variants
+            // matching that barrel are considered, so 66cm shows only its own caliber(s)
+            function calsForBarrel(barrelVal) {
+              var seen = new Set(), out = [];
+              (prod.variants || []).forEach(function (v) {
+                if (barSlot && barrelVal !== null) {
+                  var b = (v[barSlot] || '').trim();
+                  if (b !== barrelVal) return; // skip variants that don't match this barrel
+                }
+                var c = calSlotForProduct ? (v[calSlotForProduct] || '').trim() : (v.option1 || '').trim();
+                if (c && c !== 'Default Title' && !seen.has(c)) { seen.add(c); out.push(c); }
+              });
+              return out;
+            }
+
+            var px = Object.assign({}, p, { image: img });
+
+            if (!rows.length || (rows.length === 1 && !rows[0])) {
+              var calsAll = calsForBarrel(null); // no barrel distinction — use whole product
+              adAppendModelRow(px, handle, null, calsAll, sid);
+            } else {
+              rows.forEach(function (b) {
+                var calsForThisBarrel = calsForBarrel(b);
+                adAppendModelRow(px, handle, b || null, calsForThisBarrel, sid);
+              });
+            }
+          })
+          .catch(function () { adAppendModelRow(p, handle, null, [], sid); });
+      });
+
+      if (typed) {
+        setTimeout(function () {
+          if (String(re.dataset.sessionId) !== String(sid)) return;
+          var cfw = document.createElement('div');
+          cfw.style.cssText = 'border-top:1px solid #eee;padding-top:4px;margin-top:4px;';
+          cfw.appendChild(makeUseBtn(typed, function () { adSelectCustomModel(typed); }));
+          re.appendChild(cfw);
+        }, 300);
+      }
+    }
+
+    function adAppendModelRow(p, handle, barrel, cals, sid) {
+      var re = document.getElementById('ad-model-results');
+      if (!re || String(re.dataset.sessionId) !== String(sid)) return;
+
+      var el = document.createElement('div');
+      el.className = 'model-item';
+      el.innerHTML =
+        '<div class="model-img-wrapper"><img src="' + (p.image || 'https://via.placeholder.com/50') + '" alt="' + (p.title || '') + '"></div>' +
+        '<div style="display:flex;align-items:center;width:100%;gap:8px;"><span>' + (p.title || '') + '</span>' +
+        (barrel ? '<span style="margin-left:auto;white-space:nowrap;">' + barrel + '</span>' : '') +
+        '</div>';
+
+      el.addEventListener('click', function () {
+        var display = barrel ? p.title + ' // ' + barrel : p.title;
+        adSelectedProduct = { title: p.title, handle: handle, url: p.link || '/products/' + handle, image: p.image || null, barrel: barrel || '' };
+        adSf.modelo = p.title;
+        document.getElementById('ad-model-search').value = display;
+        adSetLabel('modelo', display);
+        re.innerHTML = '';
+        prefillHandedness(handle);
+
+        var dd = document.querySelector('[data-filter="ad-modelo"]');
+        if (dd) adCloseDropdown(dd);
+
+        // ── Caliber logic — mirrors section.my-armorer.liquid exactly ──────
+        var calsList = cals || p.calibres || [];
+        _activeCaliberFilter = null;
+
+        console.group('%c⚙️  CALIBER LOCKING DECISION', 'color:#FF6B35;font-weight:bold');
+        console.log('Calibers:', calsList);
+        console.log('Barrel:', barrel);
+        console.log('Caliber count:', calsList.length);
+
+        if (calsList.length === 1 && !barrel) {
+          // Single caliber AND no barrel length — auto-select and lock (not user-changeable).
+          // If a barrel is present, the product likely has multiple calibers not all detected — don't lock.
+          console.log('%c→ LOCK (1 caliber, no barrel)', 'color:red;font-weight:bold', calsList[0]);
+
+          var ul = document.getElementById('ad-calibre-list');
+          if (ul) {
+            var s = calsList[0].replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+            ul.innerHTML = '<li data-caliber="' + s + '"><label><input type="radio" name="ad-calibre" value="' + s + '"><span>' + s + '</span></label></li>';
+            var ri = ul.querySelector('input[type="radio"]');
+            if (ri) ri.checked = true;
+          }
+
+          lockCaliber(calsList[0]);
+        } else if (calsList.length >= 1) {
+          // Multiple calibers — populate the list with only this product's calibers, no search
+          console.log('%c→ UNLOCK (' + calsList.length + ' calibers' + (barrel ? ' + barrel' : '') + ')', 'color:green;font-weight:bold');
+
+          var ul = document.getElementById('ad-calibre-list');
+          if (ul) {
+            ul.innerHTML = calsList.map(function (n) {
+              var s = n.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+              return '<li data-caliber="' + s + '"><label><input type="radio" name="ad-calibre" value="' + s + '"><span>' + s + '</span></label></li>';
+            }).join('');
+          }
+
+          // Hide search — only 2-3 product calibers, no need to filter
+          var cs = document.getElementById('ad-caliber-search');
+          if (cs) cs.style.display = 'none';
+
+          _activeCaliberFilter = calsList;
+          unlockCaliber();
+          adSf.calibre = '';
+          adSetLabel('calibre', _adLabels.calibre);
+          adSetEnabled('ad-calibre', true);
+        } else {
+          // No caliber data — unlock and show the full all_calibers list with search
+          console.log('%c→ NO DATA: Showing full list', 'color:orange;font-weight:bold');
+
+          var cs = document.getElementById('ad-caliber-search');
+          if (cs) cs.style.display = ''; // restore search for full list
+
+          unlockCaliber();
+          adSf.calibre = '';
+          adSetLabel('calibre', _adLabels.calibre);
+          adSetEnabled('ad-calibre', true);
+        }
+
+        console.groupEnd();
+
+        updateDetailsField();
+      });
+
+      re.appendChild(el);
+    }
+
+    function adSelectCustomModel(typed) {
+      adSelectedProduct = null;
+      adSf.modelo = typed;
+      adSf.calibre = '';
+      adSf.barrel = '';
+      adSetLabel('modelo', typed);
+
+      document.getElementById('ad-model-search').value = typed;
+      document.getElementById('ad-model-results').innerHTML = '';
+
+      var dd = document.querySelector('[data-filter="ad-modelo"]');
+      if (dd) adCloseDropdown(dd);
+
+      adSetLabel('calibre', _adLabels.calibre);
+      document.querySelectorAll('#ad-calibre-list input[type="radio"]').forEach(function (r) { r.checked = false; });
+      _activeCaliberFilter = null;
+
+      updateBarrelLabelForMeasure();
+      document.querySelectorAll('#ad-barrel-list input[type="radio"]').forEach(function (r) { r.checked = false; });
+
+      // Custom model = unlock caliber, show full list
+      unlockCaliber();
+      document.querySelectorAll('#ad-calibre-list li[data-caliber]').forEach(function (li) { li.style.display = ''; });
+      adSetEnabled('ad-calibre', true);
+      adSetEnabled('ad-barrel', true);
+
+      updateDetailsField();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Dropdown open / close
+    // ────────────────────────────────────────────────────────────────────────
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('#ad-selection-section .filter-toggle');
+      if (!btn) {
+        if (!e.target.closest('#ad-selection-section .add-firearm-custom-dropdown.open')) {
+          document.querySelectorAll('#ad-selection-section .add-firearm-custom-dropdown.open').forEach(function (d) { adCloseDropdown(d); });
+        }
+        return;
+      }
+
+      var dd = btn.closest('.add-firearm-custom-dropdown');
+      if (!dd) return;
+
+      // Block if locked or disabled
+      if (dd.classList.contains('disabled') || dd.classList.contains('ad-calibre-locked')) return;
+
+      var wasOpen = dd.classList.contains('open');
+      document.querySelectorAll('#ad-selection-section .add-firearm-custom-dropdown.open').forEach(function (d) { if (d !== dd) adCloseDropdown(d); });
+
+      if (!wasOpen) {
+        adOpenDropdown(dd);
+        var filter = dd.dataset.filter;
+        if (filter === 'ad-marca') loadBrands();
+        if (filter === 'ad-calibre' && (!_activeCaliberFilter || !_activeCaliberFilter.length)) loadCalibers();
+        if (filter === 'ad-barrel' && !_barrelsCache) loadBarrelLengths();
+        if (filter === 'ad-modelo' && adBrandIsCatalogue && !adAllProducts.length && !adIsFetching) { adShowModelSkeleton(); adFetchProducts(); }
+      } else {
+        adCloseDropdown(dd);
+      }
+    });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Radio change
+    // ────────────────────────────────────────────────────────────────────────
+    document.addEventListener('change', function (e) {
+      var input = e.target;
+      if (!input.matches('#ad-selection-section input[type="radio"]')) return;
+
+      var name = input.name, value = input.value;
+      document.querySelectorAll('#ad-selection-section .add-firearm-custom-dropdown.open').forEach(function (d) { adCloseDropdown(d); });
+
+      if (name === 'ad-tipo') {
+        adSf = { tipo: value, subtipo: '', marca: '', modelo: '', calibre: '', barrel: '' };
+        adSelectedProduct = null;
+        adAllProducts = [];
+        adSetLabel('tipo', value);
+        ['subtipo', 'marca', 'modelo', 'calibre', 'barrel'].forEach(function (k) { adSetLabel(k, _adLabels[k]); });
+        ['ad-subtipo', 'ad-marca', 'ad-modelo', 'ad-calibre', 'ad-barrel'].forEach(function (k) { adSetEnabled(k, false); });
+        unlockCaliber();
+        adSetEnabled('ad-calibre', false);
+        adSetEnabled('ad-subtipo', true);
+        adFetchSubtypes();
+        updateDetailsField();
+
+      } else if (name === 'ad-subtipo') {
+        adSf.subtipo = value;
+        adSf.marca = adSf.modelo = adSf.calibre = adSf.barrel = '';
+        adSelectedProduct = null;
+        adAllProducts = [];
+        adSetLabel('subtipo', value);
+        ['marca', 'modelo', 'calibre', 'barrel'].forEach(function (k) { adSetLabel(k, _adLabels[k]); });
+        ['ad-marca', 'ad-modelo', 'ad-calibre', 'ad-barrel'].forEach(function (k) { adSetEnabled(k, false); });
+        unlockCaliber();
+        adSetEnabled('ad-calibre', false);
+        adSetEnabled('ad-marca', true);
+        updateDetailsField();
+
+      } else if (name === 'ad-marca') {
+        adSf.marca = value;
+        adSf.modelo = adSf.calibre = adSf.barrel = '';
+        adSelectedProduct = null;
+        adAllProducts = [];
+        adSetLabel('marca', value);
+        ['modelo', 'calibre', 'barrel'].forEach(function (k) { adSetLabel(k, _adLabels[k]); });
+        ['ad-modelo', 'ad-calibre', 'ad-barrel'].forEach(function (k) { adSetEnabled(k, false); });
+        unlockCaliber();
+        adSetEnabled('ad-calibre', false);
+
+        var ms = document.getElementById('ad-model-search');
+        if (ms) ms.value = '';
+
+        var mr = document.getElementById('ad-model-results');
+        if (mr) mr.innerHTML = '';
+
+        getCatalogueBrands().then(function (cb) {
+          adBrandIsCatalogue = cb.has(value);
+          adSetEnabled('ad-modelo', true);
+          if (!adBrandIsCatalogue) { unlockCaliber(); adSetEnabled('ad-calibre', true); adSetEnabled('ad-barrel', true); adShowManualHint(); }
+        });
+
+        updateDetailsField();
+
+      } else if (name === 'ad-calibre') {
+        adSf.calibre = value;
+        adSetLabel('calibre', value);
+        setHandednessEnabled(true);
+        updateDetailsField();
+
+      } else if (name === 'ad-barrel') {
+        adSf.barrel = value;
+        adSetLabel('barrel', selectedBarrelDisplayValue());
+
+      } else if (name === 'ad-handedness') {
+        selectedHandedness = value;
+        adSetLabel('handedness', HANDEDNESS_LABELS[value] || value);
+      }
+    });
+
+    var msi = document.getElementById('ad-model-search');
+    if (msi) {
+      msi.addEventListener('input', function () {
+        var typed = this.value.trim();
+        var mr = document.getElementById('ad-model-results');
+
+        if (!adBrandIsCatalogue) {
+          if (mr) mr.innerHTML = '';
+          if (typed && mr) mr.appendChild(makeUseBtn(typed, function () { adSelectCustomModel(typed); }));
+          return;
+        }
+
+        if (adIsFetching) return;
+
+        var q = typed.toLowerCase();
+        if (adAllProducts.length) {
+          adRenderModelResults(q ? adAllProducts.filter(function (p) { return p.title.toLowerCase().includes(q); }) : adAllProducts, true);
+        } else if (adProductFetchDone) {
+          if (mr) mr.innerHTML = '';
+          if (typed && mr) {
+            mr.appendChild(makeUseBtn(typed, function () { adSelectCustomModel(typed); }));
+          } else {
+            adShowMismatchHint();
+          }
+        } else {
+          adShowModelSkeleton();
+          adFetchProducts();
+        }
+      });
+
+      msi.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    var bsi = document.getElementById('ad-brand-search');
+    if (bsi) {
+      bsi.addEventListener('input', function () { adFilterList('ad-marca-list', 'brand', this.value); });
+      bsi.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    var csi = document.getElementById('ad-caliber-search');
+    if (csi) {
+      csi.addEventListener('input', function () { adFilterList('ad-calibre-list', 'caliber', this.value); });
+      csi.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    var brsi = document.getElementById('ad-barrel-search');
+    if (brsi) {
+      brsi.addEventListener('input', function () { adFilterList('ad-barrel-list', 'barrel', this.value); });
+      brsi.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Status dropdown
+    // ────────────────────────────────────────────────────────────────────────
+    var stb = document.getElementById('ad-status-btn');
+    if (stb) {
+      stb.addEventListener('click', function () {
+        var dd = this.closest('.custom-dropdown');
+        var menu = this.nextElementSibling;
+        var isOpen = dd.classList.contains('open');
+
+        document.querySelectorAll('#add-ad-overlay .custom-dropdown').forEach(function (d) {
+          d.classList.remove('open');
+          var m = d.querySelector('.dropdown-menu');
+          if (m) m.style.display = 'none';
+        });
+
+        if (!isOpen) { dd.classList.add('open'); menu.style.display = 'block'; }
+      });
+    }
+
+    document.querySelectorAll('#add-ad-overlay input[name="ad_gun_status"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        selectedGunStatus = this.value;
+        document.getElementById('ad-status-btn').textContent = STATUS_LABELS[this.value] || this.value;
+        var dd = this.closest('.custom-dropdown');
+        dd.classList.remove('open');
+        var m = dd.querySelector('.dropdown-menu');
+        if (m) m.style.display = 'none';
+      });
+    });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Availability dropdown
+    // ────────────────────────────────────────────────────────────────────────
+    var avb = document.getElementById('ad-availability-btn');
+    if (avb) {
+      avb.addEventListener('click', function () {
+        var dd = this.closest('.custom-dropdown');
+        var menu = this.nextElementSibling;
+        var isOpen = dd.classList.contains('open');
+
+        document.querySelectorAll('#add-ad-overlay .custom-dropdown').forEach(function (d) {
+          d.classList.remove('open');
+          var m = d.querySelector('.dropdown-menu');
+          if (m) m.style.display = 'none';
+        });
+
+        if (!isOpen) { dd.classList.add('open'); menu.style.display = 'block'; }
+      });
+    }
+
+    document.querySelectorAll('#add-ad-overlay input[name="ad_availability"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        selectedAvailability = this.value;
+        document.getElementById('ad-availability-btn').textContent = AVAILABILITY_LABELS[this.value] || this.value;
+        var dd = this.closest('.custom-dropdown');
+        dd.classList.remove('open');
+        var m = dd.querySelector('.dropdown-menu');
+        if (m) m.style.display = 'none';
+      });
+    });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Handedness dropdown — PREFILLED mode only. The selection-mode copy
+    // (inside #ad-selection-section) is just the 6th cascade field and is
+    // already wired up by the shared filter-toggle open/close delegate and
+    // the '#ad-selection-section input[type=radio]' change delegate above.
+    // ────────────────────────────────────────────────────────────────────────
+    var hdbPf = document.getElementById('ad-handedness-btn-pf');
+    if (hdbPf) {
+      hdbPf.addEventListener('click', function () {
+        var dd = this.closest('.custom-dropdown');
+        var menu = this.nextElementSibling;
+        var isOpen = dd.classList.contains('open');
+
+        document.querySelectorAll('#add-ad-overlay .custom-dropdown').forEach(function (d) {
+          d.classList.remove('open');
+          var m = d.querySelector('.dropdown-menu');
+          if (m) m.style.display = 'none';
+        });
+
+        if (!isOpen) { dd.classList.add('open'); menu.style.display = 'block'; }
+      });
+    }
+
+    document.querySelectorAll('#add-ad-overlay input[name="ad_handedness_pf"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        selectedHandedness = this.value;
+        document.getElementById('ad-handedness-btn-pf').textContent = HANDEDNESS_LABELS[this.value] || this.value;
+        var dd = this.closest('.custom-dropdown');
+        dd.classList.remove('open');
+        var m = dd.querySelector('.dropdown-menu');
+        if (m) m.style.display = 'none';
+      });
+    });
+
+    // Handedness is stored at the product level in Shopify, not per-variant,
+    // so a catalogue product's own custom.lateralidad metafield is only a
+    // starting suggestion — pre-select it once we know which product, but
+    // let the seller change it (their physical firearm may differ). Called
+    // from both prefilled mode (prefillForm) and catalogue-model selection
+    // in selection mode (adAppendModelRow), so it sets whichever of the two
+    // widgets is present for the given value.
+    function prefillHandedness(handle) {
+      if (!handle) return;
+      fetch(STOREFRONT_API, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+        body:    JSON.stringify({
+          query: `{ product(handle: ${JSON.stringify(handle)}) { metafield(namespace: "custom", key: "lateralidad") { value } } }`
+        })
+      })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          var raw   = data && data.data && data.data.product && data.data.product.metafield && data.data.product.metafield.value;
+          var value = canonicalHandedness(raw);
+          if (!value) return;
+
+          var pfRadio = document.querySelector('input[name="ad_handedness_pf"][value="' + value + '"]');
+          if (pfRadio) {
+            pfRadio.checked = true;
+            var btn = document.getElementById('ad-handedness-btn-pf');
+            if (btn) btn.textContent = HANDEDNESS_LABELS[value];
+          }
+
+          var selRadio = document.querySelector('input[name="ad-handedness"][value="' + value + '"]');
+          if (selRadio) {
+            selRadio.checked = true;
+            adSetLabel('handedness', HANDEDNESS_LABELS[value]);
+          }
+
+          selectedHandedness = value;
+        })
+        .catch(function () { /* leave unselected — seller picks manually */ });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Image upload
+    // ────────────────────────────────────────────────────────────────────────
+    document.getElementById('ad-image-upload').addEventListener('change', function () {
+      var ee = document.getElementById('ad-form-error');
+
+      Array.from(this.files).forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          var b64 = ev.target.result;
+          var checker = new Image();
+          checker.onload = function () {
+            if (checker.naturalWidth < 300) {
+              if (ee) { ee.textContent = 'Min image size 300x300px.'; ee.style.display = 'block'; }
+              return;
+            }
+            if (ee) ee.style.display = 'none';
+            uploadedImages.push(b64);
+
+            var preview = document.getElementById('ad-image-preview');
+            var wrapper = document.createElement('div');
+            var img = document.createElement('img');
+            img.src = b64;
+
+            var rb = document.createElement('span');
+            rb.className = 'remove-img';
+            rb.textContent = 'x';
+            rb.addEventListener('click', function () {
+              uploadedImages = uploadedImages.filter(function (u) { return u !== b64; });
+              wrapper.remove();
+            });
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(rb);
+            preview.appendChild(wrapper);
+          };
+          checker.src = b64;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      this.value = '';
+    });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Collect + validate
+    // ────────────────────────────────────────────────────────────────────────
+    function collectAdValues() {
+      if (adMode === 'prefilled') {
+        return {
+          handle:  currentSellData.handle || '',
+          type:    document.getElementById('ad-type').value,
+          subtype: document.getElementById('ad-subtype').value,
+          brand:   document.getElementById('ad-brand').value,
+          model:   document.getElementById('ad-model').value,
+          caliber: document.getElementById('ad-caliber-prefilled').value,
+          barrel:  AdTitle.normaliseBarrel(currentSellData.barrel),
+          image:   currentSellData.image || ''
+        };
+      }
+
+      var ms = document.getElementById('ad-model-search');
+      // Built by the same shared formatter prefillForm() uses, so an ad
+      // created by searching the catalogue here and an ad created from a
+      // "sell" button that already knew the product come out with an
+      // identical title. Before this they diverged: this path used
+      // product.title ("Beretta 686 SILVER PIGEON I SPORTING") while the
+      // sell-button path used custom.submodelo ("686 Silver Pigeon I
+      // Sporting"), and neither field is consistently cased in the catalogue
+      // feed, so the casing had to be normalised rather than sourced.
+      // adSf.barrel is the bare canonical cm number (see renderBarrelList) —
+      // the formatter appends the "cm" suffix at display/submission time, so
+      // the lookup against _barrelsCache elsewhere keeps working.
+      var modeloVal = adSf.modelo || (ms && ms.value.trim()) || '';
+      var modelVal = AdTitle.build(
+        adSelectedProduct
+          ? { brand: adSf.marca, model: adSelectedProduct.title, barrel: adSelectedProduct.barrel }
+          : { brand: adSf.marca, model: modeloVal, barrel: adSf.barrel }
+      );
+
+      return {
+        handle:  adSelectedProduct ? (adExtractHandle(adSelectedProduct.url) || '') : '',
+        type:    adSf.tipo,
+        subtype: adSf.subtipo,
+        brand:   adSf.marca,
+        model:   modelVal,
+        caliber: adSf.calibre,
+        // Normalised through the same helper so "62" and "62 cm" can't reach
+        // firearm_details as two different-looking values.
+        barrel:  AdTitle.normaliseBarrel(
+                   adSelectedProduct ? adSelectedProduct.barrel : adSf.barrel
+                 ),
+        image:   adSelectedProduct ? (adSelectedProduct.image || '') : ''
+      };
+    }
+
+    function validateForm() {
+      var errors = [], vals = collectAdValues();
+
+      if (adMode === 'selection') {
+        if (!vals.type)    errors.push('{{ "custom.select_firearm_type" | t }}');
+        if (!vals.subtype) errors.push('{{ "custom.select_subtype_error" | t }}');
+        if (!vals.brand)   errors.push('{{ "custom.select_brand" | t }}');
+        if (!vals.model)   errors.push('{{ "custom.select_or_enter_model" | t }}');
+        if (!vals.caliber) errors.push('{{ "custom.select_calibre" | t }}');
+        // Unlike the image check below, this one *does* wait for model too —
+        // it shouldn't pile onto "please select or enter a model" while the
+        // user hasn't typed a custom model yet.
+        if (!adBrandIsCatalogue && vals.model && !vals.barrel) errors.push('{{ "custom.select_barrel_length" | t }}');
+      }
+
+      var c = document.getElementById('ad-city');
+      if (!c || !c.value.trim()) errors.push('{{ "custom.city_required" | t }}.');
+
+      var p = document.getElementById('ad-price');
+      if (!p || !p.value.trim()) errors.push('{{ "custom.price_required" | t }}.');
+
+      // Image upload is optional when a catalog product was selected (its
+      // product image is used) but mandatory once a non-catalogue brand is
+      // picked — there's no catalog picture to fall back to, only the
+      // generic placeholder. Gated on brand being filled (rather than also
+      // requiring model) so it fires as soon as the brand puts the user on
+      // the custom route, not only after model is filled in too — but
+      // still doesn't pile onto the "please select a brand" error when the
+      // form is simply empty (vals.brand is '' then).
+      if (adMode === 'selection' && vals.brand && !adSelectedProduct && !uploadedImages.length) {
+        errors.push('{{ "custom.image_required" | t }}');
+      }
+
+      if (!selectedGunStatus)       errors.push('{{ "custom.firearm_status_required" | t }}');
+      if (!selectedAvailability)    errors.push('{{ "custom.select_availability" | t }}');
+      if (!selectedHandedness)      errors.push('{{ "custom.select_handedness" | t }}');
+
+      var phoneEl = document.getElementById('ad-seller-phone');
+      if (phoneEl && phoneEl.value.trim()) {
+        var digits = phoneEl.value.trim().replace(/\D/g, '');
+        if (digits.length < 7) errors.push('Phone number is too short (min 7 digits)');
+      }
+
+      return errors;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Submit
+    // ────────────────────────────────────────────────────────────────────────
+    document.getElementById('add-ad-submit').addEventListener('click', async function () {
+      var errorEl = document.getElementById('ad-form-error');
+      errorEl.style.display = 'none';
+      errorEl.innerHTML = '';
+
+      var errors = validateForm();
+      if (errors.length) {
+        errorEl.innerHTML = errors.length === 1
+          ? errors[0]
+          : '<ul style="margin:0;padding-left:18px;">' + errors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      var vals = collectAdValues();
+      var det = adMode === 'prefilled'
+        ? document.getElementById('ad-details').value
+        : [vals.type, vals.subtype, vals.brand, vals.model, vals.caliber, vals.barrel].filter(Boolean).join(' / ');
+
+      var submitBtn = document.getElementById('add-ad-submit');
+      var submitTxt = document.getElementById('add-ad-submit-text');
+      var loaderEl  = document.getElementById('add-ad-loader');
+      var loaderMsg = document.getElementById('add-ad-loader-msg');
+      var popupEl   = document.querySelector('#add-ad-overlay .ad-popup');
+
+      submitBtn.disabled      = true;
+      submitTxt.style.display = 'none';
+      loaderEl.style.display  = 'flex';
+      popupEl.style.overflow  = 'hidden';
+      popupEl.scrollTop       = 0;
+
+      var msgs = [
+        '{{ "custom.creating" | t }}...',
+        '{{ "custom.uploading_images" | t }}...',
+        '{{ "custom.almost_there" | t }}...',
+        '{{ "custom.finalizing" | t }}...'
+      ];
+      var msgIndex = 0;
+      var loaderInterval = setInterval(function () {
+        msgIndex++;
+        if (msgIndex < msgs.length) loaderMsg.textContent = msgs[msgIndex];
+      }, 5000);
+
+
+    // This runs before the ad fetch so the profile is updated even if the
+    // user entered a new alias here for the first time.
+    saveAliasToProfile().catch(function () {});
+
+      var payload = {
+        customerId:              CUSTOMER_ID,
+        productHandle:           vals.handle || ('custom-' + (vals.brand || 'brand').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now()),
+        productUrl:              vals.handle ? 'https://gunloupe.myshopify.com/products/' + vals.handle : '',
+        productImage:            vals.image || '',
+        firearmType:             vals.type,
+        firearmSubtype:          vals.subtype,
+        firearmBrand:            vals.brand,
+        firearmModel:            vals.model,
+        firearmCaliber:          vals.caliber,
+        firearmBarrel:           vals.barrel,
+        firearmDetails:          det,
+        firearmPersonalizedName: document.getElementById('ad-personalized-name').value.trim(),
+        city:                    document.getElementById('ad-city').value.trim(),
+        price:                   document.getElementById('ad-price').value.trim(),
+        currency:                localStorage.getItem('currency') || 'EUR',
+        description:             document.getElementById('ad-description').value.trim(),
+        images:                  uploadedImages,
+        firearmStatus:           selectedGunStatus,
+        firearmHandedness:       selectedHandedness,
+        firearmAvailability:     selectedAvailability,
+        firearmPurchaseDate:     document.getElementById('ad-purchase-date').value,
+        sellerName:              getDisplayName(),
+        sellerEmail:             CUSTOMER_EMAIL,
+        sellerPhone:             document.getElementById('ad-seller-phone').value.trim(),
+        themeId:                 THEME_ID
+      };
+
+      try {
+        var response = await fetch(BACKEND_URL + '/my-adverts', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload)
+        });
+
+        var data = await response.json();
+        clearInterval(loaderInterval);
+
+        if (data.success) {
+          // Hide loader and close popup
+          loaderEl.style.display = 'none';
+          popupEl.style.overflow = '';
+          closeAll();
+
+          // Show success toast
+          var toast = document.createElement('div');
+          toast.style.cssText = [
+            'position:fixed',
+            'bottom:24px',
+            'left:50%',
+            'transform:translateX(-50%)',
+            'background:#295A31',
+            'color:#fff',
+            'padding:14px 24px',
+            'border-radius:10px',
+            'font-size:.95rem',
+            'z-index:99999'
+          ].join(';');
+          toast.textContent = '{{ "custom.ad_submitted_success" | t }}';
+          document.body.appendChild(toast);
+
+          var newAdId  = data.id || (data.data && data.data.id) || (data.ad && data.ad.id) || null;
+          var newAdImg = (payload.images && payload.images[0]) || payload.productImage || '';
+
+          if (window.GunloupeMyAds && window.GunloupeMyAds.showNewAd) {
+            // Already on the My Ads page (opened via #sell-firearm-btn) — show
+            // the new ad right where we are instead of navigating to the exact
+            // page we're already on, which otherwise reads as a full-page reload.
+            window.GunloupeMyAds.showNewAd(newAdId, newAdImg);
+            setTimeout(function () { toast.remove(); }, 2500);
+          } else {
+            // Opened from elsewhere (product page, My Gun Safe, Classifieds, etc.)
+            // — hand off to My Ads via sessionStorage: it shows this ad as a
+            // skeleton immediately and polls for the confirmed entry, instead
+            // of us guessing a fixed delay is long enough here before redirecting.
+            try {
+              if (newAdId) {
+                sessionStorage.setItem('gl_pending_new_ad', JSON.stringify({
+                  id: newAdId,
+                  image: newAdImg,
+                  ts: Date.now()
+                }));
+              }
+            } catch (e) {}
+
+            // Redirect straight away. My Ads shows this ad as a skeleton the
+            // moment it loads (see gl_pending_new_ad above), so the seller
+            // gets their confirmation there — the 2.5s pause this replaces
+            // was waiting the seller could see no reason for.
+            toast.remove();
+            window.location.href =
+              (window.GunloupeRoutes || {}).myAdverts ||
+              '{{ pages["anuncios"].url }}';
+          }
+
+        } else {
+          errorEl.textContent   = '{{ "custom.ad_create_failed" | t }}';
+          errorEl.style.display = 'block';
+        }
+
+      } catch (err) {
+        errorEl.textContent   = '{{ "custom.error_generic" | t }}';
+        errorEl.style.display = 'block';
+      }
+
+      // ── Always restore button state ────────────────────────────────────────
+      clearInterval(loaderInterval);
+      loaderEl.style.display  = 'none';
+      popupEl.style.overflow  = '';
+      submitBtn.disabled      = false;
+      submitTxt.style.display = 'inline';
+    });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Sell button handling
+    // ────────────────────────────────────────────────────────────────────────
+    async function handleSellClick(btn) {
+      var sd = {
+        handle:       btn.dataset.sellHandle       || '',
+        type:         btn.dataset.sellType         || '',
+        subtype:      btn.dataset.sellSubtype      || '',
+        brand:        btn.dataset.sellBrand        || '',
+        model:        btn.dataset.sellModel        || '',
+        caliber:      btn.dataset.sellCaliber      || '',
+        barrel:       btn.dataset.sellBarrel       || '',
+        image:        btn.dataset.sellImage        || '',
+        status:       btn.dataset.sellStatus       || '',
+        purchaseDate: btn.dataset.sellPurchaseDate || '',
+        source:       btn.dataset.sellSource       || ''
+      };
+
+      if (!sd.handle || !sd.brand || !sd.model) {
+        currentSellData = {};
+        resetSelectionState();
+        showSelectionMode();
+        addAdOverlay.style.display = 'flex';
+        return;
+      }
+
+      var ot = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>{{ "custom.checking" | t }}...</span>';
+
+      try {
+        if (sd.source === 'my-armorer' || SKIP_ARMORER_CHECK) {
+          currentSellData = sd;
+          prefillForm(sd);
+          showPrefillMode();
+          addAdOverlay.style.display = 'flex';
+        } else {
+          var r = await fetch(BACKEND_URL + '/my-adverts/check-armorer', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ customerId: CUSTOMER_ID, productHandle: sd.handle, caliber: sd.caliber || '', barrel: sd.barrel || '' })
+          });
+          var d = await r.json();
+          if (d.inArmorer) {
+            currentSellData = sd;
+            prefillForm(sd);
+            showPrefillMode();
+            addAdOverlay.style.display = 'flex';
+          } else {
+            if (notInArmorerOverlay) notInArmorerOverlay.style.display = 'flex';
+          }
+        }
+      } catch (e) {
+        currentSellData = sd;
+        prefillForm(sd);
+        showPrefillMode();
+        addAdOverlay.style.display = 'flex';
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = ot;
+    }
+
+    function bindSellButtons() {
+      document.querySelectorAll('.open-ad-popup').forEach(function (btn) {
+        if (btn.dataset.adPopupBound) return;
+        btn.dataset.adPopupBound = '1';
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          handleSellClick(this);
+        }, true);
+      });
+    }
+
+    window.GunloupeAdPopup = {
+      bindButtons: bindSellButtons,
+      openWithPrefill: function (sd) {
+        resetForm();
+        currentSellData = sd;
+        prefillForm(sd);
+        showPrefillMode();
+        addAdOverlay.style.display = 'flex';
+      },
+      openSelection: function () {
+        resetForm();
+        resetSelectionState();
+        showSelectionMode();
+        addAdOverlay.style.display = 'flex';
+      }
+    };
+
+    bindSellButtons();
+
+    // gunloupe-datepicker.js loads deferred at the end of <body>, so it may
+    // not exist yet at this point (this script runs inline during parsing).
+    // DOMContentLoaded always fires after every deferred script has run.
+    document.addEventListener('DOMContentLoaded', function () {
+      var purchaseDateInput = document.getElementById('ad-purchase-date');
+      if (purchaseDateInput && window.GunloupeDatePicker) {
+        window.GunloupeDatePicker.attach(purchaseDateInput, {
+          maxDate: 'today',
+          labels: {
+            set: {{ 'custom.date_picker_set' | t | json }},
+            cancel: {{ 'custom.date_picker_cancel' | t | json }},
+            clear: {{ 'custom.date_picker_clear' | t | json }}
+          }
+        });
+      }
+    });
+  })();
+</script>
+
+{% endif %}

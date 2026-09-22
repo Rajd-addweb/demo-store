@@ -1,0 +1,902 @@
+{% comment %}
+section.comparator.liquid — FINAL v7
+Exact 42-row order per client spec (no duplicate Modalidad):
+ 0  Modalidad              → modalidad
+ 1  Marca                  → marca
+ 2  Modelo                 → modelo
+ 3  Sub-modelo             → submodelo
+ 4  Tipo de arma           → productType
+ 5  Subtipo de arma        → sub_tipo_de_arma
+ 6  Estado                 → inCatalogLabel
+ 7  Lateralidad            → lateralidad
+ 8  Garantía precisión     → garantia_precision
+ 9  Calibre                → selectedOptions[0]
+10  Paso de estría         → paso_de_estria (variant)
+11  Cañón intercambiable   → canon_intercambiable
+12  Longitud cañón (pulg)  → computed brlInch
+13  Longitud cañón (cm)    → computed brlCm
+14  Acabado de cañón       → acabado_de_canon
+15  Material del cañón     → material_del_canon
+16  Diámetro cañón (pulg)  → diametro_canon_pulgadas
+17  Diámetro cañón (cms)   → diametro_del_canon_mm
+18  Cañón fluteado         → canon_fluteado
+19  Rosca                  → selectedOptions[2]
+20  Diámetro rosca         → diametro_rosca (variant)
+21  Freno de boca          → freno_de_boca
+22  Caja larga             → caja_larga
+23  Tipo de culata         → tipo_de_culata
+24  Material de caja       → material_caja
+25  Acabado culata         → acabado_caja
+26  Cargador extraíble     → cargador_extraible
+27  Capacidad cargador     → capacidad_cargador (variant)
+28  Tipo de disparador     → tipo_disparador
+29  Tipo de gatillo        → tipo_de_gatillo
+30  Gatillo ajustable      → gatillo_ajustable
+31  Miras abiertas         → miras_abiertas
+32  Óptica                 → optica
+33  Bases                  → bases
+34  Banda del cañón        → banda_canon
+35  Tipo de choke          → tipo_de_choke
+36  Choke                  → choke
+37  Número de chokes       → numero_chokes
+38  Longitud total (pulg)  → longitud_total_pulgadas (variant)
+39  Longitud total (cms)   → longitud_total_cm (variant)
+40  Peso (lbs)             → peso_pounds (variant)
+41  Peso (kg)              → peso_kg (variant)
+{% endcomment %}
+
+<div class="comparator-section-wrap">
+  <div class="container">
+    {% if customer %}
+    <div id="comparator-app">
+      <div class="comparator-loading" id="comparator-loading">
+        <div class="comparator-spinner"></div>
+        <span>{{ 'custom.loading_comparision' | t }}...</span>
+      </div>
+      <div class="comparator-empty" id="comparator-empty" style="display:none;">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="27" stroke="#295A31" stroke-width="1.5" opacity="0.4" />
+          <path d="M28 18v12M28 33v2" stroke="#295A31" stroke-width="2" stroke-linecap="round" opacity="0.4" />
+        </svg>
+        <h3>{{ 'custom.no_firearms_to_compare' | t }}</h3>
+        <p>{{ 'custom.compare_instruction2' | t }}</p>
+        <a id="comparator-empty-browse-btn" href="/collections/armas" class="comparator-browse-btn">{{ 'custom.browse_catalog' | t }}</a>
+      </div>
+      <div id="comparator-table-wrap" style="display:none;">
+        <div class="compare_list-wrapper">
+          <div class="compare_list-titles">
+            <div class="product-card_specs_list u-vflex-stretch-top u-gap-xxsmall">
+              <!-- 0  Modalidad -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.category' | t }}</div></div>
+              <!-- 1  Marca -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.brand' | t }}</div></div>
+              <!-- 2  Modelo -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.model' | t }}</div></div>
+              <!-- 3  Sub-modelo -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.sub_model' | t }}</div></div>
+              <!-- 4  Tipo de arma -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.firearm_type' | t }}</div></div>
+              <!-- 5  Subtipo de arma -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.firearm_subtype' | t }}</div></div>
+              <!-- 6  Estado -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.status' | t }}</div></div>
+              <!-- 7  Lateralidad -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.handedness' | t }}</div></div>
+              <!-- 8  Garantía precisión -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.precision_warranty' | t }}</div></div>
+              <!-- 9  Calibre -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.caliber' | t }}</div></div>
+              <!-- 10 Paso de estría -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.twist_rate' | t }}</div></div>
+              <!-- 11 Cañón intercambiable -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.interchangeable_barrel' | t }}</div></div>
+              <!-- 12 Longitud cañón (pulgadas) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_lengths' | t }} {{ 'custom.inches' | t }}</div></div>
+              <!-- 13 Longitud cañón (cm) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_lengths' | t }} {{ 'custom.unit_cm' | t }}</div></div>
+              <!-- 14 Acabado de cañón -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_finish' | t }}</div></div>
+              <!-- 15 Material del cañón -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_material' | t }}</div></div>
+              <!-- 16 Diámetro cañón (pulgadas) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_diameter' | t }} {{ 'custom.inches' | t }}</div></div>
+              <!-- 17 Diámetro cañón (cms) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_diameter' | t }} (mm)</div></div>
+              <!-- 18 Cañón fluteado -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_fluted' | t }}</div></div>
+              <!-- 19 Rosca -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.thread' | t }}</div></div>
+              <!-- 20 Diámetro rosca -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.thread_diameter' | t }}</div></div>
+              <!-- 21 Freno de boca -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.muzzle_brake' | t }}</div></div>
+              <!-- 22 Caja larga -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.caja_larga' | t }}</div></div>
+              <!-- 23 Tipo de culata -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.stock_type' | t }}</div></div>
+              <!-- 24 Material de caja -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.stock_material' | t }}</div></div>
+              <!-- 25 Acabado culata -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.stock_finish' | t }}</div></div>
+              <!-- 26 Cargador extraíble -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.removable_magazine' | t }}</div></div>
+              <!-- 27 Capacidad cargador -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.magazine_capacity' | t }}</div></div>
+              <!-- 28 Tipo de disparador -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.trigger_type' | t }}</div></div>
+              <!-- 29 Tipo de gatillo -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.trigger_type1' | t }}</div></div>
+              <!-- 30 Gatillo ajustable -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.adjustable_trigger' | t }}</div></div>
+              <!-- 31 Miras abiertas -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.open_sights' | t }}</div></div>
+              <!-- 32 Óptica -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.optics' | t }}</div></div>
+              <!-- 33 Bases -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.bases' | t }}</div></div>
+              <!-- 34 Banda del cañón -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.barrel_brand' | t }}</div></div>
+              <!-- 35 Tipo de choke -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.choke_type' | t }}</div></div>
+              <!-- 36 Choke -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.choke' | t }}</div></div>
+              <!-- 37 Número de chokes -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.choke_number' | t }}</div></div>
+              <!-- 38 Longitud total (pulgadas) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.total_length' | t }} {{ 'custom.inches' | t }}</div></div>
+              <!-- 39 Longitud total (cms) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.total_length' | t }} (cm)</div></div>
+              <!-- 40 Peso (lbs) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.weight' | t }} (pounds)</div></div>
+              <!-- 41 Peso (kg) -->
+              <div class="product-card_specs_item is-legend"><div class="product-card_specs_label">{{ 'custom.weight' | t }} (kg)</div></div>
+            </div>
+          </div>
+          <div class="compare_content-wrap u-hflex-left-stretch u-hflex-nowrap u-gap-small">
+            <div class="products-grid_list-wrap">
+              <div class="products-grid_list" id="comparator-products-list"></div>
+            </div>
+          </div>
+        </div>
+        <div class="comparator-footer">
+          <a id="comparator-footer-browse-btn" href="/collections/armas" class="comparator-browse-btn">{{ 'custom.browse_catalog' | t }}</a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="comparator-login-prompt">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <circle cx="28" cy="28" r="27" stroke="#295A31" stroke-width="1.5" />
+        <path d="M28 16a6 6 0 100 12 6 6 0 000-12zm0 14c-6.627 0-12 2.686-12 6v2h24v-2c0-3.314-5.373-6-12-6z" fill="#295A31" opacity="0.5" />
+      </svg>
+      <h3>{{ 'custom.signin_comparator' | t }}</h3>
+      <p>{{ 'custom.login_required_firearms' | t }}</p>
+      <a href="{{ routes.storefront_login_url }}" class="button is-small comparator-browse-btn">{{ 'customer.login' | t }}</a>
+      <a href="{{ routes.storefront_login_url }}" class="button comparator-browse-btn is-small is-secondary">{{ 'customer.register' | t }} </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if customer %}
+<script>
+  window._cmpLabels = {
+    inCatalog: {{ 'custom.in_catalogue' | t | json }},
+    removing:  {{ 'custom.removing'     | t | json }}
+  };
+
+  window._valMap = {% if request.locale.iso_code == 'en' %}{
+  "Escopeta": {{ 'custom.gunval2_en_shotgun' | t | json }},
+  "Pistola": {{ 'custom.gunval2_en_pistol' | t | json }},
+  "Ca\u00f1ones": {{ 'custom.gunval2_en_cannons' | t | json }},
+  "Canons": {{ 'custom.gunval2_en_cannons' | t | json }},
+  "Rifle - Fuego anular": {{ 'custom.gunval2_en_rifle_rimfire' | t | json }},
+  "Semi Automatico": {{ 'custom.gunval2_en_semi_automatic' | t | json }},
+  "Corredera": {{ 'custom.gunval2_en_slider' | t | json }},
+  "Cerrojo": {{ 'custom.gunval2_en_bolt' | t | json }},
+  "Superpuesta": {{ 'custom.gunval2_en_overlay' | t | json }},
+  "Monotiro": {{ 'custom.gunval2_en_single_shot' | t | json }},
+  "Palanca": {{ 'custom.gunval2_en_lever_action' | t | json }},
+  "Cerrojo Rectilineo": {{ 'custom.gunval2_en_straight_pull_bolt' | t | json }},
+  "Semi Automatico Precision": {{ 'custom.gunval2_en_semi_automatic_precision' | t | json }},
+  "Semiautomatico": {{ 'custom.gunval2_en_semi_automatic' | t | json }},
+  "Caza": {{ 'custom.gunval2_en_hunting' | t | json }},
+  "Competicion": {{ 'custom.gunval2_en_competition' | t | json }},
+  "Competici\u00f3n": {{ 'custom.gunval2_en_competition' | t | json }},
+  "Tactico": {{ 'custom.gunval2_en_tactical' | t | json }},
+  "T\u00e1ctico": {{ 'custom.gunval2_en_tactical' | t | json }},
+  "Defensa": {{ 'custom.gunval2_en_defense' | t | json }},
+  "Deportivo": {{ 'custom.gunval2_en_sport' | t | json }},
+  "Varmint": {{ 'custom.gunval2_en_varmint' | t | json }},
+  "Precision": {{ 'custom.gunval2_en_precision' | t | json }},
+  "Precisi\u00f3n": {{ 'custom.gunval2_en_precision' | t | json }},
+  "Diestro": {{ 'custom.gunval2_en_right_handed' | t | json }},
+  "Zurdo": {{ 'custom.gunval2_en_left_handed' | t | json }},
+  "Ambidiestro": {{ 'custom.gunval2_en_ambidextrous' | t | json }},
+  "SI": {{ 'custom.gunval2_en_yes' | t | json }},
+  "S\u00ed": {{ 'custom.gunval2_en_yes' | t | json }},
+  "Si": {{ 'custom.gunval2_en_yes' | t | json }},
+  "NO": {{ 'custom.gunval2_en_no' | t | json }},
+  "Rifle": {{ 'custom.gunval2_en_rifle' | t | json }},
+  "Shotgun": {{ 'custom.gunval2_en_shotgun' | t | json }},
+  "Pistol": {{ 'custom.gunval2_en_pistol' | t | json }},
+  "Gun": {{ 'custom.gunval2_en_gun' | t | json }},
+  "Cannons": {{ 'custom.gunval2_en_cannons' | t | json }},
+  "Rifle - Rimfire": {{ 'custom.gunval2_en_rifle_rimfire' | t | json }},
+  "Semi-automatic": {{ 'custom.gunval2_en_semi_automatic' | t | json }},
+  "Bolt": {{ 'custom.gunval2_en_bolt' | t | json }},
+  "Slider": {{ 'custom.gunval2_en_slider' | t | json }},
+  "Overlay": {{ 'custom.gunval2_en_overlay' | t | json }},
+  "Single shot": {{ 'custom.gunval2_en_single_shot' | t | json }},
+  "Lever action": {{ 'custom.gunval2_en_lever_action' | t | json }},
+  "Straight-pull bolt": {{ 'custom.gunval2_en_straight_pull_bolt' | t | json }},
+  "Hunting": {{ 'custom.gunval2_en_hunting' | t | json }},
+  "Competition": {{ 'custom.gunval2_en_competition' | t | json }},
+  "Tactical": {{ 'custom.gunval2_en_tactical' | t | json }},
+  "Defense": {{ 'custom.gunval2_en_defense' | t | json }},
+  "Sport": {{ 'custom.gunval2_en_sport' | t | json }},
+  "Precision": {{ 'custom.gunval2_en_precision' | t | json }},
+  "Right-handed": {{ 'custom.gunval2_en_right_handed' | t | json }},
+  "Left-handed": {{ 'custom.gunval2_en_left_handed' | t | json }},
+  "Ambidextrous": {{ 'custom.gunval2_en_ambidextrous' | t | json }},
+  "YES": {{ 'custom.gunval2_en_yes' | t | json }},
+}{% else %}{
+  "Shotgun": {{ 'custom.gunval2_es_escopeta' | t | json }},
+  "Pistol": {{ 'custom.gunval2_es_pistola' | t | json }},
+  "Cannons": {{ 'custom.gunval2_es_canones' | t | json }},
+  "Rifle - Rimfire": {{ 'custom.gunval2_es_rifle_fuego_anular' | t | json }},
+  "Semi-automatic": {{ 'custom.gunval2_es_semi_automatico' | t | json }},
+  "Slider": {{ 'custom.gunval2_es_corredera' | t | json }},
+  "Bolt": {{ 'custom.gunval2_es_cerrojo' | t | json }},
+  "Overlay": {{ 'custom.gunval2_es_superpuesta' | t | json }},
+  "Single shot": {{ 'custom.gunval2_es_monotiro' | t | json }},
+  "Lever action": {{ 'custom.gunval2_es_palanca' | t | json }},
+  "Straight-pull bolt": {{ 'custom.gunval2_es_cerrojo_rectilineo' | t | json }},
+  "Semi-automatic Precision": {{ 'custom.gunval2_es_semi_automatico_precision' | t | json }},
+  "Hunting": {{ 'custom.gunval2_es_caza' | t | json }},
+  "Competition": {{ 'custom.gunval2_es_competicion' | t | json }},
+  "Tactical": {{ 'custom.gunval2_es_tactico' | t | json }},
+  "Defense": {{ 'custom.gunval2_es_defensa' | t | json }},
+  "Sport": {{ 'custom.gunval2_es_deportivo' | t | json }},
+  "Precision": {{ 'custom.gunval2_es_precision' | t | json }},
+  "Right-handed": {{ 'custom.gunval2_es_diestro' | t | json }},
+  "Left-handed": {{ 'custom.gunval2_es_zurdo' | t | json }},
+  "Ambidextrous": {{ 'custom.gunval2_es_ambidiestro' | t | json }},
+  "YES": {{ 'custom.gunval2_es_si' | t | json }},
+  "Yes": {{ 'custom.gunval2_es_si_2' | t | json }},
+  "Black Steel": {{ 'custom.gunval2_es_acero_negro' | t | json }},
+  "Steel": {{ 'custom.gunval2_es_acero' | t | json }},
+  "Stainless Steel": {{ 'custom.gunval2_es_acero_inoxidable' | t | json }},
+  "Fall": {{ 'custom.gunval2_es_caida' | t | json }},
+  "Timber": {{ 'custom.gunval2_es_madera' | t | json }},
+  "Wood": {{ 'custom.gunval2_es_madera' | t | json }},
+  "Synthetic": {{ 'custom.gunval2_es_sintetico' | t | json }},
+  "Carbon Fiber": {{ 'custom.gunval2_es_fibra_de_carbono' | t | json }},
+  "Polymer": {{ 'custom.gunval2_es_polimero' | t | json }},
+  "Walnut": {{ 'custom.gunval2_es_nogal' | t | json }},
+  "Laminate": {{ 'custom.gunval2_es_laminado' | t | json }},
+  "Thumbhole": {{ 'custom.gunval2_es_thumbhole' | t | json }},
+  "Pistol Grip": {{ 'custom.gunval2_es_empunadura_de_pistola' | t | json }},
+  "Monte Carlo": {{ 'custom.gunval2_es_monte_carlo' | t | json }},
+  "Adjustable": {{ 'custom.gunval2_es_ajustable' | t | json }},
+  "Fixed": {{ 'custom.gunval2_es_fijo' | t | json }},
+  "Blued": {{ 'custom.gunval2_es_pavonado' | t | json }},
+  "Cerakote": {{ 'custom.gunval2_es_cerakote' | t | json }},
+  "Nickel": {{ 'custom.gunval2_es_niquel' | t | json }},
+  "Chrome": {{ 'custom.gunval2_es_cromo' | t | json }},
+  "Camo": {{ 'custom.gunval2_es_camuflaje' | t | json }},
+  "Camouflage": {{ 'custom.gunval2_es_camuflaje' | t | json }},
+  "Black": {{ 'custom.gunval2_es_negro' | t | json }},
+  "Brown": {{ 'custom.gunval2_es_marron' | t | json }},
+  "Green": {{ 'custom.gunval2_es_verde' | t | json }},
+  "Acero Negro": {{ 'custom.gunval2_es_black_steel' | t | json }},
+  "Acero": {{ 'custom.gunval2_es_steel' | t | json }},
+  "Acero Inoxidable": {{ 'custom.gunval2_es_stainless_steel' | t | json }},
+  "Caida": {{ 'custom.gunval2_es_fall' | t | json }},
+  "Ca\u00edda": {{ 'custom.gunval2_es_fall' | t | json }},
+  "Madera": {{ 'custom.gunval2_es_timber' | t | json }},
+  "Sint\u00e9tico": {{ 'custom.gunval2_es_synthetic' | t | json }},
+  "Sintetico": {{ 'custom.gunval2_es_synthetic' | t | json }},
+  "Nogal": {{ 'custom.gunval2_es_walnut' | t | json }},
+  "Laminado": {{ 'custom.gunval2_es_laminate' | t | json }},
+  "Pavonado": {{ 'custom.gunval2_es_blued' | t | json }},
+  "N\u00edquel": {{ 'custom.gunval2_es_nickel' | t | json }},
+  "Niquel": {{ 'custom.gunval2_es_nickel' | t | json }},
+  "Cromo": {{ 'custom.gunval2_es_chrome' | t | json }},
+  "Camuflaje": {{ 'custom.gunval2_es_camouflage' | t | json }},
+  "Negro": {{ 'custom.gunval2_es_black' | t | json }},
+  "Marr\u00f3n": {{ 'custom.gunval2_es_brown' | t | json }},
+  "Marron": {{ 'custom.gunval2_es_brown' | t | json }},
+  "Verde": {{ 'custom.gunval2_es_green' | t | json }},
+  "Rifle": {{ 'custom.gunval2_es_rifle' | t | json }},
+  "Escopeta": {{ 'custom.gunval2_es_escopeta' | t | json }},
+  "Pistola": {{ 'custom.gunval2_es_pistola' | t | json }},
+  "Ca\u00f1ones": {{ 'custom.gunval2_es_canones' | t | json }},
+  "Gun": {{ 'custom.gunval2_es_gun' | t | json }},
+  "Rifle - Fuego anular": {{ 'custom.gunval2_es_rifle_fuego_anular' | t | json }},
+  "Semi Automatico": {{ 'custom.gunval2_es_semi_automatico' | t | json }},
+  "Corredera": {{ 'custom.gunval2_es_corredera' | t | json }},
+  "Cerrojo": {{ 'custom.gunval2_es_cerrojo' | t | json }},
+  "Superpuesta": {{ 'custom.gunval2_es_superpuesta' | t | json }},
+  "Monotiro": {{ 'custom.gunval2_es_monotiro' | t | json }},
+  "Palanca": {{ 'custom.gunval2_es_palanca' | t | json }},
+  "Cerrojo Rectilineo": {{ 'custom.gunval2_es_cerrojo_rectilineo' | t | json }},
+  "Caza": {{ 'custom.gunval2_es_caza' | t | json }},
+  "Competicion": {{ 'custom.gunval2_es_competicion' | t | json }},
+  "Tactico": {{ 'custom.gunval2_es_tactico' | t | json }},
+  "Defensa": {{ 'custom.gunval2_es_defensa' | t | json }},
+  "Deportivo": {{ 'custom.gunval2_es_deportivo' | t | json }},
+  "Diestro": {{ 'custom.gunval2_es_diestro' | t | json }},
+  "Zurdo": {{ 'custom.gunval2_es_zurdo' | t | json }},
+  "Ambidiestro": {{ 'custom.gunval2_es_ambidiestro' | t | json }},
+  "SI": {{ 'custom.gunval2_es_si' | t | json }},
+  "NO": {{ 'custom.gunval2_es_no' | t | json }},
+}{% endif %};
+
+  window._tv = function(v) {
+    if (!v || v === '—') return v;
+    return (window._valMap && window._valMap[v] !== undefined) ? window._valMap[v] : v;
+  };
+</script>
+<script>
+  (function () {
+    const BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+    const STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+    const SHOP_DOMAIN = 'gunloupe.myshopify.com';
+    const API_VERSION = '2024-01';
+    const CUSTOMER_ID = '{{ customer.id }}';
+
+    // ── User type ─────────────────────────────────────────────────────────────
+    var IS_BUSINESS_USER = '{{ customer.metafields.custom.user_type.value }}' == 'business';
+    var IS_PRIVATE_USER = '{{ customer.metafields.custom.user_type.value }}' !== 'business';
+
+    const FIREARMS_URL = (window.GunloupeRoutes && window.GunloupeRoutes.firearmsCollection) || '/collections/armas';
+    document.getElementById('comparator-empty-browse-btn')?.setAttribute('href', FIREARMS_URL);
+    document.getElementById('comparator-footer-browse-btn')?.setAttribute('href', FIREARMS_URL);
+
+    async function getComparatorItems() {
+      try {
+        const raw = sessionStorage.getItem('gunloupe_comparator_cache');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.items && parsed.items.length > 0 && (Date.now() - (parsed.ts || 0)) < 300000) {
+            return parsed.items;
+          }
+        }
+      } catch {}
+      if (window.GunloupeComparator && window.GunloupeComparator.getItems) {
+        return window.GunloupeComparator.getItems(true);
+      }
+      try {
+        const res = await fetch(`${BACKEND_URL}/comparator/${CUSTOMER_ID}`);
+        const data = await res.json();
+        return data.success ? (data.items || []) : [];
+      } catch { return []; }
+    }
+
+    async function removeItem(variantId) {
+      if (window.GunloupeComparator && window.GunloupeComparator.remove) {
+        return window.GunloupeComparator.remove(variantId);
+      }
+      try {
+        const items = await getComparatorItems();
+        const updated = items.filter(i => i.variantId !== String(variantId));
+        const res = await fetch(`${BACKEND_URL}/comparator/${CUSTOMER_ID}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({items: updated}),
+        });
+        const data = await res.json();
+        return data.success;
+      } catch { return false; }
+    }
+
+    async function storefrontFetch(query, variables = {}, retries = 3) {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const res = await fetch(`https://${SHOP_DOMAIN}/api/${API_VERSION}/graphql.json`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN},
+            body: JSON.stringify({query, variables}),
+          });
+          if (res.ok) return res.json();
+          if (res.status >= 400 && res.status < 500) return res.json();
+        } catch (e) {
+          if (attempt === retries - 1) throw e;
+          await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
+        }
+      }
+    }
+
+    async function fetchVariantFromRest(variantId, productHandle) {
+      try {
+        const res = await fetch(`/products/${productHandle}.json`);
+        const data = await res.json();
+        const product = data?.product;
+        if (!product) return null;
+        const variant = product.variants?.find(v => String(v.id) === String(variantId)) || product.variants?.[0];
+        if (!variant) return null;
+        return {
+          id: `gid://shopify/ProductVariant/${variant.id}`,
+          selectedOptions: [
+            {name: 'Calibre', value: variant.option1 || '—'},
+            {name: 'Barrel',  value: variant.option2 || ''},
+            {name: 'Thread',  value: variant.option3 || ''}
+          ],
+          metafields: [],
+          product: {
+            title: product.title, handle: product.handle,
+            productType: product.product_type || '—',
+            featuredImage: product.image ? {url: product.image.src} : null,
+            metafields: []
+          }
+        };
+      } catch { return null; }
+    }
+
+    const FETCH_ERROR = Symbol('FETCH_ERROR');
+
+    const GQL_QUERY = `
+      query($id: ID!) {
+        node(id: $id) {
+          ... on ProductVariant {
+            id
+            selectedOptions { name value }
+            metafields(identifiers: [
+              { namespace: "custom", key: "peso_kg" },
+              { namespace: "custom", key: "peso_pounds" },
+              { namespace: "custom", key: "longitud_total_cm" },
+              { namespace: "custom", key: "longitud_total_pulgadas" },
+              { namespace: "custom", key: "longitud_canon_cm" },
+              { namespace: "custom", key: "longitud_canon_pulgadas" },
+              { namespace: "custom", key: "paso_de_estria" },
+              { namespace: "custom", key: "capacidad_cargador" },
+              { namespace: "custom", key: "diametro_rosca" }
+            ]) { key value }
+            product {
+              title handle productType
+              featuredImage { url altText }
+              metafields(identifiers: [
+                { namespace: "custom", key: "marca" },
+                { namespace: "custom", key: "modelo" },
+                { namespace: "custom", key: "submodelo" },
+                { namespace: "custom", key: "sub_tipo_de_arma" },
+                { namespace: "custom", key: "categoria_web" },
+                { namespace: "custom", key: "lateralidad" },
+                { namespace: "custom", key: "garantia_precision" },
+                { namespace: "custom", key: "canon_intercambiable" },
+                { namespace: "custom", key: "rosca" },
+                { namespace: "custom", key: "canon_fluteado" },
+                { namespace: "custom", key: "freno_de_boca" },
+                { namespace: "custom", key: "acabado_de_canon" },
+                { namespace: "custom", key: "material_del_canon" },
+                { namespace: "custom", key: "diametro_del_canon_mm" },
+                { namespace: "custom", key: "diametro_canon_pulgadas" },
+                { namespace: "custom", key: "banda_canon" },
+                { namespace: "custom", key: "tipo_de_culata" },
+                { namespace: "custom", key: "material_caja" },
+                { namespace: "custom", key: "caja_larga" },
+                { namespace: "custom", key: "acabado_caja" },
+                { namespace: "custom", key: "tipo_disparador" },
+                { namespace: "custom", key: "tipo_de_gatillo" },
+                { namespace: "custom", key: "gatillo_ajustable" },
+                { namespace: "custom", key: "cargador_extraible" },
+                { namespace: "custom", key: "choke" },
+                { namespace: "custom", key: "tipo_de_choke" },
+                { namespace: "custom", key: "numero_chokes" },
+                { namespace: "custom", key: "miras_abiertas" },
+                { namespace: "custom", key: "bases" },
+                { namespace: "custom", key: "optica" },
+                { namespace: "custom", key: "modalidad" }
+              ]) { key value }
+            }
+          }
+        }
+      }
+    `;
+
+    async function fetchVariantData(variantId, productHandle) {
+      try {
+        const data = await storefrontFetch(GQL_QUERY, {id: `gid://shopify/ProductVariant/${variantId}`});
+        const node = data?.data?.node;
+        if (node) return node;
+        if (productHandle) {
+          try {
+            const restRes = await fetch(`/products/${productHandle}.json`);
+            const restData = await restRes.json();
+            const freshVariant = restData?.product?.variants?.[0];
+            if (freshVariant) {
+              const freshId = String(freshVariant.id);
+              const retryData = await storefrontFetch(GQL_QUERY, {id: `gid://shopify/ProductVariant/${freshId}`});
+              const freshNode = retryData?.data?.node;
+              if (freshNode) {
+                if (window.GunloupeComparator) {
+                  const currentItems = await window.GunloupeComparator.getItems(false);
+                  const updated = currentItems.map(i =>
+                    i.variantId === String(variantId) ? {...i, variantId: freshId} : i
+                  );
+                  window.GunloupeComparator.getItems.__cache = null;
+                  await fetch(`${BACKEND_URL}/comparator/${CUSTOMER_ID}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({items: updated}),
+                  }).catch(() => {});
+                }
+                return freshNode;
+              }
+            }
+          } catch (e) {}
+          return await fetchVariantFromRest(variantId, productHandle);
+        }
+        return null;
+      } catch (e) {
+        if (productHandle) {
+          const fb = await fetchVariantFromRest(variantId, productHandle);
+          if (fb) return fb;
+        }
+        return FETCH_ERROR;
+      }
+    }
+
+    function mf(fields, key) {
+      if (!fields || !fields.length) return '—';
+      const f = fields.find(m => m && m.key === key);
+      return f?.value || '—';
+    }
+    function opt(opts, i) { return opts?.[i]?.value || '—'; }
+    function brlIn(cm) {
+      const n = parseFloat(cm); if (!n || n <= 0) return null;
+      const r = n * 0.393701, d = r % 1;
+      const v = d >= 0.7 ? Math.ceil(r) : n > 12 ? Math.round(r * 10) / 10 : Math.round(r * 100) / 100;
+      return String(v).replace('.0', '');
+    }
+    function si(v, label) {
+      return `<li class="product-card_specs_item"><div class="product-card_specs_label is-compare">${label || ''}</div><div class="product-card_specs_spec-text">${v || '—'}</div></li>`;
+    }
+
+    // Boolean spec fields (interchangeable barrel, removable magazine,
+    // adjustable trigger) come back from Shopify in whatever raw format the
+    // metafield was entered in — '1'/'0', 'true'/'false', 'si'/'no' — and
+    // must render as the same localized Yes/No text section.weapon-product.liquid
+    // uses on the product page itself (see #74). Unrecognized values pass
+    // through unchanged rather than being guessed at.
+    const YES_LABEL = {{ 'custom.gunval_yes' | t | json }};
+    const NO_LABEL  = {{ 'custom.gunval_no'  | t | json }};
+    function ynLabel(raw) {
+      if (raw == null || raw === '—') return raw;
+      const v = String(raw).trim().toLowerCase();
+      if (v === '1' || v === 'true' || v === 'si' || v === 'sí' || v === 'yes') return YES_LABEL;
+      if (v === '0' || v === 'false' || v === 'no') return NO_LABEL;
+      return raw;
+    }
+
+    // ── L[] index = legend row number. Both must stay in sync. ────────────
+    const L = [
+      /* 0  Modalidad              */ {{ 'custom.status' | t | json }},
+      /* 1  Marca                  */ {{ 'custom.brand' | t | json }},
+      /* 2  Modelo                 */ {{ 'custom.model' | t | json }},
+      /* 3  Sub-modelo             */ {{ 'custom.sub_model' | t | json }},
+      /* 4  Tipo de arma           */ {{ 'custom.firearm_type' | t | json }},
+      /* 5  Subtipo de arma        */ {{ 'custom.firearm_subtype' | t | json }},
+      /* 6  Estado                 */ {{ 'custom.status' | t | json }},
+      /* 7  Lateralidad            */ {{ 'custom.handedness' | t | json }},
+      /* 8  Garantía precisión     */ {{ 'custom.precision_warranty' | t | json }},
+      /* 9  Calibre                */ {{ 'custom.caliber' | t | json }},
+      /* 10 Paso de estría         */ {{ 'custom.twist_rate' | t | json }},
+      /* 11 Cañón intercambiable   */ {{ 'custom.interchangeable_barrel' | t | json }},
+      /* 12 Longitud cañón (pulg)  */ {{ 'custom.barrel_lengths' | t | json }} + ' ' + {{ 'custom.inches' | t | json }},
+      /* 13 Longitud cañón (cm)    */ {{ 'custom.barrel_lengths' | t | json }} + ' ' + {{ 'custom.unit_cm' | t | json }},
+      /* 14 Acabado de cañón       */ {{ 'custom.barrel_finish' | t | json }},
+      /* 15 Material del cañón     */ {{ 'custom.barrel_material' | t | json }},
+      /* 16 Diámetro cañón (pulg)  */ {{ 'custom.barrel_diameter' | t | json }} + ' ' + {{ 'custom.inches' | t | json }},
+      /* 17 Diámetro cañón (cms)   */ {{ 'custom.barrel_diameter' | t | json }} + ' (mm)',
+      /* 18 Cañón fluteado         */ {{ 'custom.barrel_fluted' | t | json }},
+      /* 19 Rosca                  */ {{ 'custom.thread' | t | json }},
+      /* 20 Diámetro rosca         */ {{ 'custom.thread_diameter' | t | json }},
+      /* 21 Freno de boca          */ {{ 'custom.muzzle_brake' | t | json }},
+      /* 22 Caja larga             */ {{ 'custom.caja_larga' | t | json }},
+      /* 23 Tipo de culata         */ {{ 'custom.stock_type' | t | json }},
+      /* 24 Material de caja       */ {{ 'custom.stock_material' | t | json }},
+      /* 25 Acabado culata         */ {{ 'custom.stock_finish' | t | json }},
+      /* 26 Cargador extraíble     */ {{ 'custom.removable_magazine' | t | json }},
+      /* 27 Capacidad cargador     */ {{ 'custom.magazine_capacity' | t | json }},
+      /* 28 Tipo de disparador     */ {{ 'custom.trigger_type' | t | json }},
+      /* 29 Tipo de gatillo        */ {{ 'custom.trigger_type1' | t | json }},
+      /* 30 Gatillo ajustable      */ {{ 'custom.adjustable_trigger' | t | json }},
+      /* 31 Miras abiertas         */ {{ 'custom.open_sights' | t | json }},
+      /* 32 Óptica                 */ {{ 'custom.optics' | t | json }},
+      /* 33 Bases                  */ {{ 'custom.bases' | t | json }},
+      /* 34 Banda del cañón        */ {{ 'custom.barrel_brand' | t | json }},
+      /* 35 Tipo de choke          */ {{ 'custom.choke_type' | t | json }},
+      /* 36 Choke                  */ {{ 'custom.choke' | t | json }},
+      /* 37 Número de chokes       */ {{ 'custom.choke_number' | t | json }},
+      /* 38 Longitud total (pulg)  */ {{ 'custom.total_length' | t | json }} + ' ' + {{ 'custom.inches' | t | json }},
+      /* 39 Longitud total (cms)   */ {{ 'custom.total_length' | t | json }} + ' (cm)',
+      /* 40 Peso (lbs)             */ {{ 'custom.weight' | t | json }} + ' (lbs)',
+      /* 41 Peso (kg)              */ {{ 'custom.weight' | t | json }} + ' (kg)',
+    ];
+
+    async function render() {
+      const loadingEl    = document.getElementById('comparator-loading');
+      const emptyEl      = document.getElementById('comparator-empty');
+      const tableWrap    = document.getElementById('comparator-table-wrap');
+      const productsList = document.getElementById('comparator-products-list');
+
+      loadingEl.style.display  = 'flex';
+      emptyEl.style.display    = 'none';
+      tableWrap.style.display  = 'none';
+      productsList.innerHTML   = '';
+
+      const items = await getComparatorItems();
+      loadingEl.style.display  = 'none';
+
+      if (!items || !items.length) { emptyEl.style.display = 'flex'; return; }
+
+      const variants  = await Promise.all(items.map(item => fetchVariantData(item.variantId, item.productHandle)));
+      const valid     = variants.filter(v => v && v !== FETCH_ERROR);
+      const netErrors = variants.some(v => v === FETCH_ERROR);
+
+      if (!netErrors && valid.length < variants.length && valid.length > 0) {
+        const validIds = valid.map(v => v.id.split('/').pop());
+        const cleaned  = items.filter(item => validIds.includes(String(item.variantId)));
+        fetch(`${BACKEND_URL}/comparator/${CUSTOMER_ID}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({items: cleaned}),
+        }).catch(() => {});
+      }
+
+      if (!valid.length) { emptyEl.style.display = 'flex'; return; }
+
+      valid.forEach(v => {
+        const p      = v.product;
+        const numId  = v.id.split('/').pop();
+        const imgUrl = p.featuredImage?.url || '';
+
+        // ── Data variables ────────────────────────────────────────────────
+        const modality = window._tv(mf(p.metafields, 'modalidad'));       // L[0]
+        const brand    = mf(p.metafields, 'marca');                        // L[1]
+        const model    = mf(p.metafields, 'modelo');                       // L[2]
+        const submodel = mf(p.metafields, 'submodelo');                    // L[3]
+        // Model to use for the Sell button below (kept separate from `model`,
+        // which stays as-is for the spec rows above). Was tried as
+        // `${model} ${submodel}` first, assuming submodel was just a
+        // trailing word — wrong, and produced duplicated text like
+        // "PREMIER PREMIER ELEVATE". Checked the actual metafield data:
+        // submodelo is consistently the FULL descriptive model name already
+        // (e.g. modelo "828 U", submodelo "828 U Black" — matches the real
+        // product title minus brand), never a bare suffix, so it should be
+        // preferred outright rather than joined with modelo. mf() returns
+        // '—' for a missing field, so that placeholder must be excluded.
+        const sellModel = submodel !== '—' ? submodel : (model !== '—' ? model : '—');
+        const typW     = window._tv(p.productType || '—');                 // L[4]
+        const subType  = window._tv(mf(p.metafields, 'sub_tipo_de_arma'));// L[5]
+        const inCatalogLabel = (window._cmpLabels && window._cmpLabels.inCatalog) || 'In catalog'; // L[6]
+        const handness = window._tv(mf(p.metafields, 'lateralidad'));      // L[7]
+        const precision = mf(p.metafields, 'garantia_precision');          // L[8]
+        const caliber  = opt(v.selectedOptions, 0);                        // L[9]
+        const twist    = mf(v.metafields, 'paso_de_estria');               // L[10]
+        const intercBrl = ynLabel(mf(p.metafields, 'canon_intercambiable')); // L[11]
+        const cmOpt    = v.selectedOptions?.find(o => o.value?.includes('cm'));
+        const cmRaw    = cmOpt?.value?.replace('cm', '').trim();
+        const brlCm    = cmRaw || '—';
+        const brlCmFull = (cmOpt?.value || '').replace(/\s+/g, '');
+        const brlInch  = cmRaw ? (brlIn(cmRaw) || '—') : '—';             // L[12]
+        // brlCm                                                            // L[13]
+        const brlFin      = window._tv(mf(p.metafields, 'acabado_de_canon'));    // L[14]
+        const brlMat      = window._tv(mf(p.metafields, 'material_del_canon'));  // L[15]
+        const diaCanonPulg = mf(p.metafields, 'diametro_canon_pulgadas');         // L[16]
+        const diaCanonMm   = mf(p.metafields, 'diametro_del_canon_mm');           // L[17]
+        const fluted      = window._tv(mf(p.metafields, 'canon_fluteado'));       // L[18]
+        const thread      = opt(v.selectedOptions, 2);                             // L[19]
+        const diaRosca    = mf(v.metafields, 'diametro_rosca');                   // L[20]
+        const mthBrk      = window._tv(mf(p.metafields, 'freno_de_boca'));        // L[21]
+        const cajaLarga   = mf(p.metafields, 'caja_larga');                       // L[22]
+        const stType      = window._tv(mf(p.metafields, 'tipo_de_culata'));        // L[23]
+        const stMat       = window._tv(mf(p.metafields, 'material_caja'));         // L[24]
+        const stFin       = window._tv(mf(p.metafields, 'acabado_caja'));          // L[25]
+        const cargadorExtr = ynLabel(mf(p.metafields, 'cargador_extraible'));     // L[26]
+        const magCap      = mf(v.metafields, 'capacidad_cargador');               // L[27]
+        const tipoDisparador = mf(p.metafields, 'tipo_disparador');               // L[28]
+        const tipoGatillo = mf(p.metafields, 'tipo_de_gatillo');                  // L[29]
+        const gatilloAjust = ynLabel(mf(p.metafields, 'gatillo_ajustable'));      // L[30]
+        const sights      = mf(p.metafields, 'miras_abiertas');                   // L[31]
+        const optics      = mf(p.metafields, 'optica');                           // L[32]
+        const bases       = mf(p.metafields, 'bases');                            // L[33]
+        const bandaCanon  = mf(p.metafields, 'banda_canon');                      // L[34]
+        const tipoChoke   = mf(p.metafields, 'tipo_de_choke');                    // L[35]
+        const choke       = mf(p.metafields, 'choke');                            // L[36]
+        const numChokes   = mf(p.metafields, 'numero_chokes');                    // L[37]
+        const totLenPulg  = mf(v.metafields, 'longitud_total_pulgadas');          // L[38]
+        const totLen      = mf(v.metafields, 'longitud_total_cm');                // L[39]
+        const lbs         = mf(v.metafields, 'peso_pounds');                      // L[40]
+        const kg          = mf(v.metafields, 'peso_kg');                          // L[41]
+
+        // also needed for button data attrs
+        const category = window._tv(mf(p.metafields, 'categoria_web'));
+
+        productsList.insertAdjacentHTML('beforeend', `
+          <div w-el="product-card_item" class="products-grid_item is-compare">
+            <div class="product-card_component">
+              <div class="product-card_thumb-wrap">
+                ${imgUrl ? `<a href="${window.Shopify.routes.root}products/${p.handle}"><img src="${imgUrl}" alt="${p.title}" class="product-card_thumb-image layer" loading="lazy"></a>` : '<div class="cmp-no-image">No image</div>'}
+              </div>
+              <div class="product-card_details-wrap">
+                <h3 class="product-card_heading heading-style-h4 color-primary" style="min-height:4.2rem;">
+                  <a class="color-primary" href="${window.Shopify.routes.root}products/${p.handle}">${p.title}</a>
+                </h3>
+                <div class="product-card_specs-wrap u-vflex-stretch-top u-gap-xxsmall">
+                  <div class="product-card_specs_list u-vflex-stretch-top u-gap-xxsmall">
+                    ${si(modality,        L[0])}
+                    ${si(brand,           L[1])}
+                    ${si(model,           L[2])}
+                    ${si(submodel,        L[3])}
+                    ${si(typW,            L[4])}
+                    ${si(subType,         L[5])}
+                    ${si(inCatalogLabel,  L[6])}
+                    ${si(handness,        L[7])}
+                    ${si(precision,       L[8])}
+                    ${si(caliber,         L[9])}
+                    ${si(twist,           L[10])}
+                    ${si(intercBrl,       L[11])}
+                    ${si(brlInch,         L[12])}
+                    ${si(brlCm,           L[13])}
+                    ${si(brlFin,          L[14])}
+                    ${si(brlMat,          L[15])}
+                    ${si(diaCanonPulg,    L[16])}
+                    ${si(diaCanonMm,      L[17])}
+                    ${si(fluted,          L[18])}
+                    ${si(thread,          L[19])}
+                    ${si(diaRosca,        L[20])}
+                    ${si(mthBrk,          L[21])}
+                    ${si(cajaLarga,       L[22])}
+                    ${si(stType,          L[23])}
+                    ${si(stMat,           L[24])}
+                    ${si(stFin,           L[25])}
+                    ${si(cargadorExtr,    L[26])}
+                    ${si(magCap,          L[27])}
+                    ${si(tipoDisparador,  L[28])}
+                    ${si(tipoGatillo,     L[29])}
+                    ${si(gatilloAjust,    L[30])}
+                    ${si(sights,          L[31])}
+                    ${si(optics,          L[32])}
+                    ${si(bases,           L[33])}
+                    ${si(bandaCanon,      L[34])}
+                    ${si(tipoChoke,       L[35])}
+                    ${si(choke,           L[36])}
+                    ${si(numChokes,       L[37])}
+                    ${si(totLenPulg,      L[38])}
+                    ${si(totLen,          L[39])}
+                    ${si(lbs,             L[40])}
+                    ${si(kg,              L[41])}
+                  </div>
+                </div>
+                <div class="product-card_button-wrap u-vflex-stretch-top u-gap-xsmall">
+                  <a class="button is-brand" href="${window.Shopify.routes.root}products/${p.handle}">{{ 'custom.more_info_buy' | t }}</a>
+                  <div class="flex">
+                    <button class="button button-secondary flex is-small"
+                      data-fav-handle="${p.handle}"
+                      data-fav-title="${p.title} // ${caliber} // ${brlCm}cm (${brlInch}in)"
+                      data-fav-product-title="${p.title} // ${caliber} // ${brlCm}cm (${brlInch}in)"
+                      data-fav-image="${imgUrl}" data-fav-price=""
+                      data-fav-type="${typW}" data-fav-subtype="${subType}"
+                      data-fav-category="${category}" data-fav-status="${inCatalogLabel}">
+                      <div class="product-card_icon icon-1x1-small w-embed">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%"><g fill="none"><path d="M8.96173 18.9111L9.42605 18.3221L8.96173 18.9111ZM12 5.50088L11.4596 6.02098C11.601 6.16787 11.7961 6.25088 12 6.25088C12.2039 6.25088 12.399 6.16787 12.5404 6.02098L12 5.50088ZM15.0383 18.9111L15.5026 19.5001L15.0383 18.9111ZM9.42605 18.3221C7.91039 17.1273 6.25307 15.9605 4.93829 14.48C3.64922 13.0285 2.75 11.3347 2.75 9.13734H1.25C1.25 11.8029 2.3605 13.8363 3.81672 15.476C5.24722 17.0868 7.07077 18.3755 8.49742 19.5001L9.42605 18.3221ZM2.75 9.13734C2.75 6.98647 3.96537 5.18277 5.62436 4.42444C7.23607 3.68772 9.40166 3.88282 11.4596 6.02098L12.5404 4.98078C10.0985 2.44377 7.26409 2.02563 5.00076 3.0602C2.78471 4.07317 1.25 6.42527 1.25 9.13734H2.75ZM8.49742 19.5001C9.00965 19.9039 9.55954 20.3345 10.1168 20.6602C10.6739 20.9857 11.3096 21.2502 12 21.2502V19.7502C11.6904 19.7502 11.3261 19.6295 10.8736 19.3651C10.4213 19.1008 9.95208 18.7368 9.42605 18.3221L8.49742 19.5001ZM15.5026 19.5001C16.9292 18.3755 18.7528 17.0868 20.1833 15.476C21.6395 13.8363 22.75 11.8029 22.75 9.13734H21.25C21.25 11.3347 20.3508 13.0285 19.0617 14.48C17.7469 15.9605 16.0896 17.1273 14.574 18.3221L15.5026 19.5001ZM22.75 9.13734C22.75 6.42527 21.2153 4.07317 18.9992 3.0602C16.7359 2.02563 13.9015 2.44377 11.4596 4.98078L12.5404 6.02098C14.5983 3.88282 16.7639 3.68772 18.3756 4.42444C20.0346 5.18277 21.25 6.98647 21.25 9.13734H22.75ZM14.574 18.3221C14.0479 18.7368 13.5787 19.1008 13.1264 19.3651C12.6739 19.6295 12.3096 19.7502 12 19.7502V21.2502C12.6904 21.2502 13.3261 20.9857 13.8832 20.6602C14.4405 20.3345 14.9903 19.9039 15.5026 19.5001L14.574 18.3221Z" fill="currentColor"></path></g></svg>
+                      </div>
+                      <span data-fav-text="add">{{ 'custom.add_to_favorites' | t }}</span>
+                      <span data-fav-text="remove" style="display:none;">{{ 'custom.remove_from_favorites' | t }}</span>
+                    </button>
+                    <button class="button button-secondary flex is-small js-remove-compare" data-variant-id="${numId}">
+                      <div class="product-card_icon with-stroke">
+                        <svg width="24" height="24" viewBox="0 0 16 16" fill="none"><path d="M7.875 1.96875H7.21875C4.74387 1.96875 3.50644 1.96875 2.73759 2.73759C1.96875 3.50644 1.96875 4.74387 1.96875 7.21875V8.53125C1.96875 11.0061 1.96875 12.2436 2.73759 13.0124C3.50644 13.7812 4.74387 13.7812 7.21875 13.7812H7.875" stroke="#295A31" stroke-width="0.984375"/><path d="M7.21875 1.96875H9.84375C11.6999 1.96875 12.628 1.96875 13.2046 2.54538C13.7812 3.12202 13.7812 4.05009 13.7812 5.90625V9.84375C13.7812 11.6999 13.7812 12.628 13.2046 13.2046C12.628 13.7812 11.6999 13.7812 9.84375 13.7812H7.21875" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round" stroke-dasharray="1.64 1.97"/><path d="M7.875 1.3125V14.4375" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round"/></svg>
+                      </div>
+                      {{ 'custom.remove_from_comparison' | t }}
+                    </button>
+                  </div>
+                  ${!IS_PRIVATE_USER ? `
+                  <button class="button button-secondary is-small open-ad-popup"
+                    data-sell-handle="${p.handle}" data-sell-type="${typW}"
+                    data-sell-subtype="${subType}" data-sell-brand="${brand}"
+                    data-sell-model="${sellModel}" data-sell-caliber="${caliber}"
+                    data-sell-barrel="${brlCmFull}" data-sell-image="${imgUrl}"
+                    data-sell-source="comparator">
+                    <div class="product-card_icon icon-1x1-small w-embed">
+                      <svg width="24" height="24" viewBox="0 0 16 16" fill="none"><g clip-path="url(#c1)"><path d="M15.6187 4.92189C15.6187 3.87189 14.3719 3.08439 12.6984 3.08439C12.6 3.08439 12.4687 3.08439 12.3375 3.1172L12.3047 2.62501C12.2719 2.29689 12.0094 2.0672 11.7141 2.03439L7.05469 1.57501C6.85781 1.57501 6.66094 1.64064 6.52969 1.77189L0.360938 7.94064C0.0984375 8.20314 0.0984375 8.59689 0.360938 8.85939L5.44688 13.9453C5.57812 14.0766 5.74219 14.1422 5.90625 14.1422C6.07031 14.1422 6.23438 14.0766 6.36562 13.9781L12.5672 7.80939C12.6984 7.67814 12.7969 7.48126 12.7641 7.28439L12.6984 6.72657C14.3719 6.72657 15.5859 5.93907 15.6187 4.92189ZM5.90625 12.6L1.70625 8.43283L7.21875 2.92032L11.0578 3.28126L11.2219 5.05314C11.1234 4.98751 11.0578 4.92189 11.0578 4.88907C11.0578 4.52814 10.7625 4.23282 10.4016 4.23282C10.0406 4.23282 9.74531 4.52814 9.74531 4.88907C9.74531 5.64376 10.4016 6.2672 11.3531 6.56251L11.4187 7.08751L5.90625 12.6ZM12.6984 5.44689C12.6656 5.44689 12.6328 5.44689 12.5672 5.44689L12.4688 4.36407H12.6984C13.7484 4.36407 14.3063 4.75782 14.3391 4.88907C14.3063 5.02032 13.7484 5.44689 12.6984 5.44689Z" fill="#295A31"/></g><defs><clipPath id="c1"><rect width="15.75" height="15.75" fill="white"/></clipPath></defs></svg>
+                    </div>
+                    {{ 'custom.sell_firearm' | t }}
+                  </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+
+        if (valid.length === 1) {
+          productsList.insertAdjacentHTML('beforeend', `
+            <div class="products-grid_item is-compare is-add-more-card">
+              <a href="{{ routes.collections_url }}/firearms" class="product-grid_add-btn_component">
+                <div class="product-grid_add-btn_layout">
+                  <div class="product-grid_add-btn_icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img">
+                      <g fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="#295a31" stroke-width="1.5"></circle>
+                        <path d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15" stroke="#295a31" stroke-width="1.5" stroke-linecap="round"></path>
+                      </g>
+                    </svg>
+                  </div>
+                  <div class="product-grid_add-btn_label color-primary">{{ 'custom.add_weapon' | t }}</div>
+                </div>
+              </a>
+            </div>
+          `);
+        }
+      });
+
+      tableWrap.style.display = 'block';
+
+      document.querySelectorAll('.js-remove-compare').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          this.disabled = true; this.textContent = '{{ 'custom.removing' | t }}...';
+          await removeItem(this.dataset.variantId);
+          render();
+        });
+      });
+
+      if (window.GunloupeAdPopup) window.GunloupeAdPopup.bindButtons();
+      setTimeout(() => {
+        if (window.GunloupeFavorites) { window.GunloupeFavorites.sync(); window.GunloupeFavorites.bindButtons(); }
+      }, 300);
+    }
+
+    function initWhenReady() {
+      if (window.GunloupeComparator && window.GunloupeComparator.getItems) {
+        render();
+      } else {
+        initWhenReady._attempts = (initWhenReady._attempts || 0) + 1;
+        if (initWhenReady._attempts < 40) {
+          setTimeout(initWhenReady, 50);
+        } else {
+          render();
+        }
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWhenReady);
+    } else {
+      initWhenReady();
+    }
+
+  })();
+</script>
+{% endif %}
+
+<style>
+  .comparator-section-wrap{padding:40px 0 80px}
+  .comparator-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:80px 20px;color:#888;font-size:.95rem}
+  .comparator-spinner{width:36px;height:36px;border:3px solid #e8ede9;border-top-color:var(--color-foreground);border-radius:50%;animation:cmpSpin .7s linear infinite}
+  @keyframes cmpSpin{to{transform:rotate(360deg)}}
+  .comparator-empty,.comparator-login-prompt{display:flex;flex-direction:column;align-items:center;gap:16px;padding:80px 20px;text-align:center}
+  .comparator-empty h3,.comparator-login-prompt h3{font-size:1.2rem;font-weight:600;color:#1a1a1a;margin:0}
+  .comparator-empty p,.comparator-login-prompt p{color:#777;font-size:.9rem;max-width:360px;line-height:1.6;margin:0}
+  .comparator-browse-btn{display:inline-flex;align-items:center;gap:8px;background:var(--color-foreground);color:#fff;border:none;border-radius:6px;padding:12px 28px;text-decoration:none;cursor:pointer;transition:background .2s;margin-top:8px;width:100%;max-width:512px;text-align:center;justify-content:center}
+  .comparator-browse-btn:hover{background:#1e4325;color:#fff}
+  .comparator-browse-btn.is-secondary{background:transparent;color:var(--color-foreground);border:1px solid var(--color-foreground)}
+  .comparator-browse-btn.is-secondary:hover{background:#f0f7f1}
+  .product-card_button-wrap{display:flex;flex-direction:column;gap:8px}
+  .comparator-footer{padding:40px 0;text-align:center;border-top:1px solid #e8ede9;margin-top:40px}
+  @media(max-width:768px){.compare_list-titles{width:120px}.product-card_specs_item.is-legend{padding:8px;min-height:40px}.products-grid_item.is-compare{min-width:200px}.product-card_specs_item{min-height:40px;padding:8px}.product-card_specs_spec-text{font-size:.78rem}}
+</style>
+
+{% schema %}
+{
+  "name": "Comparator",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "padding_top", "label": "Padding Top", "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" }
+  ],
+  "presets": [{ "name": "Comparator" }]
+}
+{% endschema %}

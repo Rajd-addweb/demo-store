@@ -1,0 +1,55 @@
+{% comment %}
+  snippet: gunloupe-routes.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+{% endcomment %}
+
+{% liquid
+  assign locale_prefix = ''
+  if request.locale.iso_code != 'es'
+    assign locale_prefix = '/' | append: request.locale.iso_code
+  endif
+%}
+
+<script>
+  window.GunloupeRoutes = (function() {
+    var prefix = {{ locale_prefix | json }};
+
+    // ── Collection slugs differ per locale ──────────────────────────────────
+    var firearmsCollection = prefix === '/en'
+      ? prefix + '/collections/firearms'
+      : '/collections/armas';
+
+    // ── Page slugs differ per locale ────────────────────────────────────────
+    var myArmorerPage   = prefix === '/en' ? prefix + '/pages/my-gun-safe'  : '/pages/mi-armero';
+    var favoritesPage   = prefix === '/en' ? prefix + '/pages/favourites'  : '/pages/favoritos';
+    var comparatorPage  = prefix === '/en' ? prefix + '/pages/comparator'  : '/pages/comparison-tool';
+    var myAdvertsPage   = prefix === '/en' ? prefix + '/pages/my-ads'      : '/pages/anuncios';
+    var adDetailPage    = prefix === '/en' ? prefix + '/pages/ad-detail'   : '/pages/detalle-anuncio';
+    var adsConsolePage  = prefix === '/en' ? prefix + '/pages/ads-console' : '/pages/consola-de-anuncios';
+    var profilePage     = prefix === '/en' ? prefix + '/pages/profile'     : '/pages/perfil';
+    var editProfilePage = prefix === '/en' ? prefix + '/pages/edit-profile': '/pages/editar-perfil';
+    var classifiedPage   = prefix === '/en' ? prefix + '/pages/classifieds'   : '/pages/clasificados';
+
+
+    return {
+      prefix           : prefix,
+      firearmsCollection: firearmsCollection,
+      myArmorer        : myArmorerPage,
+      favorites        : favoritesPage,
+      comparator       : comparatorPage,
+      myAdverts        : myAdvertsPage,
+      adDetail         : adDetailPage,
+      adsConsole       : adsConsolePage,
+      profile          : profilePage,
+      editProfile      : editProfilePage,
+      classified        : classifiedPage,
+
+      /** Convenience: build a full URL with optional query string */
+      build: function(base, params) {
+        if (!params) return base;
+        var qs = typeof params === 'string' ? params : new URLSearchParams(params).toString();
+        return qs ? base + '?' + qs : base;
+      }
+    };
+  })();
+</script>

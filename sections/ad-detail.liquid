@@ -1,0 +1,1537 @@
+<section id="section-ad-detail" class="section_add-detail"
+  style="padding-top: {{ section.settings.padding_top }}px; padding-bottom: {{ section.settings.padding_bottom }}px;">
+  <div class="container">
+    <div class="ad-detail-page" id="ad-detail-root">
+      <!-- Loading State -->
+      <div class="ad-loading" id="ad-loading">
+        <div class="ad-loading__spinner"></div>
+        <p>{{ 'custom.loading_ad' | t }}...</p>
+      </div>
+
+      {%- comment -%}
+        Shown both for an ad that doesn't exist and for one the visitor isn't
+        allowed to see. The message is the same in both cases on purpose, so
+        that trying ids tells you nothing about which ads are real.
+      {%- endcomment -%}
+      {%- liquid
+        assign clf_url = '/pages/clasificados'
+        if request.locale.iso_code != 'es'
+          assign clf_url = '/en/pages/classifieds'
+        endif
+      -%}
+      <div class="ad-error" id="ad-error" style="display:none;">
+        <p>{{ 'custom.ad_not_found' | t }}</p>
+        <a class="button button-secondary is-small" href="{{ clf_url }}">
+          {{- 'custom.browse_classifieds' | t -}}
+        </a>
+      </div>
+
+      <!-- Main Content -->
+      <div class="ad-detail-content" id="ad-detail-content" style="display:none;">
+        <div class="ad-detail-container">
+          <!-- MAIN LAYOUT: IMAGE LEFT | INFO RIGHT -->
+          <div class="ad-detail-layout">
+            <!-- LEFT: Image Gallery -->
+            <div class="ad-gallery" id="ad-gallery">
+              <a id="ad-fancybox-link" href="" >
+                <div class="ad-gallery__main">
+                  <img 
+                    id="ad-main-image"
+                    src=""
+                    alt="Ad image"
+                    width="600"
+                    height="450"
+                    data-placeholder="https://cdn.shopify.com/s/files/1/0977/9986/4694/files/product-placeholder.svg"
+                  >
+                </div>
+              </a>
+              <div class="ad-gallery__thumbs" id="ad-gallery-thumbs" style="display:none;">
+                <button class="ad-thumb-nav ad-thumb-nav--prev" id="thumb-prev">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <div class="ad-thumb-track" id="thumb-track"></div>
+                <button class="ad-thumb-nav ad-thumb-nav--next" id="thumb-next">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+              <!-- Description -->
+              <div class="ad-description">
+                <h3 class="ad-description__heading">{{ 'custom.description' | t }}</h3>
+                <div class="ad-description__body" id="ad-description">—</div>
+              </div>
+            </div>
+
+
+            <!-- RIGHT: Ad Info -->
+            <div class="ad-info">
+              <!-- TOP META BAR -->
+              <div class="ad-meta-bar">
+                <div class="ad-meta-bar__left">
+                  <span class="ad-meta-stat">
+                    {% render 'icon-eye' %}
+                    <span id="ad-views-count">0</span> {{ "custom.views" | t }}
+                  </span>
+                  <span class="ad-meta-stat">
+                    {% render 'icon-share' %}
+                    <span id="ad-share-count">0</span> <span id="ad-share-label">{{ "custom.sent" | t }}</span>
+                  </span>
+                </div>
+                <div class="ad-meta-bar__right">
+                  <button class="button button-secondary is-small ad-btn-share" id="btn-share-ad"
+                    title="{{ 'custom.share_ad' | t }}">
+                    {% render 'icon-share' %}
+                    {{ "custom.send" | t }}
+                  </button>
+                </div>
+              </div>
+
+              {%- comment -%}
+                Three lines, per the client's structure:
+                  1. Brand + Model // Barrel length      e.g. Sako 90 Quest // 62 cm (24.4")
+                  2. Caliber                             e.g. 308 Winchester
+                  3. Type // Sub-type                    e.g. Rifle // Cerrojo
+                Lines 1 and 2 share a font size; line 3 is smaller.
+
+                Lines 2 and 3 are <p>, not the <h4> line 3 used to be: they're
+                a spec pair, not a heading, and an h4 under the h3 was padding
+                the heading outline for no benefit (cf. the heading-style SEO
+                pass in 2a0e736).
+              {%- endcomment -%}
+              <div class="ad-info-name-wrapper">
+                <div class="ad-info__label" id="ad-personalized-name"></div>
+                <h4 class="ad-info__title" id="ad-title">—</h4>
+                <h4 class="ad-info__caliber" id="ad-caliber">—</h4>
+                <p class="ad-info__subtitle" id="ad-subtitle">—</p>
+              </div>
+
+              <!-- Key Stats Grid -->
+              <div class="ad-stats-grid">
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'content.price' | t }}</span>
+                  <span class="ad-stat-cell__value price" id="ad-price" data-price="0">—</span>
+                </div>
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'custom.availability' | t }}</span>
+                  <span class="ad-stat-cell__value" id="ad-availability">—</span>
+                </div>
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'custom.status' | t }}</span>
+                  <span class="ad-stat-cell__value" id="ad-status">—</span>
+                </div>
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'custom.city_' | t }}</span>
+                  <span class="ad-stat-cell__value" id="ad-city">—</span>
+                </div>
+                {%- comment -%}
+                  Purchase date is commented out rather than removed at the
+                  client's request: it's an optional field at ad creation, so
+                  it was showing "—" on most ads. The JS that fills it is
+                  likewise left in place (guarded), so restoring this cell is
+                  just deleting these comment markers.
+
+                  <div class="ad-stat-cell">
+                    <span class="ad-stat-cell__label">{{ 'custom.purchase_date' | t }}</span>
+                    <span class="ad-stat-cell__value" id="ad-purchase-date-display">—</span>
+                  </div>
+                {%- endcomment -%}
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'custom.barrel_length' | t }}</span>
+                  <span class="ad-stat-cell__value" id="ad-barrel-length">—</span>
+                </div>
+                <div class="ad-stat-cell">
+                  <span class="ad-stat-cell__label">{{ 'custom.handedness' | t }}</span>
+                  <span class="ad-stat-cell__value" id="ad-handedness">—</span>
+                </div>
+              </div>
+
+              <!-- Seller Info -->
+              <div class="ad-seller-row">
+                <div class="ad-seller-info">
+                  <div id="ad-seller-avatar">{% render "icon-profile" %}</div>
+                  <div class="ad-seller-info__col">
+                    <span class="ad-seller-info__label">{{ 'custom.user_name' | t }}:</span>
+                    <span class="ad-seller-info__value" id="ad-seller-name">—</span>
+                  </div>
+                </div>
+                <div class="ad-contact-btns" id="ad-contact-btns">
+                  <button class="button button-secondary is-small ad-btn-phone" id="btn-see-phone">
+                    {% render 'icon-eye' %}
+                    {{ 'custom.see_phone' | t }}
+                  </button>
+                  <button class="button button-secondary is-small ad-btn-contact" id="btn-contact">
+                    {% render 'icon-form' %}
+                    {{ 'custom.contact' | t }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- <div class="ad-seller-type">{{ 'custom.seller_type' | t }}: {{ 'custom.private_seller' | t }}</div> -->
+              
+
+              <div class="ad-extra-details" id="ad-extra-details" style="display:none;">
+                <h5 class="ad-extra-details__heading" style="display:none;">{{ 'custom.details' | t }}:</h5>
+                <p id="ad-firearm-details" style="display:none;"></p>
+              </div>
+
+              <div class="ad-product-link" id="ad-product-link" style="display:none;">
+                <a id="ad-product-url" href="#" target="_blank" class="button is-small" style="display:none;">
+                  {{ 'custom.view_in_catalogue' | t }} →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- BUYER SAFETY TIPS -->
+        <!-- <div class="ad-safety-section">
+          <div class="ad-detail-container">
+            <h3 class="ad-safety-section__heading">{{ 'custom.buyer_safety_tips' | t }}</h3>
+            <ul class="ad-safety-list">
+              <li>{{ 'custom.ffl_transfer_notice' | t }}</li>
+              <li>{{ 'custom.verify_seller_notice' | t }}</li>
+              <li>{{ 'custom.inspect_condition_notice' | t }}</li>
+              <li>{{ 'custom.firearm_law_notice' | t }}</li>
+              <li>{{ 'custom.safe_payment_warning' | t }}</li>
+            </ul>
+          </div>
+        </div> -->
+
+        <!-- RELATED ADS -->
+        <div class="ad-related-section">
+          <div class="ad-detail-container">
+            <h3 class="ad-related-section__heading">{{ 'custom.related_ads' | t }}</h3>
+            <div class="ad-related-list" id="ad-related-list">
+              <p class="ad-related-empty" id="ad-related-empty" style="display:none;">{{ 'custom.no_related_ads' | t }}</p>
+            </div>
+            <div class="ad-related-more-wrap">
+              <button type="button" class="button button-secondary ad-related-more" id="ad-related-more" style="display:none;">{{ 'actions.show_more' | t }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{%- comment -%}
+  ── STICKY BOTTOM CTA STRIP ─────────────────────────────────────────────────
+  Identity + price + actions, fixed to the bottom of the viewport at every
+  breakpoint (the earlier version was mobile-only and carried the buttons
+  alone).
+
+  Sits OUTSIDE #section-ad-detail, which has its own padding and containers —
+  a position:fixed element inside it would still work, but any future
+  transform or overflow on an ancestor would silently trap it. As a top-level
+  sibling it can't be.
+
+  The buttons here are MIRRORS, not the originals: #btn-contact and
+  #btn-see-phone keep living in the seller row, where all the contact-modal
+  and phone-reveal logic is already bound. These forward their clicks to those
+  originals and copy their visibility, so there is exactly one source of truth
+  for "does this ad have a phone" and "is the viewer the owner".
+{%- endcomment -%}
+<div class="ad-sticky-cta" id="ad-sticky-cta" aria-hidden="true">
+  <div class="ad-sticky-cta__inner container">
+    <div class="ad-sticky-cta__identity">
+      <img
+        class="ad-sticky-cta__thumb"
+        id="ad-sticky-thumb"
+        src=""
+        alt=""
+        width="48"
+        height="48"
+        loading="lazy"
+      >
+      <div class="ad-sticky-cta__text">
+        <span class="ad-sticky-cta__title" id="ad-sticky-title">—</span>
+        <span class="ad-sticky-cta__meta" id="ad-sticky-meta">—</span>
+      </div>
+    </div>
+
+    <div class="ad-sticky-cta__actions">
+      <span class="ad-sticky-cta__price price" id="ad-sticky-price">—</span>
+      <div class="ad-sticky-cta__btns" id="ad-sticky-btns">
+        {%- comment -%}
+          The labels stay visible at every breakpoint — both buttons fit
+          beside the price down to ~340px, below which the ICONS are dropped
+          and the words kept. The span is the styling hook for that, and for
+          the tighter type the two-button row uses.
+        {%- endcomment -%}
+        <button
+          type="button"
+          class="button button-secondary is-small ad-btn-phone"
+          id="btn-see-phone-strip"
+        >
+          {% render 'icon-eye' %}
+          <span class="ad-sticky-cta__btn-label">{{ 'custom.see_phone' | t }}</span>
+        </button>
+        <button type="button" class="button is-small ad-btn-contact" id="btn-contact-strip">
+          {% render 'icon-form' %}
+          <span class="ad-sticky-cta__btn-label">{{ 'custom.contact' | t }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="ad-modal-overlay" id="contact-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+  <div class="ad-modal">
+    <button class="ad-modal__close" id="modal-close" aria-label="Close">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#F3F4F3" />
+        <path d="M7.59961 16.0047C7.59961 12.2355 7.59961 10.3508 8.77058 9.17988C9.94153 8.00891 11.8262 8.00891 15.5954 8.00891C19.3647 8.00891 21.2494 8.00891 22.4203 9.17988C23.5913 10.3508 23.5913 12.2355 23.5913 16.0047C23.5913 19.774 23.5913 21.6587 22.4203 22.8296C21.2494 24.0006 19.3647 24.0006 15.5954 24.0006C11.8262 24.0006 9.94153 24.0006 8.77058 22.8296C7.59961 21.6587 7.59961 19.774 7.59961 16.0047Z" stroke="#295a31" stroke-width="1.19938" />
+        <path d="M17.5931 14.006L13.5957 18.0034M13.5957 14.006L17.5931 18.0034" stroke="#295a31" stroke-width="1.19938" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    <h4 class="ad-modal__title">{{ 'custom.ask_advertiser' | t }}</h4>
+
+    <div class="ad-modal__seller">
+      <div class="ad-modal__seller-avatar" id="modal-seller-avatar">
+        {% render "icon-profile" %}
+      </div>
+      <div class="ad-modal__seller-details">
+        <div><span class="ad-modal__seller-label">{{ 'custom.user_name' | t }}:</span> <span id="modal-seller-name">—</span></div>
+      </div>
+    </div>
+
+    <form class="ad-modal__form" id="contact-form" novalidate>
+      <div class="ad-form-group">
+        <label class="ad-form-label" for="contact-name">{{ 'custom.your_name' | t }}</label>
+        <input class="ad-form-input" type="text" id="contact-name" name="name" placeholder="" required>
+      </div>
+      <div class="ad-form-group">
+        <label class="ad-form-label" for="contact-email">{{ 'custom.email_address' | t }}</label>
+        <input class="ad-form-input" type="email" id="contact-email" name="email" placeholder="{{ 'custom.email_address' | t }}" required>
+      </div>
+      <div class="ad-form-group">
+        <label class="ad-form-label" for="contact-phone-buyer">{{ 'custom.phone' | t }}</label>
+        <input class="ad-form-input" type="tel" maxlength="15" pattern="[0-9]*" id="contact-phone-buyer" name="phone" placeholder="{{ 'custom.phone' | t }}">
+      </div>
+      <div class="ad-form-group ad-modal__prefill-wrap">
+        <label class="ad-form-label" for="modal-prefill-msg">{{ 'blogs.comment_form.message' | t }}</label>
+        <textarea class="ad-form-input ad-modal__prefill-textarea" id="modal-prefill-msg" name="message" rows="5" required></textarea>
+      </div>
+      <div class="ad-form-check">
+        <input type="checkbox" id="contact-privacy" name="privacy" required>
+        <label for="contact-privacy">{{ 'custom.accept_privacy_policy' | t }}</label>
+      </div>
+      <div class="ad-form-error" id="contact-form-error" style="display:none;"></div>
+      <button type="submit" class="button bg-color-orange text-block ad-btn-send" id="contact-submit">
+        {{ 'custom.send' | t }}
+      </button>
+      <div class="ad-form-cooldown" id="contact-cooldown" style="display:none;"></div>
+    </form>
+
+    <button class="ad-modal__see-phone-btn" id="modal-see-phone-btn" style="display:none;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.71 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.91.35 1.85.58 2.81.71A2 2 0 0 1 21.79 16.92z" />
+      </svg>
+      <strong>{{ 'custom.see_phone' | t }}</strong>
+    </button>
+
+    <div class="ad-modal__phone-row" id="modal-phone-row" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.71 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.91.35 1.85.58 2.81.71A2 2 0 0 1 21.79 16.92z" />
+      </svg>
+      <span id="modal-phone-number">—</span>
+    </div>
+
+    <div class="ad-modal__success" id="contact-success" style="display:none;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#295A31" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="9 12 11 14 15 10" />
+      </svg>
+      <p class="ad-modal__success-title">{{ 'custom.message_sent_success' | t }}</p>
+      <p class="ad-modal__success-note">{{ 'custom.message_sent_note' | t }}</p>
+      <p class="ad-modal__success-cooldown" id="contact-success-cooldown" style="display:none;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE TOAST — only shown on mobile after native share -->
+<div class="ad-share-toast" id="share-toast" style="display:none;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+  {{ 'custom.link_copied' | t }}
+</div>
+
+<script>window.GL_LOCALE = {{ request.locale.iso_code | json }};</script>
+<script>
+  // Locale-aware value translation for firearm type / subtype (mirrors the
+  // homepage search section's verified valueMap — same source of truth).
+  // Ad data may be stored in EITHER language, so we normalise to a canonical
+  // (English) key first, then render in the active locale. Storage language
+  // is therefore irrelevant. Add pairs here to translate more fields later.
+  window.GLI18n = window.GLI18n || (function () {
+    {% render 'gl-ads-value-translations' %}
+
+    var ES_TO_EN = {};
+    Object.keys(EN_TO_ES).forEach(function (en) {
+      var es = EN_TO_ES[en];
+      if (!(es in ES_TO_EN)) ES_TO_EN[es] = en; // first wins; identical dups are harmless
+    });
+
+    function locale() {
+      var l = (window.GL_LOCALE || '').toLowerCase();
+      return l === 'en' ? 'en' : 'es'; // Spanish is the default
+    }
+
+    // Any stored value (EN or ES) → its English canonical form.
+    function canonical(value) {
+      if (value == null) return '';
+      var v = String(value).trim();
+      if (EN_TO_ES.hasOwnProperty(v)) return v;          // already English
+      if (ES_TO_EN.hasOwnProperty(v)) return ES_TO_EN[v]; // Spanish → English
+      return v;                                          // unknown → pass through
+    }
+
+    // Translate a stored value into the active (or given) locale.
+    function t(value, loc) {
+      var target = loc || locale();
+      var canon  = canonical(value);
+      if (target === 'en') return canon;
+      return EN_TO_ES.hasOwnProperty(canon) ? EN_TO_ES[canon] : canon;
+    }
+
+    return { t: t, canonical: canonical, locale: locale };
+  })();
+</script>
+
+<script>
+  window._availabilityLabels = {
+    in_stock:   {{ 'custom.availability_in_stock'   | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }},
+    wholesaler: {{ 'custom.availability_wholesaler' | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }},
+    on_demand:  {{ 'custom.availability_on_demand'  | t | replace: "&gt;", ">" | replace: "&lt;", "<" | replace: "&amp;", "&" | json }}
+  };
+</script>
+<script>
+  window._statusLabels = {
+    new:         {{ 'custom.new'         | t | json }},
+    nearly_new:  {{ 'custom.nearly_new'  | t | json }},
+    used:        {{ 'custom.used'        | t | json }},
+    deactivated: {{ 'custom.deactivated' | t | json }}
+  };
+</script>
+{% render 'gl-ad-meta' %}
+<script>
+  {% render 'gl-ad-ordering' %}
+</script>
+<script>
+  (function () {
+    'use strict';
+    const I18N = window.GLI18n || { t: v => v, canonical: v => v, locale: () => 'es' };
+
+    const API_BASE         = 'https://shopify-gunloupe.addwebprojects.com';
+    const STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+    const STOREFRONT_API   = 'https://gunloupe.myshopify.com/api/2024-01/graphql.json';
+
+    // The title's line 1 now depends on this helper, so it's on the critical
+    // render path rather than isolated in the related-ads block. The shim keeps
+    // a missing gl-ad-meta from taking the whole ad detail down with it: the
+    // title falls back to the raw model string, barrel length reads "—".
+    const AdMeta = window.GunloupeAdMeta || {
+      splitModelBarrel: function (model) { return { model: (model || '').trim(), barrelCm: '' }; },
+      barrelInchesFor:  function () { return ''; },
+      loadBarrelInches: function (onReady) { if (onReady) onReady(); }
+    };
+
+    function qs(sel) { return document.querySelector(sel); }
+    function getParam(name) { return new URLSearchParams(window.location.search).get(name); }
+
+    // Handedness (not stored on the ad — pulled from the linked product's
+    // custom.lateralidad metafield via the Storefront GraphQL API, same
+    // pattern used in classifieds.liquid/my-adverts.liquid). Only resolves
+    // for ads linked to a catalogue product; falls back to '—' otherwise.
+    async function fetchHandedness(handle) {
+      if (!handle) return '';
+      try {
+        const res = await fetch(STOREFRONT_API, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+          body:    JSON.stringify({
+            query: `{ product(handle: ${JSON.stringify(handle)}) { metafield(namespace: "custom", key: "lateralidad") { value } } }`
+          })
+        });
+        if (!res.ok) return '';
+        const data = await res.json();
+        if (data.errors) return '';
+        return (data.data && data.data.product && data.data.product.metafield && data.data.product.metafield.value) || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // ── formatPrice ────────────────────────────────────────────────────────
+    function formatPrice(val, adCurrency) {
+      if (!val) return 'N/A';
+      const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+      if (isNaN(num) || num === 0) return 'N/A';
+      const sourceCurrency = adCurrency || 'EUR';
+      const currency = localStorage.getItem('currency') || 'EUR';
+      const rate = parseFloat(localStorage.getItem('eur_to_usd') || '1.08');
+      const numInEur = sourceCurrency === 'USD' ? num / rate : num;
+      if (currency === 'USD') return '$' + Math.round(numInEur * rate);
+      return numInEur.toLocaleString('en-US', { minimumFractionDigits: 0 }) + '€';
+    }
+
+    function isOwner(ad) {
+      {% if customer %}
+        return String({{ customer.id }}) === String(ad.customer_id || '').split('/').pop();
+      {% else %}
+        return false;
+      {% endif %}
+    }
+
+    function isAdmin() {
+      {% if customer %}
+        var adminEmails = ["dharmit.f@addwebsolution.in", "jota@ctd.io", "abertrand@gunloupe.com"];
+        return adminEmails.indexOf({{ customer.email | json }}) !== -1;
+      {% else %}
+        return false;
+      {% endif %}
+    }
+
+    // ── Who may open this ad ───────────────────────────────────────────────
+    // Reaching an ad by URL is the ONLY way to open a non-published one: the
+    // listings all filter to published + sold, and a sold card is not
+    // clickable. So this gate is what stands between a guessed or bookmarked
+    // id and an ad the public was never meant to see.
+    //
+    // pending / rejected / archived are visible to the ad's owner and to an
+    // admin, because Mis anuncios and the Ads Console both link here and
+    // blocking them outright would break those screens. Everyone else is
+    // refused, and told nothing about why — see showUnavailable().
+    //
+    // Anything else — deleted, or an ad with no status at all — is refused
+    // for everyone. /my-adverts/all already drops those, so they are invisible
+    // everywhere else on the site; this keeps the detail page consistent.
+    var OWNER_ONLY_STATES = ['pending', 'rejected', 'archived'];
+
+    function canViewAd(ad) {
+      var state = ad.ad_status || '';
+      if (state === 'published' || state === 'sold') return true;
+      if (OWNER_ONLY_STATES.indexOf(state) === -1) return false;
+      return isOwner(ad) || isAdmin();
+    }
+
+    // One screen, one message, whether the ad is blocked or genuinely missing.
+    // Deliberately identical: a distinct "this one exists but you can't see it"
+    // message would let anyone walk the id range and learn which ads are real.
+    function showUnavailable() {
+      var content = qs('#ad-detail-content');
+      if (content) content.remove();   // removed, not hidden — nothing to inspect
+      qs('#ad-loading').style.display = 'none';
+      var err = qs('#ad-error');
+      if (err) err.style.display = 'block';
+    }
+
+    // ── Status banner ──────────────────────────────────────────────────────
+    // Built here rather than sitting empty in the markup, so a published ad
+    // carries no leftover element at all.
+    //
+    // "sold" is shown to everyone: it is a normal outcome and the visitor
+    // needs to know why there is no contact button. The other three only ever
+    // render for the owner or an admin — canViewAd() has already refused
+    // everyone else — so the wording can be direct about the moderation state
+    // without exposing it to the public.
+    var STATE_NOTICE = {
+      sold:     {{ 'custom.ad_sold_notice'    | t | json }},
+      pending:  {{ 'custom.ad_state_pending'  | t | json }},
+      rejected: {{ 'custom.ad_state_rejected' | t | json }},
+      archived: {{ 'custom.ad_state_archived' | t | json }}
+    };
+
+    function renderStateBanner(ad) {
+      var text = STATE_NOTICE[ad.ad_status || ''];
+      if (!text) return;
+      var info = qs('.ad-info');
+      if (!info) return;
+      var el = document.createElement('div');
+      el.className = 'ad-state-banner ad-state-banner--' + ad.ad_status;
+      el.setAttribute('role', 'status');
+      el.textContent = text;
+      info.insertBefore(el, info.firstChild);
+    }
+
+    // ── Parse images ───────────────────────────────────────────────────────
+    function parseImages(ad) {
+      const images = [];
+      if (ad.ad_images) {
+        try {
+          const parsed = typeof ad.ad_images === 'string' ? JSON.parse(ad.ad_images) : ad.ad_images;
+          if (Array.isArray(parsed)) {
+            parsed.forEach(function (u) { if (u && u.startsWith('http')) images.push(u); });
+          }
+        } catch (e) { }
+      }
+      if (images.length === 0 && ad.product_image && ad.product_image.startsWith('http')) {
+        images.push(ad.product_image);
+      }
+      return images;
+    }
+
+    // ── Build gallery ──────────────────────────────────────────────────────
+    function buildGallery(images) {
+      const mainImg    = qs('#ad-main-image');
+      const fancyLink  = qs('#ad-fancybox-link');
+      const thumbsWrap = qs('#ad-gallery-thumbs');
+      const thumbTrack = qs('#thumb-track');
+      let currentIdx   = 0;
+
+      if (!mainImg) return;
+
+      function getLarge(url) { return url.replace(/width=\d+/, 'width=1600'); }
+
+      if (!images.length) {
+        const fallback = mainImg.dataset.placeholder || '';
+        mainImg.src = fallback;
+        if (fancyLink) fancyLink.href = fallback;
+      } else {
+        mainImg.src = images[0];
+        if (fancyLink) fancyLink.href = images[0];
+      }
+
+      if (fancyLink) {
+        fancyLink.onclick = function (e) {
+          e.preventDefault();
+          const galleryItems = (images.length ? images : [mainImg.src]).map((url) => ({
+            src: getLarge(url), type: 'image'
+          }));
+          Fancybox.show(galleryItems, { startIndex: currentIdx, dragToClose: true });
+        };
+      }
+
+      if (images.length < 2) return;
+
+      thumbsWrap.style.display = 'flex';
+      thumbTrack.innerHTML = '';
+
+      images.forEach(function (url, idx) {
+        const thumb = document.createElement('div');
+        thumb.className = 'ad-thumb-item' + (idx === 0 ? ' active' : '');
+        thumb.innerHTML = '<img src="' + url + '" alt="Thumb ' + (idx + 1) + '" />';
+        thumb.addEventListener('click', function () { setActive(idx); });
+        thumbTrack.appendChild(thumb);
+      });
+
+      function setActive(idx) {
+        currentIdx = idx;
+        mainImg.src = images[idx];
+        if (fancyLink) fancyLink.href = images[idx];
+        let activeThumb = null;
+        thumbTrack.querySelectorAll('.ad-thumb-item').forEach(function (t, i) {
+          t.classList.toggle('active', i === idx);
+          if (i === idx) activeThumb = t;
+        });
+        // The track now scrolls (mobile fix) instead of clipping overflow,
+        // so bring the newly active thumb into view — otherwise prev/next
+        // could select a thumbnail the user can't actually see.
+        if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+      }
+
+      qs('#thumb-prev')?.addEventListener('click', function () {
+        setActive((currentIdx - 1 + images.length) % images.length);
+      });
+      qs('#thumb-next')?.addEventListener('click', function () {
+        setActive((currentIdx + 1) % images.length);
+      });
+    }
+
+    // ── Contact cooldown (anti-spam) ───────────────────────────────────────
+    // Persisted in localStorage so it survives reloads / modal re-opens.
+    const CONTACT_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
+
+    function cooldownKey(adId) { return 'gl_contact_cooldown_' + adId; }
+
+    function getCooldownRemaining(adId) {
+      try {
+        const until = parseInt(localStorage.getItem(cooldownKey(adId)) || '0', 10);
+        const left  = until - Date.now();
+        return left > 0 ? left : 0;
+      } catch (e) { return 0; }
+    }
+
+    function startCooldown(adId) {
+      try { localStorage.setItem(cooldownKey(adId), String(Date.now() + CONTACT_COOLDOWN_MS)); } catch (e) {}
+    }
+
+    function fmtMMSS(ms) {
+      const total = Math.ceil(ms / 1000);
+      return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+    }
+
+    // ── Increment stat ─────────────────────────────────────────────────────
+    function incrementStat(adId, field, extraPayload) {
+      const storageKey = 'gl_stat_' + adId + '_' + field;
+      if (sessionStorage.getItem(storageKey)) return;
+      sessionStorage.setItem(storageKey, '1');
+      const payload = Object.assign({ field: field }, extraPayload || {});
+      fetch(API_BASE + '/my-adverts/' + encodeURIComponent(adId) + '/increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(function () { });
+    }
+
+    // ── Share popup ────────────────────────────────────────────────────────
+    function showSharePopup(url, title, onShareAction) {
+      const existing = document.getElementById('ad-share-popup');
+      if (existing) { existing.remove(); return; }
+
+      const encoded      = encodeURIComponent(url);
+      const encodedTitle = encodeURIComponent(title);
+      const popup        = document.createElement('div');
+      popup.id = 'ad-share-popup';
+
+      popup.innerHTML = `
+        <div class="ad-share-popup__box">
+          <div class="ad-share-popup__header">
+            <span>{{ 'custom.share_ad' | t }}</span>
+            <button class="ad-share-popup__close" id="ad-share-popup-close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="ad-share-popup__url">
+            <input type="text" value="${url}" readonly id="ad-share-url-input">
+            <button class="ad-share-popup__copy" id="ad-share-copy-btn">Copy</button>
+          </div>
+          <div class="ad-share-popup__socials">
+            <a href="https://wa.me/?text=${encodedTitle}%20${encoded}" target="_blank" class="ad-share-social ad-share-social--wa">WhatsApp</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${encoded}" target="_blank" class="ad-share-social ad-share-social--fb">Facebook</a>
+            <a href="https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encoded}" target="_blank" class="ad-share-social ad-share-social--tw">X / Twitter</a>
+          </div>
+          <div class="ad-share-popup__copied" id="ad-share-copied" style="display:none;">✓ Copied to clipboard!</div>
+        </div>`;
+
+      document.body.appendChild(popup);
+
+      document.getElementById('ad-share-copy-btn').addEventListener('click', function () {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(showCopiedState).catch(fallbackCopy);
+        } else { fallbackCopy(); }
+        if (onShareAction) { onShareAction(); onShareAction = null; }
+        setTimeout(function () { popup.remove(); }, 800);
+      });
+
+      document.querySelectorAll('#ad-share-popup .ad-share-social').forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (onShareAction) { onShareAction(); onShareAction = null; }
+          popup.remove();
+        });
+      });
+
+      function fallbackCopy() {
+        const input = document.getElementById('ad-share-url-input');
+        input.select();
+        document.execCommand('copy');
+        showCopiedState();
+      }
+
+      function showCopiedState() {
+        const copied = document.getElementById('ad-share-copied');
+        const btn    = document.getElementById('ad-share-copy-btn');
+        copied.style.display = 'block';
+        btn.textContent = '{{ "custom.copied" | t }}!';
+        setTimeout(function () {
+          copied.style.display = 'none';
+          btn.textContent = '{{ "custom.copy" | t }}';
+        }, 2000);
+      }
+
+      document.getElementById('ad-share-url-input').addEventListener('click', function () { this.select(); });
+      document.getElementById('ad-share-popup-close').addEventListener('click', function () { popup.remove(); });
+      popup.addEventListener('click', function (e) { if (e.target === popup) popup.remove(); });
+    }
+
+    // ── Share setup ────────────────────────────────────────────────────────
+    function setupShare(adId, adTitle, currentCount) {
+      let count     = parseInt(currentCount) || 0;
+      const btn     = qs('#btn-share-ad');
+      const countEl = qs('#ad-share-count');
+      const labelEl = qs('#ad-share-label');
+
+      function updateLabel(n) {
+        countEl.textContent = n;
+        labelEl.textContent = '{{ "custom.sent" | t }}';
+      }
+      updateLabel(count);
+
+      function recordShare() {
+        const storageKey = 'gl_stat_' + adId + '_shares';
+        if (sessionStorage.getItem(storageKey)) return;
+        count++;
+        updateLabel(count);
+        incrementStat(adId, 'shares');
+      }
+
+      // The button is removed from the DOM on a sold ad, but the count above
+      // is still shown, so only the binding is conditional.
+      if (btn) {
+        btn.addEventListener('click', function () {
+          showSharePopup(window.location.href, adTitle, recordShare);
+        });
+      }
+    }
+
+    // ── Normalise a caliber string for comparison ──────────────────────────
+    // Trim + collapse whitespace + lowercase so "9 mm" and "9mm" don't split.
+    function normCaliber(v) {
+      return String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    // ── TIERING (caliber-based) ────────────────────────────────────────────
+    // AC1/AC2 — Type AND Sub-type are MANDATORY. Caliber only sets priority.
+    //   Tier 1: Type + Sub-type + Caliber   (AC1, placed first)
+    //   Tier 2: Type + Sub-type             (AC2, caliber differs)
+    //   Tier 0: not eligible                (excluded — no padding with unrelated ads)
+    // Tier 2 is only reached once every tier 1 ad has been placed.
+    function getTier(ad, currentType, currentSubtype, currentCaliber) {
+      const typeMatch    = !!(currentType    && I18N.canonical(ad.firearm_type    || '') === I18N.canonical(currentType));
+      const subtypeMatch = !!(currentSubtype && I18N.canonical(ad.firearm_subtype || '') === I18N.canonical(currentSubtype));
+      if (!(typeMatch && subtypeMatch)) return 0; // excluded
+
+      const caliberMatch = !!(currentCaliber &&
+        normCaliber(ad.firearm_caliber) === normCaliber(currentCaliber));
+      return caliberMatch ? 1 : 2;
+    }
+
+    // ── Load related ads ───────────────────────────────────────────────────
+    // Everyone sees the same caliber-tiered related ads, in the same order,
+    // for a given 24h window (AC7). Ads from the same seller are still
+    // eligible, but the seller rotation (AC4/AC5/AC6) stops any one seller
+    // dominating the list. Only the ad being viewed is excluded. Contact
+    // buttons are still hidden for the owner (handled in renderAd).
+    async function loadRelatedAds(currentAdId, currentAd) {
+      const list    = qs('#ad-related-list');
+      const empty   = qs('#ad-related-empty');
+      const AdMeta  = window.GunloupeAdMeta;
+
+      const R            = window.GunloupeRoutes || {};
+      const adDetailBase = R.adDetail || '/pages/detalle-anuncio';
+
+      const firearmType    = currentAd.firearm_type    || '';
+      const firearmSubtype = currentAd.firearm_subtype || '';
+      const currentCaliber = currentAd.firearm_caliber || '';
+
+      try {
+        const res  = await fetch(API_BASE + '/my-adverts/all');
+        const data = await res.json();
+
+        // Step 1: exclude ONLY the ad being viewed.
+        //         Same-owner ads are intentionally kept. Sold ads are kept too
+        //         and separated in step 2 — they can only ever fill space left
+        //         over after the published ones.
+        const pool = (data.ads || []).filter(function (a) {
+          const aNumericId = String(a.id || '').split('/').pop();
+          return aNumericId !== String(currentAdId) &&
+            (a.ad_status === 'published' || a.ad_status === 'sold');
+        });
+
+        // Step 2: keep only ads matching at least Type + Sub-type (mandatory).
+        //         Split into tier 1 (caliber also matches) and tier 2 (differs),
+        //         and published apart from sold. Four buckets rather than two,
+        //         so that a sold ad can never displace a published one however
+        //         well its caliber matches: status outranks tier here.
+        const tier1 = []; // published, Type + Sub-type + Caliber
+        const tier2 = []; // published, Type + Sub-type
+        const sold1 = []; // sold,      Type + Sub-type + Caliber
+        const sold2 = []; // sold,      Type + Sub-type
+        pool.forEach(function (a) {
+          const tier = getTier(a, firearmType, firearmSubtype, currentCaliber);
+          if (tier === 0) return; // excluded entirely
+          const isSold = a.ad_status === 'sold';
+          if (tier === 1) (isSold ? sold1 : tier1).push(a);
+          else (isSold ? sold2 : tier2).push(a);
+        });
+
+        // Step 3: order each tier. The ENTIRE tier is ordered, not just the
+        //         first 6 — "Show more" pages through this same canonical
+        //         list, so every ad needs a fixed position (AC3/AC7).
+        //
+        //         The rotation state is shared between the two calls on
+        //         purpose: carrying `last` across the tier boundary stops the
+        //         final tier 1 slot and the first tier 2 slot going to the
+        //         same seller. Tier 1 still fully precedes tier 2 (AC2).
+        const ORD      = window.GLAdOrdering;
+        const rotation = { last: null };
+        const ordered1 = ORD.rotateBySeller(ORD.dailyOrder(tier1, currentAdId), rotation);
+        const ordered2 = ORD.rotateBySeller(ORD.dailyOrder(tier2, currentAdId), rotation);
+        let   combined = ordered1.concat(ordered2);
+
+        // Step 3b: fill the first page with sold ads, if it isn't full.
+        //          Same rule as Where to Buy: sold ads exist to stop a sparse
+        //          related list looking empty, so they fill the gap up to
+        //          RELATED_PAGE_SIZE and no further. With 6 published matches
+        //          there is no gap, and none are shown. They are never paged
+        //          into "Show more".
+        //
+        //          Their own seed keeps this shuffle independent of the
+        //          published one, and the shared `rotation` still applies, so
+        //          the last published slot and the first sold slot don't both
+        //          go to the same seller.
+        if (combined.length < RELATED_PAGE_SIZE && (sold1.length || sold2.length)) {
+          const soldOrdered = ORD
+            .rotateBySeller(ORD.dailyOrder(sold1, currentAdId + '|sold'), rotation)
+            .concat(ORD.rotateBySeller(ORD.dailyOrder(sold2, currentAdId + '|sold'), rotation));
+          combined = combined.concat(soldOrdered.slice(0, RELATED_PAGE_SIZE - combined.length));
+        }
+
+        if (!combined.length) { if (empty) empty.style.display = 'block'; return; }
+
+        // Step 4: backfill handedness before rendering. Ads created before the
+        //         handedness dropdown shipped have no stored value, and
+        //         without this the chip just doesn't appear on them. Ordering
+        //         does not depend on handedness, so this happens after it.
+        await AdMeta.attachHandedness(combined);
+
+        renderRelatedCards(combined, list, adDetailBase, ordered1.length);
+
+      } catch (e) {
+        if (empty) empty.style.display = 'block';
+      }
+    }
+
+    // ── Render related cards ───────────────────────────────────────────────
+    // No more New Firearms / Second Hand grouping here: private users can no
+    // longer create ads, so splitting by seller_type stopped reflecting a
+    // real distinction. All matching ads render together, in the tier and
+    // rotation order already computed by loadRelatedAds().
+    //
+    // AC3: 6 are shown initially and "Show more" appends the next 6 below
+    // the ones already on screen ("click to load", nothing is replaced).
+    // The order is fixed before the first render, so revealing more never
+    // re-sorts what the visitor is already looking at.
+    const RELATED_PAGE_SIZE = 6;
+
+    function renderRelatedCards(ads, list, adDetailBase, tier1Count) {
+      const AdMeta = window.GunloupeAdMeta;
+
+      // `position` is the ad's index in the final canonical list, used only to
+      // stamp the verification attributes below.
+      function renderCard(a, position) {
+        const images  = parseImages(a);
+        const imgSrc  = images[0] || '';
+        const imgHtml = imgSrc
+          ? '<img src="' + imgSrc + '" alt="' + (a.firearm_brand || '') + '" loading="lazy" />'
+          : '<div style="width:100%;height:100%;background:#eee;border-radius:6px;"></div>';
+
+        const adNumericId = String(a.id || '').split('/').pop();
+
+        // Sold ads can now appear here (they fill the first page when there
+        // aren't 6 published matches), so this card needs the same SOLD
+        // treatment Clasificados and Where to Buy already use: badge over the
+        // image, card dimmed and inert, CTA replaced by a disabled label.
+        // Without it a sold ad is indistinguishable from an available one.
+        const isSold = a.ad_status === 'sold';
+
+        // Same title/chip breakdown as the Clasificados and Mis anuncios
+        // cards, from the same shared helper — barrel length is baked into
+        // firearm_model as a "// 62cm" suffix, so it has to be split back out
+        // before it can be shown as its own chip instead of sitting inside
+        // the title text.
+        const modelParts   = AdMeta.splitModelBarrel(a.firearm_model);
+        const titleLine    = [modelParts.model, a.firearm_caliber].filter(Boolean).join(' | ');
+        const subtitleLine = [I18N.t(a.firearm_type), I18N.t(a.firearm_subtype)].filter(Boolean).join(' / ');
+        const barrelChip   = AdMeta.barrelChipHtml(modelParts.barrelCm);
+        const handChip     = AdMeta.handednessChipHtml(a.firearm_handedness);
+
+        // Business shows shop name, private shows personal name
+        const sellerDisplay = a.seller_type === 'business'
+          ? (a.seller_shop_name || a.seller_name || (a.seller_email ? a.seller_email.split('@')[0] : '—'))
+          : (a.seller_name || (a.seller_email ? a.seller_email.split('@')[0] : '—'));
+
+        const productLink = (a.product_handle && !a.product_handle.startsWith('custom-'))
+          ? `<a href="${window.Shopify.routes.root}products/${a.product_handle}" class="ad-card_product-link text-size-small">${subtitleLine}</a>`
+          : `<span class="ad-card_product-link text-size-small">${subtitleLine}</span>`;
+
+        const card = document.createElement('div');
+        card.className = 'ad-related-card' + (isSold ? ' clf-sold' : '');
+
+        // Verification attributes. Invisible to visitors, but they make the
+        // ordering rules checkable at a glance: the tier split (AC1/AC2) is
+        // not shown anywhere on the card, and `seller` is the raw id the
+        // rotation (AC4/AC5/AC6) actually keys on, which is more reliable to
+        // test against than the displayed shop name.
+        card.dataset.seller   = window.GLAdOrdering.sellerOf(a);
+        card.dataset.tier     = position < tier1Count ? '1' : '2';
+        card.dataset.position = String(position + 1);
+        card.innerHTML = [
+          '<div class="ad-related-card__img">' + imgHtml +
+            (isSold ? '<div class="clf-sold-overlay"><span class="clf-sold-badge">{{ "custom.sold" | t }}</span></div>' : '') +
+          '</div>',
+          '<div class="ad-related-card__info">',
+          (a.firearm_personalized_name ? `<div class="ad-card_nickname text-size-tiny">${a.firearm_personalized_name}</div>` : ''),
+          '<div class="ad-card_title-text">' + (titleLine || '—') + '</div>',
+          '<div class="ad-card_meta-row">' + productLink + barrelChip + handChip + '</div>',
+          '<div class="user-type-wrapper"><span class="ad-card_useralias text-size-tiny">' + sellerDisplay + '</span></div>',
+          '</div>',
+          '<div class="ad-related-card__meta"><span class="ad-related-card__meta-label text-size-small">{{ "custom.city" | t }}</span><span class="ad-related-card__meta-val">' + (a.city || '—') + '</span></div>',
+          '<div class="ad-related-card__meta"><span class="ad-related-card__meta-label text-size-small">{{ "custom.price" | t }}</span><span class="ad-related-card__meta-val price" data-price="' + (a.price || 0) + '" data-currency="' + (a.currency || 'EUR') + '">' + formatPrice(a.price, a.currency) + '</span></div>',
+          '<div class="ad-related-card__meta"><span class="ad-related-card__meta-label text-size-small">{{ "custom.availability" | t }}</span><span class="ad-related-card__meta-val">' + ((window._availabilityLabels && window._availabilityLabels[a.firearm_availability]) || a.firearm_availability || '—') + '</span></div>',
+          '<div class="ad-related-card__meta"><span class="ad-related-card__meta-label text-size-small">{{ "custom.condition" | t }}</span><span class="ad-related-card__meta-val">' + (I18N.t(a.firearm_status) || '—') + '</span></div>',
+          (isSold
+            ? '<button class="ad-related-card__btn button button-secondary is-small" disabled style="opacity:0.5;cursor:not-allowed;">{{ "custom.sold" | t }}</button>'
+            : '<a class="ad-related-card__btn button button-secondary is-small" href="' + adDetailBase + '?handle=' + encodeURIComponent(adNumericId) + '">{{ "custom.see_ad" | t }}</a>')
+        ].join('');
+        return card;
+      }
+
+      const moreBtn = qs('#ad-related-more');
+      let shown = 0;
+
+      function renderNextPage() {
+        const start = shown;
+        const next  = ads.slice(start, start + RELATED_PAGE_SIZE);
+        next.forEach(function (a, i) { list.appendChild(renderCard(a, start + i)); });
+        shown += next.length;
+
+        // Hidden entirely when there is nothing left to reveal — including
+        // the common case of 6 or fewer matches, where it never appears.
+        if (moreBtn) moreBtn.style.display = shown < ads.length ? '' : 'none';
+      }
+
+      if (moreBtn) moreBtn.addEventListener('click', renderNextPage);
+      renderNextPage();
+
+      // Barrel chips render cm-only and get their curated inches filled in
+      // when this resolves — including on cards revealed later by "Show
+      // more", which re-reads the map that is cached by then.
+      AdMeta.loadBarrelInches();
+    }
+
+    // ── Contact modal ──────────────────────────────────────────────────────
+    function setupContactModal(ad) {
+      const overlay     = qs('#contact-modal-overlay');
+      const closeBtn    = qs('#modal-close');
+      const form        = qs('#contact-form');
+      const submitBtn   = qs('#contact-submit');
+      const successEl   = qs('#contact-success');
+      const errorEl     = qs('#contact-form-error');
+      const phoneRow    = qs('#modal-phone-row');
+      const seePhoneBtn = qs('#modal-see-phone-btn');
+      const prefillEl   = qs('#modal-prefill-msg');
+      const cooldownEl  = qs('#contact-cooldown');
+      const successCdEl = qs('#contact-success-cooldown');
+      const SEND_LABEL  = '{{ "custom.send" | t }}';
+      const COOLDOWN_MSG = {{ 'custom.contact_cooldown_notice' | t | json }};
+      let cooldownTimer = null;
+
+
+      function setFormDisabled(state) {
+        if (!form) return;
+        form.classList.toggle('is-cooling', state);
+        form.querySelectorAll('input, textarea, button').forEach(function (el) {
+          el.disabled = state;
+        });
+      }
+
+      function tickCooldown() {
+        const left = getCooldownRemaining(adNumericId);
+        if (left <= 0) { endCooldownUI(); return; }
+        const text = COOLDOWN_MSG.replace('{time}', fmtMMSS(left));
+        setFormDisabled(true);
+        if (cooldownEl)  { cooldownEl.style.display = 'block';  cooldownEl.textContent = text; }
+        if (successCdEl) { successCdEl.style.display = 'block'; successCdEl.textContent = text; }
+      }
+
+      function startCooldownUI() {
+        clearInterval(cooldownTimer);
+        tickCooldown();
+        cooldownTimer = setInterval(tickCooldown, 1000);
+      }
+
+      function endCooldownUI() {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        setFormDisabled(false);
+        if (cooldownEl)  cooldownEl.style.display  = 'none';
+        if (successCdEl) successCdEl.style.display = 'none';
+        if (submitBtn)   submitBtn.textContent     = SEND_LABEL;
+      }
+
+      const modalSellerDisplay = ad.seller_type === 'business'
+        ? (ad.seller_shop_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—'))
+        : (ad.seller_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—'));
+      qs('#modal-seller-name').textContent = modalSellerDisplay;
+
+      const title = ((ad.firearm_model || '')).trim();
+      const isEN  = window.GunloupeRoutes && window.GunloupeRoutes.prefix === '/en';
+      const CONTACT_MESSAGE_TEMPLATE = {{ 'custom.contact_prefill_message_html' | t | json }};
+      const DEFAULT_FIREARM_NAME     = {{ 'custom.contact_prefill_default_firearm' | t | json }};
+      const defaultMessage = CONTACT_MESSAGE_TEMPLATE.replace('{firearm_name}', title || DEFAULT_FIREARM_NAME);
+      prefillEl.value = defaultMessage;
+
+      const adNumericId = String(ad.id || '').split('/').pop();
+      let phoneRevealed = false;
+
+      const phoneBtnOnPage = qs('#btn-see-phone');
+      if (!ad.seller_phone) {
+        phoneBtnOnPage.style.display = 'none';
+        seePhoneBtn.style.display    = 'none';
+      } else {
+        phoneBtnOnPage.style.display = 'flex';
+        seePhoneBtn.style.display    = 'flex';
+      }
+
+      function revealPhone() {
+        if (!ad.seller_phone) return;
+        if (!phoneRevealed) {
+          phoneRevealed = true;
+          phoneRow.style.display = 'flex';
+          qs('#modal-phone-number').textContent = ad.seller_phone;
+          seePhoneBtn.style.display = 'none';
+          incrementStat(adNumericId, 'phone_visible');
+        }
+      }
+
+      if (getCooldownRemaining(adNumericId) > 0) {
+        startCooldownUI();
+      }
+
+      function openModal() {
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (getCooldownRemaining(adNumericId) > 0) startCooldownUI();
+        incrementStat(adNumericId, 'contact_clicks');
+      }
+
+      function closeModal() {
+        overlay.style.display        = 'none';
+        document.body.style.overflow = '';
+        clearInterval(cooldownTimer);   // don't leak the interval
+        cooldownTimer = null;
+      }
+
+      qs('#btn-contact').addEventListener('click', openModal);
+      qs('#btn-see-phone').addEventListener('click', function () { openModal(); revealPhone(); });
+      closeBtn.addEventListener('click', closeModal);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+      seePhoneBtn.addEventListener('click', revealPhone);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errorEl.style.display = 'none';
+
+        const name    = qs('#contact-name').value.trim();
+        const email   = qs('#contact-email').value.trim();
+        const phone   = qs('#contact-phone-buyer').value.trim();
+        const message = prefillEl.value.trim();
+        const privacy = qs('#contact-privacy').checked;
+
+        if (getCooldownRemaining(adNumericId) > 0) { startCooldownUI(); return; }
+
+        if (!name)    { errorEl.textContent = '{{ "custom.fill_name" | t }}';  errorEl.style.display = 'block'; qs('#contact-name').focus();         return; }
+        if (!email)   { errorEl.textContent = '{{ "custom.fill_email" | t }}'; errorEl.style.display = 'block'; qs('#contact-email').focus();        return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errorEl.textContent = '{{ "custom.fill_email" | t }}'; errorEl.style.display = 'block'; qs('#contact-email').focus(); return; }
+        if (!phone)   { errorEl.textContent = '{{ "custom.fill_phone" | t }}'; errorEl.style.display = 'block'; qs('#contact-phone-buyer').focus();  return; }
+        if (!message) { errorEl.textContent = '{{ "custom.fill_msg" | t }}';   errorEl.style.display = 'block'; qs('#modal-prefill-msg').focus();    return; }
+        if (!privacy) { errorEl.textContent = '{{ "custom.accept_policy" | t }}'; errorEl.style.display = 'block'; return; }
+
+        submitBtn.disabled     = true;
+        submitBtn.textContent  = '{{ "custom.Sending" | t }}...';
+
+        fetch(API_BASE + '/my-adverts/' + encodeURIComponent(adNumericId) + '/increment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field: 'emails', buyerName: name, buyerEmail: email, buyerPhone: phone, message: message })
+        })
+          .then(function (r) { if (!r.ok) throw new Error('Server error'); return r.json(); })
+          .then(function (data) {
+            if (!data.success) throw new Error('Failed');
+            startCooldown(adNumericId);          // ← lock for 3 min
+            form.style.display        = 'none';
+            seePhoneBtn.style.display = 'none';
+            successEl.style.display   = 'flex';
+            startCooldownUI();                   // ← countdown shown inside success block
+            sessionStorage.setItem('gl_stat_' + adNumericId + '_emails', '1');
+            if (ad.seller_phone) { setTimeout(revealPhone, 800); }
+          })
+          .catch(function () {
+            submitBtn.disabled    = false;
+            submitBtn.textContent = '{{ "custom.send" | t }}';
+            errorEl.textContent   = '{{ "custom.send_msg" | t }}';
+            errorEl.style.display = 'block';
+          });
+      });
+    }
+
+    // ── Sticky bottom CTA strip ────────────────────────────────────────────
+    // Identity on the left, price + actions on the right, fixed at every
+    // breakpoint. Everything here is derived from what renderAd() has already
+    // painted, so the strip can never disagree with the page above it.
+    function setupStickyCta(hideContact) {
+      const strip = qs('#ad-sticky-cta');
+      if (!strip) return;
+
+      // Line 1 (#ad-sticky-title) is painted by paintBarrel(), which also
+      // repaints it when the curated inches land. Line 2 is the type/sub-type
+      // /caliber summary, kept on one line here because the strip has to stay
+      // short — the full three-line structure is in the title block above.
+      const meta = qs('#ad-sticky-meta');
+      if (meta) {
+        meta.textContent = [qs('#ad-subtitle').textContent, qs('#ad-caliber').textContent]
+          .filter(function (v) { return v && v !== '—'; })
+          .join(' // ') || '—';
+      }
+
+      qs('#ad-sticky-price').textContent = qs('#ad-price').textContent;
+
+      // buildGallery() has already resolved the main image (or its
+      // placeholder) by the time this runs.
+      const thumb = qs('#ad-sticky-thumb');
+      const main  = qs('#ad-main-image');
+      if (thumb && main && main.getAttribute('src')) {
+        thumb.src = main.getAttribute('src');
+      } else if (thumb) {
+        thumb.style.display = 'none';
+      }
+
+      // On a sold ad, or the owner's own ad, renderAd() has already removed
+      // the button group from the DOM. Nothing to mirror — the strip then
+      // carries identity and price only, and still needs revealing and
+      // measuring below, so this is a skipped block rather than an early
+      // return.
+      const btnsWrap = qs('#ad-sticky-btns');
+
+      if (!hideContact && btnsWrap) {
+        // Mirror each original's visibility, then forward clicks to it.
+        let visibleBtns = 0;
+        [
+          ['#btn-see-phone', '#btn-see-phone-strip'],
+          ['#btn-contact',   '#btn-contact-strip']
+        ].forEach(function (pair) {
+          const original = qs(pair[0]);
+          const mirror   = qs(pair[1]);
+          if (!original || !mirror) return;
+
+          // getComputedStyle, not .style.display: setupContactModal sets the
+          // inline style, but an ad that never hid the button has no inline
+          // value to read.
+          const hidden = window.getComputedStyle(original).display === 'none';
+          mirror.style.display = hidden ? 'none' : '';
+          if (!hidden) visibleBtns++;
+
+          if (mirror.dataset.bound) return;
+          mirror.dataset.bound = '1';
+          mirror.addEventListener('click', function () { original.click(); });
+        });
+
+        // CSS can't count visible siblings, and on mobile the layout depends
+        // on it: two buttons share the row with the price, one gets a roomier
+        // label.
+        btnsWrap.classList.toggle('is-dual', visibleBtns > 1);
+        btnsWrap.classList.toggle('is-single', visibleBtns === 1);
+      }
+
+      strip.classList.add('is-visible');
+      strip.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('has-ad-sticky-cta');
+
+      // Measure the strip instead of hard-coding a height: it's one row on
+      // desktop and two on mobile, and the English labels are longer than the
+      // Spanish, so a fixed number would either overlap the footer or leave a
+      // visible gap. ResizeObserver catches the breakpoint change and any
+      // label reflow; the resize listener is the fallback for older Safari.
+      function syncStripHeight() {
+        document.documentElement.style.setProperty('--ad-sticky-h', strip.offsetHeight + 'px');
+      }
+      syncStripHeight();
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(syncStripHeight).observe(strip);
+      } else {
+        window.addEventListener('resize', syncStripHeight);
+      }
+    }
+
+    // ── Render ad ──────────────────────────────────────────────────────────
+    function renderAd(ad) {
+      const adNumericId  = String(ad.id || '').split('/').pop();
+      const ownerViewing = isOwner(ad);
+
+      const sellerTypeLabel = ad.seller_type === 'business'
+        ? '{{ "custom.login_business" | t }}'
+        : '{{ "custom.login_private" | t }}';
+
+      const brand = ad.firearm_brand || '';
+      const model = ad.firearm_model || '';
+      const title = (brand + ' ' + model).trim() || 'Ad Detail';
+      document.title = title + ' — Gunloupe';
+
+      qs('#ad-personalized-name').textContent = ad.firearm_personalized_name || '';
+
+      // Barrel length isn't a field of its own — GunloupeAdTitle.build() bakes
+      // it into firearm_model as a "// 46cm" suffix, so it has to be split
+      // back out before the model can be shown on its own line.
+      const modelParts = AdMeta.splitModelBarrel(ad.firearm_model);
+
+      // Sellers type the model themselves and often include the brand in it
+      // ("Sako 90 Quest" with brand "Sako"), which would read as "Sako Sako 90
+      // Quest" now that line 1 prefixes the brand.
+      const nameLine = brand && modelParts.model.toLowerCase().indexOf(brand.toLowerCase()) === 0
+        ? modelParts.model
+        : [brand, modelParts.model].filter(Boolean).join(' ');
+
+      // Inches are CURATED, not converted: a 46cm barrel is marketed as 18in,
+      // not the arithmetic 18.11in, so they come from the all_barrel_length
+      // metaobject. That fetch is async, so this renders "62 cm" first and
+      // repaints as "62 cm (24.4")" once the map lands — same contract the
+      // card chips already use.
+      function barrelText() {
+        if (!modelParts.barrelCm) return '';
+        const inches = AdMeta.barrelInchesFor(modelParts.barrelCm);
+        return modelParts.barrelCm + ' cm' + (inches ? ' (' + inches + ')' : '');
+      }
+
+      // Line 1 of the title, the spec cell and the sticky strip all show the
+      // same barrel string, so they all repaint from here.
+      function paintBarrel() {
+        const barrel = barrelText();
+        const line1  = [nameLine, barrel].filter(Boolean).join(' // ') || '—';
+        qs('#ad-title').textContent         = line1;
+        qs('#ad-barrel-length').textContent = barrel || '—';
+        const stripTitle = qs('#ad-sticky-title');
+        if (stripTitle) stripTitle.textContent = line1;
+      }
+
+      paintBarrel();
+      AdMeta.loadBarrelInches(paintBarrel);
+
+      qs('#ad-caliber').textContent  = ad.firearm_caliber || '—';
+      qs('#ad-subtitle').textContent = [I18N.t(ad.firearm_type), I18N.t(ad.firearm_subtype)].filter(Boolean).join(' // ') || '—';
+
+      const priceEl            = qs('#ad-price');
+      priceEl.textContent      = formatPrice(ad.price, ad.currency);
+      priceEl.dataset.price    = ad.price || '0';
+      priceEl.dataset.currency = ad.currency || 'EUR';
+      priceEl.classList.add('price');
+
+      qs('#ad-status').textContent        = I18N.t(ad.firearm_status) || '—';
+      qs('#ad-availability').textContent  = (window._availabilityLabels && window._availabilityLabels[ad.firearm_availability]) || ad.firearm_availability || '—';
+      qs('#ad-city').textContent          = ad.city                  || '—';
+      // Format date from YYYY-MM-DD to DD/MM/YYYY
+      function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const day   = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year  = d.getFullYear();
+        const isEN  = window.GunloupeRoutes && window.GunloupeRoutes.prefix === '/en';
+        return isEN ? month + ' - ' + day + ' - ' + year : day + ' - ' + month + ' - ' + year;
+      }
+
+      // The purchase-date cell is commented out in the markup above at the
+      // client's request. This is left in place, guarded, so uncommenting the
+      // cell is the only step needed to bring it back.
+      const purchaseDateEl = qs('#ad-purchase-date-display');
+      if (purchaseDateEl) {
+        purchaseDateEl.textContent = formatDate(ad.firearm_purchase_date) || '—';
+      }
+
+      // The seller's chosen handedness is stored directly on the ad itself
+      // (set from a dropdown at creation time, since it's product-level
+      // data in Shopify and the seller's actual firearm may not match the
+      // catalogue default). Only fall back to a live product-metafield
+      // lookup for ads created before this field existed.
+      if (ad.firearm_handedness) {
+        qs('#ad-handedness').textContent = I18N.t(ad.firearm_handedness) || '—';
+      } else {
+        fetchHandedness(ad.product_handle).then(function (value) {
+          qs('#ad-handedness').textContent = I18N.t(value) || '—';
+        });
+      }
+
+      let sellerDisplay;
+      if (ad.seller_type === 'business') {
+        sellerDisplay = ad.seller_shop_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—');
+      } else {
+        sellerDisplay = ad.seller_name || (ad.seller_email ? ad.seller_email.split('@')[0] : '—');
+      }
+      qs('#ad-seller-name').textContent = sellerDisplay;
+
+      if (ad.seller_profile_picture) {
+        const avatarImg      = '<img src="' + ad.seller_profile_picture + '" alt="' + sellerDisplay + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--color-foreground);">';
+        const sellerAvatarEl = qs('#ad-seller-avatar');
+        const modalAvatarEl  = qs('#modal-seller-avatar');
+        if (sellerAvatarEl) sellerAvatarEl.innerHTML = avatarImg;
+        if (modalAvatarEl)  modalAvatarEl.innerHTML  = avatarImg;
+      }
+
+      qs('#ad-description').textContent = ad.description || '{{ "custom.no_description" | t }}';
+      qs('#ad-views-count').textContent = ad.views  || 0;
+      qs('#ad-share-count').textContent = ad.shares || 0;
+
+      if (ad.firearm_details) {
+        qs('#ad-firearm-details').textContent   = ad.firearm_details;
+        qs('#ad-extra-details').style.display   = 'none';
+      }
+      if (ad.product_url) {
+        qs('#ad-product-url').href              = ad.product_url;
+        qs('#ad-product-link').style.display    = 'none';
+      }
+
+      const images = parseImages(ad);
+      buildGallery(images);
+
+      // Show Ad ID badge for business owner viewing their own ad
+      if (ownerViewing && ad.ad_id && ad.seller_type === 'business') {
+        const adIdEl       = document.createElement('div');
+        adIdEl.className   = 'ad-owner-id-badge';
+        adIdEl.innerHTML   = '<span>{{ "custom.ad_id" | t | default: "Ad ID" }}:</span> <strong>' + ad.ad_id + '</strong>';
+        const sellerRow    = qs('.ad-seller-row');
+        if (sellerRow) sellerRow.insertAdjacentElement('afterend', adIdEl);
+      }
+
+      renderStateBanner(ad);
+
+      // No contact route on a sold ad, and none for the owner of any ad.
+      //
+      // REMOVED from the DOM, not hidden: a display:none button can be turned
+      // back on by anyone with developer tools and clicked, which would send a
+      // real enquiry about a firearm that is already sold. Taking the buttons
+      // and the modal out entirely leaves nothing to re-enable. The listeners
+      // are never bound either, because setupContactModal is skipped.
+      const isSold      = ad.ad_status === 'sold';
+      const hideContact = ownerViewing || isSold;
+
+      if (hideContact) {
+        ['#ad-contact-btns', '#ad-sticky-btns', '#contact-modal-overlay'].forEach(function (sel) {
+          const el = qs(sel);
+          if (el) el.remove();
+        });
+      }
+
+      // Sold ads carry no actions at all: the client asked for the share
+      // button to go as well. Removed rather than hidden, same as the contact
+      // controls. Note this keys off isSold, NOT hideContact — an owner
+      // looking at their own live ad must still be able to share it.
+      if (isSold) {
+        ['#btn-share-ad', '#share-toast'].forEach(function (sel) {
+          const el = qs(sel);
+          if (el) el.remove();
+        });
+      }
+
+      // Still called: it paints the "Sent" count, which stays on a sold ad.
+      setupShare(ad.id, title, ad.shares || 0);
+      if (!hideContact) setupContactModal(ad);
+
+      // AFTER setupContactModal: that's what decides whether "See phone" is
+      // shown for this ad, and the strip copies the result rather than
+      // re-deriving it.
+      setupStickyCta(hideContact);
+
+      // ── Related ads — caliber-tiered; includes the seller's own other ads ─
+      loadRelatedAds(adNumericId, ad);
+
+      // ── Views counter ─────────────────────────────────────────────────────
+      // Only published ads count. Nothing on the site links a visitor to a
+      // sold ad — the cards aren't clickable — so arriving at one means typing
+      // or guessing a URL, which isn't a view the seller should be charged
+      // for. Owner and admin visits never counted anyway.
+      if (ad.ad_status === 'published' && !ownerViewing && !isAdmin()) {
+        const viewKey = 'gl_stat_' + adNumericId + '_views';
+        if (!sessionStorage.getItem(viewKey)) {
+          sessionStorage.setItem(viewKey, '1');
+          fetch(API_BASE + '/my-adverts/' + encodeURIComponent(adNumericId) + '/increment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field: 'views' })
+          }).catch(function () { });
+          const currentViews = parseInt(qs('#ad-views-count').textContent) || 0;
+          qs('#ad-views-count').textContent = currentViews + 1;
+        }
+      }
+
+      qs('#ad-loading').style.display        = 'none';
+      qs('#ad-detail-content').style.display = 'block';
+    }
+
+    // ── Fetch ad ───────────────────────────────────────────────────────────
+    function fetchAd() {
+      const handle = getParam('handle');
+      if (!handle) {
+        qs('#ad-loading').style.display = 'none';
+        qs('#ad-error').style.display   = 'block';
+        return;
+      }
+
+      fetch(API_BASE + '/my-adverts/' + encodeURIComponent(handle))
+        .then(function (r) {
+          if (!r.ok) throw new Error('Not found');
+          return r.json();
+        })
+        .then(function (data) {
+          const ad = data.ad || data.advert || data;
+          if (!ad || !ad.id) throw new Error('Invalid data');
+          // Checked BEFORE renderAd: nothing about a blocked ad should ever
+          // reach the DOM, not even briefly.
+          if (!canViewAd(ad)) { showUnavailable(); return; }
+          renderAd(ad);
+        })
+        .catch(function () {
+          qs('#ad-loading').style.display = 'none';
+          qs('#ad-error').style.display   = 'block';
+        });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fetchAd);
+    } else {
+      fetchAd();
+    }
+
+  })();
+</script>
+
+<style>
+  /* ── Share popup ── */
+  #ad-share-popup { position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px; }
+  .ad-share-popup__box { background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.18);animation:adShareIn 0.2s ease; }
+  @keyframes adShareIn { from{opacity:0;transform:scale(0.95) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .ad-share-popup__header { display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:1rem;margin-bottom:16px;color:var(--color-foreground); }
+  .ad-share-popup__close { background:#f3f4f6;border:none;border-radius:6px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;color:var(--color-foreground); }
+  .ad-share-popup__close:hover { background:#e5e7eb; }
+  .ad-share-popup__url { display:flex;gap:8px;margin-bottom:16px; }
+  .ad-share-popup__url input { flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:13px;color:#6b7280;outline:none;background:#f9fafb;min-width:0; }
+  .ad-share-popup__copy { padding:9px 16px;background:#295A31;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:opacity 0.15s;font-family:inherit; }
+  .ad-share-popup__copy:hover { opacity:0.85; }
+  .ad-share-popup__socials { display:flex;gap:8px;flex-wrap:wrap; }
+  .ad-share-social { display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;flex:1;justify-content:center;transition:opacity 0.15s;min-width:100px; }
+  .ad-share-social:hover { opacity:0.85; }
+  .ad-share-social--wa { background:#25d366;color:#fff; }
+  .ad-share-social--fb { background:#1877f2;color:#fff; }
+  .ad-share-social--tw { background:#000;color:#fff; }
+  .ad-share-popup__copied { text-align:center;color:#295A31;font-size:13px;font-weight:600;margin-top:12px;padding:8px;background:#f0fdf4;border-radius:6px; }
+
+  /* ── Contact modal textarea ── */
+  .ad-modal__prefill-wrap { margin-bottom:4px; }
+  .ad-modal__prefill-textarea { width:100%;resize:vertical;min-height:110px;font-family:inherit;font-size:0.9rem;line-height:1.5;color:var(--color-foreground);border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;outline:none;transition:border-color 0.15s;box-sizing:border-box;background:#fafafa; }
+  .ad-modal__prefill-textarea:focus { border-color:#295A31;background:#fff; }
+
+  /* ── Owner ad ID badge ── */
+  .ad-owner-id-badge { display:inline-flex;align-items:center;gap:8px;font-size:0.85rem;color:#295A31;background:transparent;border:1px solid #295A31;border-radius:6px;padding:6px 14px;margin:8px 0 4px;width:fit-content; }
+  .ad-owner-id-badge span { color:#6b7280;font-family:inherit; }
+  .ad-owner-id-badge strong { font-size:1rem;letter-spacing:0.5px; }
+</style>
+
+{% schema %}
+{
+  "name": "Ad Detail",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "padding_top", "label": "Padding Top", "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 100, "step": 4, "default": 40 }
+  ],
+  "presets": [{ "name": "Ad Detail" }]
+}
+{% endschema %}

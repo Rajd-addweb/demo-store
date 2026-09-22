@@ -1,0 +1,105 @@
+{% # theme-check-disable OrphanedSnippet %}
+
+{%- doc -%}
+  Renders a weight range filter using dual-range slider pattern.
+  No accordion wrapper — caller handles the accordion/toggle.
+
+  @param {object} filter - The filter object to render.
+  @param {boolean} [should_render_clear] - Whether to render the clear button.
+
+  @example
+  {% render 'weight-filter', filter: filter %}
+{%- enddoc -%}
+
+<weight-facet-component
+  class="weight-facet"
+  id="facet-inputs-{{ filter.param_name | escape | replace: '.', '-' }}"
+  on:change="/updateWeightFilterAndResults"
+>
+  <div class="weight-facet__inputs-wrapper facets__inputs-wrapper facets__inputs-wrapper--row">
+    <div class="field weight-facet__field">
+      <input
+        class="field__input weight-facet__input"
+        name="{{ filter.min_value.param_name }}"
+        id="{{ filter.label | escape }}-GTE"
+        {%- if filter.min_value.value -%}value="{{ filter.min_value.value }}"{%- endif -%}
+        type="number"
+        inputmode="decimal"
+        placeholder="0"
+        min="0"
+        max="15"
+        step="0.1"
+        ref="minInput"
+        autocomplete="off"
+      >
+      <label class="field__label weight-facet__label" for="{{ filter.label | escape }}-GTE">kg</label>
+    </div>
+
+    <div class="weight-facet__separator">–</div>
+
+    <div class="field weight-facet__field">
+      <input
+        class="field__input weight-facet__input"
+        name="{{ filter.max_value.param_name }}"
+        id="{{ filter.label | escape }}-LTE"
+        {%- if filter.max_value.value -%}value="{{ filter.max_value.value }}"{%- endif -%}
+        type="number"
+        inputmode="decimal"
+        placeholder="15"
+        min="0"
+        max="15"
+        step="0.1"
+        ref="maxInput"
+        autocomplete="off"
+      >
+      <label class="field__label weight-facet__label" for="{{ filter.label | escape }}-LTE">kg</label>
+    </div>
+  </div>
+
+  <!-- Dual Range Slider -->
+  <div class="weight-facet__slider-wrapper">
+    <div class="weight-facet__slider-track">
+      <div class="weight-facet__slider-range" ref="sliderRange"></div>
+      <input
+        type="range"
+        class="weight-facet__slider-thumb weight-facet__slider-thumb--min"
+        min="0" max="15"
+        value="{{ filter.min_value.value | default: 0 }}"
+        step="0.1"
+        ref="sliderMin"
+        aria-label="Minimum weight"
+      >
+      <input
+        type="range"
+        class="weight-facet__slider-thumb weight-facet__slider-thumb--max"
+        min="0" max="15"
+        value="{{ filter.max_value.value | default: 15 }}"
+        step="0.1"
+        ref="sliderMax"
+        aria-label="Maximum weight"
+      >
+    </div>
+    <div class="weight-facet__range-labels">
+      <span class="weight-facet__label-min" ref="labelMin">{{ filter.min_value.value | default: 0 }} kg</span>
+      <span class="weight-facet__label-max" ref="labelMax">{{ filter.max_value.value | default: 15 }} kg</span>
+    </div>
+  </div>
+
+  {% if should_render_clear %}
+    {% assign has_active_values = false %}
+    {% if filter.min_value.value != null or filter.max_value.value != null %}
+      {% assign has_active_values = true %}
+    {% endif %}
+    <facet-clear-component
+      class="clear-filter"
+      tabindex="{% if has_active_values %}0{% else %}-1{% endif %}"
+      on:click="/clearFilter"
+      on:keydown="/clearFilter"
+    >
+      <div class="facets__clear {% if has_active_values %}facets__clear--active{% endif %}" ref="clearButton">
+        {{- 'actions.clear' | t -}}
+      </div>
+    </facet-clear-component>
+  {% endif %}
+
+</weight-facet-component>

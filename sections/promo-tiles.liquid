@@ -1,0 +1,432 @@
+{% comment %}
+  section: promo-tiles.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+  Row of standalone promo tiles, normally sat directly under the hero showcase.
+
+  These started life as the showcase's selector strip, where card i selected
+  slide i. The client asked for them to stand on their own — "the three cards
+  become standalone promo tiles with their own images, text and links, dot
+  navigation instead" — so they no longer drive anything: the banner navigates
+  itself with overlaid dots, and each tile is simply its own promo.
+
+  Consequences of that split worth knowing:
+    • Tile count is independent of slide count. Three fill the row on desktop;
+      the grid is auto-fit, so four or two lay out without a code change.
+    • The whole tile is one link, not a card containing a link. A card-sized
+      tap target is the difference between usable and fiddly on a phone, and it
+      keeps one focus stop per tile for keyboard and screen-reader users.
+{% endcomment %}
+
+{%- liquid
+  assign tiles = section.blocks
+  assign tile_count = tiles.size
+
+  # Same locale handling as hero-showcase: ES and EN pages don't share a
+  # handle (/pages/clasificados vs /en/pages/classifieds), so a raw URL would
+  # 404 for every English visitor. Mirrors snippets/gunloupe-routes.liquid,
+  # which is the JS-side copy of this map.
+  assign lp = ''
+  if request.locale.iso_code != 'es'
+    assign lp = '/' | append: request.locale.iso_code
+  endif
+  assign is_en = false
+  if lp == '/en'
+    assign is_en = true
+  endif
+-%}
+
+{%- if tile_count > 0 -%}
+  <section
+    class="promo-tiles"
+    id="PromoTiles-{{ section.id }}"
+    {% if section.settings.section_heading != blank %}
+      aria-labelledby="PromoTilesHeading-{{ section.id }}"
+    {% else %}
+      aria-label="{{ section.settings.aria_label | default: 'Destacados' | escape }}"
+    {% endif %}
+  >
+    {%- if section.settings.section_heading != blank -%}
+      <h2 class="promo-tiles__title" id="PromoTilesHeading-{{ section.id }}">
+        {{- section.settings.section_heading -}}
+      </h2>
+    {%- endif -%}
+
+    <ul class="promo-tiles__grid" role="list">
+      {%- for block in tiles -%}
+        {%- liquid
+          assign target = block.settings.link_target
+          case target
+            when 'clasificados'
+              assign href = '/pages/clasificados'
+              if is_en
+                assign href = '/en/pages/classifieds'
+              endif
+            when 'comparador'
+              assign href = '/pages/comparison-tool'
+              if is_en
+                assign href = '/en/pages/comparator'
+              endif
+            when 'mi_armero'
+              assign href = '/pages/mi-armero'
+              if is_en
+                assign href = '/en/pages/my-gun-safe'
+              endif
+            when 'favoritos'
+              assign href = '/pages/favoritos'
+              if is_en
+                assign href = '/en/pages/favourites'
+              endif
+            when 'armas'
+              assign href = '/collections/armas'
+              if is_en
+                assign href = '/en/collections/firearms'
+              endif
+            when 'blog'
+              assign href = lp | append: '/blogs/blog'
+            else
+              assign href = block.settings.custom_url
+          endcase
+        -%}
+        <li class="promo-tiles__item" {{ block.shopify_attributes }}>
+          {%- comment -%}
+            No href means an unfinished tile in the customizer. Rendering it as
+            a dead <a> would look identical to a working one, so it renders as
+            a plain card instead — visibly inert rather than silently broken.
+          {%- endcomment -%}
+          <{% if href != blank %}a{% else %}div{% endif %}
+            class="promo-tiles__tile"
+            {% if href != blank %}
+              href="{{ href }}"
+              {% if target == 'custom' and block.settings.open_new_tab %}
+                target="_blank" rel="noopener"
+              {% endif %}
+            {% endif %}
+          >
+            <span class="promo-tiles__thumb">
+              {%- if block.settings.image != blank -%}
+                {{
+                  block.settings.image
+                  | image_url: width: 160
+                  | image_tag:
+                    loading: 'lazy',
+                    widths: '80,120,160',
+                    sizes: '40px',
+                    alt: '',
+                    class: 'promo-tiles__thumb-img'
+                }}
+              {%- elsif block.settings.placeholder_asset != blank -%}
+                {%- comment -%}
+                  Bundled demo art so the row renders on the staging theme
+                  before anyone picks images. Selecting an image replaces it.
+                {%- endcomment -%}
+                <img
+                  class="promo-tiles__thumb-img"
+                  src="{{ block.settings.placeholder_asset | asset_url }}"
+                  alt=""
+                  width="80"
+                  height="80"
+                  loading="lazy"
+                >
+              {%- endif -%}
+            </span>
+
+            <span class="promo-tiles__text">
+              <span class="promo-tiles__name">{{ block.settings.title }}</span>
+              {%- if block.settings.description != blank -%}
+                <span class="promo-tiles__desc">{{ block.settings.description }}</span>
+              {%- endif -%}
+            </span>
+
+            {%- if href != blank -%}
+              <span class="promo-tiles__arrow" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" focusable="false">
+                  <path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+            {%- endif -%}
+          </{% if href != blank %}a{% else %}div{% endif %}>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </section>
+
+  <style>
+    /* Values carried over from the selector cards in the approved 2a artboard,
+       so the row still reads as the same component the client signed off:
+         card    #FFF, border 1px #E4E8E0, radius 10px, padding 12px 14px
+         thumb   34px square, radius 7px, #F2F4EF
+         name    13px / 600 / #1E4B2C
+         desc    mono 11px / #7B8C7E
+       Sizes are nudged up from the strip's because these are now promos in
+       their own right rather than a navigation control. */
+    #PromoTiles-{{ section.id }} {
+      --pt-card: {{ section.settings.card_bg }};
+      --pt-border: {{ section.settings.border_color }};
+      --pt-name: {{ section.settings.title_color }};
+      --pt-desc: {{ section.settings.description_color }};
+      --pt-accent: {{ section.settings.accent_color }};
+      --pt-mono: "Necto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      max-width: {% if section.settings.section_width == 'full' %}none{% else %}1504px{% endif %};
+      margin-inline: auto;
+      padding: {{ section.settings.padding_top }}px 26px {{ section.settings.padding_bottom }}px;
+      background: {{ section.settings.section_bg }};
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--pt-name);
+    }
+
+    /* auto-fit rather than a fixed 3, so adding or removing a tile in the
+       customizer doesn't leave a hole or overflow the row. */
+    #PromoTiles-{{ section.id }} .promo-tiles__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__item { min-width: 0; }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__tile {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      height: 100%;
+      padding: 16px 18px;
+      background: var(--pt-card);
+      border: 1px solid var(--pt-border);
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+    }
+
+    #PromoTiles-{{ section.id }} a.promo-tiles__tile:hover {
+      background: #F7FAF5;
+      border-color: var(--pt-name);
+      transform: translateY(-2px);
+    }
+
+    #PromoTiles-{{ section.id }} a.promo-tiles__tile:focus-visible {
+      outline: 2px solid var(--pt-name);
+      outline-offset: 2px;
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__thumb {
+      width: 44px;
+      height: 44px;
+      flex: none;
+      border-radius: 8px;
+      background: #F2F4EF;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__thumb:empty { display: none; }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    /* The name may wrap to two lines; the descriptor is the one that gets
+       clipped, since it's the supporting half of the pair. */
+    #PromoTiles-{{ section.id }} .promo-tiles__name {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--pt-name);
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__desc {
+      font-family: var(--pt-mono);
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--pt-desc);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #PromoTiles-{{ section.id }} .promo-tiles__arrow {
+      margin-left: auto;
+      flex: none;
+      display: flex;
+      color: var(--pt-accent);
+      transition: transform .2s ease;
+    }
+
+    #PromoTiles-{{ section.id }} a.promo-tiles__tile:hover .promo-tiles__arrow {
+      transform: translateX(3px);
+    }
+
+    @media screen and (max-width: 899px) {
+      #PromoTiles-{{ section.id }} {
+        padding-inline: 20px;
+      }
+      /* One per row on phones — two 240px columns don't fit, and a half-width
+         tile clips the descriptor to nothing. */
+      #PromoTiles-{{ section.id }} .promo-tiles__grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #PromoTiles-{{ section.id }} :is(.promo-tiles__tile, .promo-tiles__arrow) {
+        transition: none;
+      }
+      #PromoTiles-{{ section.id }} a.promo-tiles__tile:hover {
+        transform: none;
+      }
+    }
+  </style>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Promo Tiles",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Standalone promo tiles, normally placed directly under the Hero Showcase banner. Each tile has its own image, text and link — they no longer control the banner, which navigates itself with dots."
+    },
+    { "type": "text", "id": "section_heading", "label": "Row heading (optional)" },
+    { "type": "header", "content": "Colours" },
+    { "type": "color", "id": "section_bg", "label": "Row background", "default": "#FFFFFF" },
+    { "type": "color", "id": "card_bg", "label": "Tile background", "default": "#FFFFFF" },
+    { "type": "color", "id": "border_color", "label": "Tile border", "default": "#E4E8E0" },
+    { "type": "color", "id": "title_color", "label": "Tile title", "default": "#1E4B2C" },
+    { "type": "color", "id": "description_color", "label": "Tile description", "default": "#7B8C7E" },
+    { "type": "color", "id": "accent_color", "label": "Arrow", "default": "#E2722A" },
+    { "type": "header", "content": "Size" },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Width",
+      "options": [
+        { "value": "full", "label": "Full bleed" },
+        { "value": "page", "label": "Page width (matches the rest of the home page)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "aria_label",
+      "label": "Accessible label",
+      "default": "Destacados de Gunloupe",
+      "info": "Used only when no row heading is set."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "tile",
+      "name": "Tile",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image", "info": "Square crop, 160 x 160 or larger." },
+        {
+          "type": "text",
+          "id": "placeholder_asset",
+          "label": "Demo image filename",
+          "info": "Bundled theme asset used only until an image is picked above. Leave as-is."
+        },
+        { "type": "text", "id": "title", "label": "Title", "default": "Title" },
+        { "type": "text", "id": "description", "label": "Description line" },
+        { "type": "header", "content": "Link" },
+        {
+          "type": "select",
+          "id": "link_target",
+          "label": "Tile goes to",
+          "options": [
+            { "value": "clasificados", "label": "Clasificados" },
+            { "value": "comparador", "label": "Comparador" },
+            { "value": "mi_armero", "label": "Mi Armero" },
+            { "value": "favoritos", "label": "Favoritos" },
+            { "value": "armas", "label": "Armas (catalogue)" },
+            { "value": "blog", "label": "Blog" },
+            { "value": "custom", "label": "Custom URL" }
+          ],
+          "default": "clasificados",
+          "info": "Named pages resolve to the right Spanish or English URL automatically."
+        },
+        { "type": "url", "id": "custom_url", "label": "Custom URL" },
+        { "type": "checkbox", "id": "open_new_tab", "label": "Open custom URL in a new tab", "default": false }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Promo Tiles",
+      "blocks": [
+        {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-gun1.jpg",
+            "title": "Clasificados",
+            "description": "Compra y vende",
+            "link_target": "clasificados"
+          }
+        },
+        {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-lupo.png",
+            "title": "Comparador",
+            "description": "Modelos lado a lado",
+            "link_target": "comparador"
+          }
+        },
+        {
+          "type": "tile",
+          "settings": {
+            "placeholder_asset": "showcase-gun2.jpg",
+            "title": "Armas",
+            "description": "Catálogo completo",
+            "link_target": "armas"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

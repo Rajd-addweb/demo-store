@@ -1,0 +1,136 @@
+<div id="mobileDrawer" class="mobile-drawer">
+  <!-- Close -->
+  <div class="drawer-header">
+    <button id="closeDrawer">
+      {% render 'icon-close' %}
+    </button>
+  </div>
+
+  <!-- MAIN MENU -->
+  <div class="drawer-menu">
+    {% for link in linklists['main-menu'].links %}
+      <a href="{{ link.url }}">
+        {% case link.handle %}
+          {% when 'firearms' %}
+            {% render 'icon-firearm' %}
+          {% when 'armas' %}
+            {% render 'icon-firearm' %}
+
+          {% when 'classifieds' %}
+            {% render 'icon-classified' %}
+          {% when 'clasificados' %}
+            {% render 'icon-classified' %}
+
+          {% when 'blog' %}
+            {% render 'icon-blog' %}
+
+          {% when 'help' %}
+            {% render 'icon-help' %}
+          {% when 'ayuda' %}
+            {% render 'icon-help' %}
+
+          {% when 'about-us' %}
+            {% render 'icon-aboutus' %}
+          {% when 'quienes-somos' %}
+            {% render 'icon-aboutus' %}
+        {% endcase %}
+        <span>{{ link.title }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if customer %}
+    <!-- USER SECTION (IMPORTANT) -->
+    <div class="drawer-user">
+      {% assign user_type = customer.metafields.custom.user_type.value %}
+
+      {% for link in linklists['user-menu'].links %}
+
+        {% comment %} Detect Mi Armero / My Gun Safe {% endcomment %}
+        {% assign is_armorer = false %}
+        {% if link.url contains '/pages/mi-armero' or link.url contains '/pages/my-gun-safe' %}
+          {% assign is_armorer = true %}
+        {% endif %}
+
+        {% comment %} Detect My Ads / Mis Anuncios {% endcomment %}
+        {% assign is_my_ads = false %}
+        {% if link.url contains '/pages/my-ads' or link.url contains '/pages/anuncios' %}
+          {% assign is_my_ads = true %}
+        {% endif %}
+
+        {% assign hide_link = false %}
+
+        {% if is_armorer and user_type == 'business' %}
+          {% assign hide_link = true %}
+        {% endif %}
+
+        {% if is_my_ads and user_type == 'private' %}
+          {% assign hide_link = true %}
+        {% endif %}
+
+        {% unless hide_link %}
+          <a href="{{ link.url }}">
+            {% case link.handle %}
+              {% when 'my-armorer' %}
+                {% render 'icon-myarmor' %}
+              {% when 'mi-armero' %}
+                {% render 'icon-myarmor' %}
+
+              {% when 'favorites' %}
+                {% render 'icon-favourite' %}
+              {% when 'favoritos' %}
+                {% render 'icon-favourite' %}
+
+              {% when 'my-ads' %}
+                {% render 'icon-myads' %}
+              {% when 'mis-anuncios' %}
+                {% render 'icon-myads' %}
+
+              {% when 'comparator' %}
+                {% render 'icon-comparator' %}
+              {% when 'comparador' %}
+                {% render 'icon-comparator' %}
+            {% endcase %}
+            <span>{{ link.title }}</span>
+          </a>
+        {% endunless %}
+
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const hamburger = document.querySelector(".mobile-only.hamburger");
+  const popup = document.querySelector(".mobile-only.popup");
+  const closeBtn = document.getElementById("closeDrawer");
+
+  function openDrawer() {
+    popup.classList.add("active");
+    document.documentElement.classList.add("overflow-locked"); // html
+    document.body.classList.add("overflow-locked"); // body
+  }
+
+  function closeDrawer() {
+    popup.classList.remove("active");
+    document.documentElement.classList.remove("overflow-locked");
+    document.body.classList.remove("overflow-locked");
+  }
+
+  // Toggle open
+  hamburger.addEventListener("click", function () {
+    if (popup.classList.contains("active")) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
+  });
+
+  // Close button
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeDrawer);
+  }
+});
+</script>

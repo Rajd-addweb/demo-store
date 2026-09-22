@@ -1,0 +1,90 @@
+{% comment %}
+  snippet: gl-search-value-translations.liquid
+  ---------------------------------------------------------------
+  Single source of truth for the English->Spanish label/value
+  translation maps used by translateCardToSpanish() (see
+  weapons-collection.liquid and home-product-search.liquid), which
+  translates /en/search results back to Spanish for Spanish-locale
+  visitors. Previously duplicated byte-for-byte in both sections;
+  now rendered from here so there is exactly one copy.
+
+  The translated text itself lives in locales/es.json (and
+  locales/en.default.json, which just stores the matching English
+  key text) under the "custom.gunval_*" keys, editable via Shopify
+  Admin -> Settings -> Languages -> Manage translations, without a
+  developer or a deploy. This snippet only maps each raw catalog
+  value to its translation key -- that mapping itself doesn't
+  change, since it's a fixed/closed vocabulary of firearm data
+  (calibers, actions, materials, etc.), not day-to-day copy.
+{% endcomment %}
+const labelMap = {
+  "Approx. Price:": {{ 'custom.gunval_approx_price' | t | json }},
+  "Type of firearm": {{ 'custom.gunval_type_of_firearm' | t | json }},
+  "Sub-type of firearm": {{ 'custom.gunval_sub_type_of_firearm' | t | json }},
+  "Category": {{ 'custom.gunval_category' | t | json }},
+  "Availability": {{ 'custom.gunval_availability' | t | json }},
+};
+
+const valueMap = {
+  "Rifle": {{ 'custom.gunval_rifle' | t | json }},
+  "Shotgun": {{ 'custom.gunval_shotgun' | t | json }},
+  "Rimfire Rifle": {{ 'custom.gunval_rimfire_rifle' | t | json }},
+  "Pistol": {{ 'custom.gunval_pistol' | t | json }},
+  "Barrels": {{ 'custom.gunval_barrels' | t | json }},
+  "Muzzleloader": {{ 'custom.gunval_muzzleloader' | t | json }},
+  "Bolt-action": {{ 'custom.gunval_bolt_action' | t | json }},
+  "Straight-pull bolt-action": {{ 'custom.gunval_straight_pull_bolt_action' | t | json }},
+  "Rifle/rifle combination": {{ 'custom.gunval_rifle_rifle_combination' | t | json }},
+  "Semi-automatic": {{ 'custom.gunval_semi_automatic' | t | json }},
+  "Single-shot": {{ 'custom.gunval_single_shot' | t | json }},
+  "Over-and-under express": {{ 'custom.gunval_over_and_under_express' | t | json }},
+  "Side-by-side express": {{ 'custom.gunval_side_by_side_express' | t | json }},
+  "Rifle/shotgun combination": {{ 'custom.gunval_rifle_shotgun_combination' | t | json }},
+  "Drilling: 3 rifles": {{ 'custom.gunval_drilling_3_rifles' | t | json }},
+  "Drilling: 2 rifles / 1 shotgun": {{ 'custom.gunval_drilling_2_rifles_1_shotgun' | t | json }},
+  "Drilling: 2 shotguns / 1 rifle": {{ 'custom.gunval_drilling_2_shotguns_1_rifle' | t | json }},
+  "Lever-action": {{ 'custom.gunval_lever_action' | t | json }},
+  "Pump-action": {{ 'custom.gunval_pump_action' | t | json }},
+  "Side-by-side": {{ 'custom.gunval_side_by_side' | t | json }},
+  "Over-and-under": {{ 'custom.gunval_over_and_under' | t | json }},
+  "Semi automatico/corredera": {{ 'custom.gunval_semi_automatico_corredera' | t | json }},
+  "Hunting": {{ 'custom.gunval_hunting' | t | json }},
+  "Precision": {{ 'custom.gunval_precision' | t | json }},
+  "Competition": {{ 'custom.gunval_competition' | t | json }},
+  "Sporting": {{ 'custom.gunval_sporting' | t | json }},
+  "Skeet": {{ 'custom.gunval_skeet' | t | json }},
+  "Tactical": {{ 'custom.gunval_tactical' | t | json }},
+  "Trap": {{ 'custom.gunval_trap' | t | json }},
+  "Aluminum": {{ 'custom.gunval_aluminum' | t | json }},
+  "Carbon fiber": {{ 'custom.gunval_carbon_fiber' | t | json }},
+  "Fiberglass": {{ 'custom.gunval_fiberglass' | t | json }},
+  "Steel": {{ 'custom.gunval_steel' | t | json }},
+  "Synthetic": {{ 'custom.gunval_synthetic' | t | json }},
+  "Wood": {{ 'custom.gunval_wood' | t | json }},
+  "Ambidextrous": {{ 'custom.gunval_ambidextrous' | t | json }},
+  "Left-handed": {{ 'custom.gunval_left_handed' | t | json }},
+  "Right-handed": {{ 'custom.gunval_right_handed' | t | json }},
+  "Bavarian": {{ 'custom.gunval_bavarian' | t | json }},
+  "Competition chassis": {{ 'custom.gunval_competition_chassis' | t | json }},
+  "Dropped stock": {{ 'custom.gunval_dropped_stock' | t | json }},
+  "Folding": {{ 'custom.gunval_folding' | t | json }},
+  "Hogback stock": {{ 'custom.gunval_hogback_stock' | t | json }},
+  "Monte Carlo": {{ 'custom.gunval_monte_carlo' | t | json }},
+  "Straight stock": {{ 'custom.gunval_straight_stock' | t | json }},
+  "Thumbhole": {{ 'custom.gunval_thumbhole' | t | json }},
+  "No": {{ 'custom.gunval_no' | t | json }},
+  "Optional": {{ 'custom.gunval_optional' | t | json }},
+  "Yes": {{ 'custom.gunval_yes' | t | json }},
+  "Available": {{ 'custom.gunval_available' | t | json }},
+  "Discontinued": {{ 'custom.gunval_discontinued' | t | json }},
+};
+
+{% comment %}
+  "View N Firearm options" / "See option and where to buy" button text,
+  reusing the existing pluralized custom.weapon_options key (same key the
+  button renders from natively). count:1 gives the singular form; count:2
+  is a sentinel to get the plural template, whose digit gets swapped for
+  the real count at runtime in translateCardToSpanish().
+{% endcomment %}
+const weaponOptionsOne = {{ 'custom.weapon_options' | t: count: 1 | json }};
+const weaponOptionsOtherTemplate = {{ 'custom.weapon_options' | t: count: 2 | json }};

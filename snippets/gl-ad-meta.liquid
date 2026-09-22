@@ -1,0 +1,309 @@
+{% comment %}
+  snippet: gl-ad-meta.liquid
+  ─────────────────────────────────────────────────────────────────────────────
+  SHARED UI for the ad-listing pages (Clasificados + Mis anuncios).
+
+  Both pages render the same ad card and the same filter bar, so the pieces the
+  2026-09 design added live here rather than being copy-pasted into each
+  section and drifting apart:
+
+    • the barrel-length chip  — barrel length is not an ad field of its own;
+      GunloupeAdTitle.build() bakes it into `firearm_model` as a "// 46cm"
+      suffix, so it has to be split back out for display.
+    • the handedness chip     — accent-coloured, with a direction marker.
+    • active-filter chips     — "Label: Value ×", so a selected filter says
+      WHICH filter it belongs to, plus the mobile chip rail under the toolbar.
+
+  Render it once per page, before the section's own script.
+{% endcomment %}
+
+<script>
+  window.GunloupeAdMeta = window.GunloupeAdMeta || (function () {
+    'use strict';
+
+    var STOREFRONT_API   = 'https://gunloupe.myshopify.com/api/2024-01/graphql.json';
+    var STOREFRONT_TOKEN = 'cef86b403fa3eef900f70170cec5acb8';
+
+    var BARREL_LABEL = {{ 'custom.barrel' | t | json }};
+    var REMOVE_LABEL = {{ 'actions.remove' | t | json }};
+
+    // GLI18n is set up by the section itself and may not exist yet at parse
+    // time, so resolve it per call rather than capturing it here.
+    function i18n() {
+      return window.GLI18n || { t: function (v) { return v; }, canonical: function (v) { return v; } };
+    }
+
+    // ── Barrel length ────────────────────────────────────────────────────────
+    // Same regex GunloupeAdTitle uses to append the suffix — keep the two in
+    // sync if the stored title format ever changes.
+    var BARREL_SUFFIX_RE = /\s*\/\/\s*([0-9]+(?:[.,][0-9]+)?)\s*(cm|mm|in)?\s*$/i;
+
+    function splitModelBarrel(model) {
+      var raw = String(model || '').trim();
+      var m   = raw.match(BARREL_SUFFIX_RE);
+      if (!m) return { model: raw, barrelCm: '' };
+      return { model: raw.replace(BARREL_SUFFIX_RE, '').trim(), barrelCm: m[1].replace(',', '.') };
+    }
+
+    function formatInches(value) {
+      var v = String(value || '').trim();
+      if (!v) return '';
+      var m = v.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(?:in|")?$/i);
+      return m ? m[1].replace(',', '.') + '"' : v;
+    }
+
+    // cm -> curated inches, keyed by the numeric cm value. `null` until the
+    // metaobject fetch lands; chips read fine in cm alone until then.
+    var barrelInches = null;
+
+    function barrelChipLabel(barrelCm) {
+      var text   = barrelCm + ' cm';
+      var inches = barrelInches ? barrelInches[parseFloat(barrelCm)] : '';
+      if (inches) text += ' / ' + inches;
+      return BARREL_LABEL + ' ' + text;
+    }
+
+    // The chip label bakes in the "Cañón" prefix and a "/" separator, which
+    // only suits the cards. Callers that render barrel length their own way
+    // (the ad-detail title and spec cell) need the curated inches on their
+    // own. Empty until loadBarrelInches() has landed — same contract as the
+    // chips, so callers repaint rather than block on it.
+    function barrelInchesFor(barrelCm) {
+      if (!barrelCm || !barrelInches) return '';
+      return barrelInches[parseFloat(barrelCm)] || '';
+    }
+
+    function barrelChipHtml(barrelCm) {
+      if (!barrelCm) return '';
+      return '<span class="ad-card_chip ad-card_chip--barrel text-size-tiny" data-barrel-cm="' + barrelCm + '">'
+           + barrelChipLabel(barrelCm)
+           + '</span>';
+    }
+
+    // Cards render cm-only while the inches map is still in flight; this fills
+    // the inches in afterwards without a full re-render (which would mean
+    // re-binding every card's buttons and sliders).
+    function refreshBarrelChips(root) {
+      (root || document).querySelectorAll('.ad-card_chip--barrel[data-barrel-cm]').forEach(function (el) {
+        el.textContent = barrelChipLabel(el.dataset.barrelCm);
+      });
+    }
+
+    // Curated rather than converted: a 46cm barrel is marketed as 18in, not the
+    // exact 18.1in. Mirrors add-ad-popup.liquid's fetchBarrelLengths, including
+    // the quirk that the "CM" field is stored under the API key `name`.
+    // `onReady` fires once the map is in place so the caller can redraw.
+    function loadBarrelInches(onReady) {
+      if (barrelInches) { refreshBarrelChips(); if (onReady) onReady(); return; }
+
+      (async function () {
+        var map = {}, cursor = null, hasMore = true, attempts = 0;
+
+        while (hasMore && attempts < 10) {
+          attempts++;
+          var after = cursor ? (', after: ' + JSON.stringify(cursor)) : '';
+          var query = '{metaobjects(type:"all_barrel_length",first:250' + after + '){pageInfo{hasNextPage endCursor}edges{node{fields{key value}}}}}';
+          try {
+            var res = await fetch(STOREFRONT_API, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+              body:    JSON.stringify({ query: query })
+            });
+            if (!res.ok) break;
+            var data = await res.json();
+            if (data.errors) break;
+            var mo = data.data && data.data.metaobjects;
+            if (!mo) break;
+
+            hasMore = !!(mo.pageInfo && mo.pageInfo.hasNextPage);
+            cursor  = mo.pageInfo && mo.pageInfo.endCursor;
+
+            (mo.edges || []).forEach(function (edge) {
+              var fields = (edge.node && edge.node.fields) || [];
+              var get = function (key) {
+                var f = fields.find(function (x) { return x.key === key; });
+                return f ? f.value : '';
+              };
+              var cm = parseFloat(String(get('name')).replace(',', '.'));
+              if (isNaN(cm)) return;
+              var inches = formatInches(get('inches'));
+              if (inches) map[cm] = inches;
+            });
+          } catch (e) { break; }
+        }
+
+        barrelInches = map;
+        refreshBarrelChips();
+        if (onReady) onReady();
+      })();
+    }
+
+    // ── Handedness ───────────────────────────────────────────────────────────
+    // Keyed by GLI18n's canonical (English) value, so an ad stored in either
+    // language resolves the same way.
+    var HAND_ARROW = {
+      'Left-handed':  '◀',
+      'Right-handed': '▶',
+      'Ambidextrous': '◀▶'
+    };
+
+    // ── Handedness backfill ──────────────────────────────────────────────────
+    // `firearm_handedness` is only stored on ads created after the handedness
+    // dropdown shipped. Older ads have it empty and the value has to come from
+    // the linked product's custom.lateralidad metafield, so ANY page that
+    // renders the handedness chip has to backfill first or the chip silently
+    // disappears on older ads.
+    //
+    // Batched 20 handles per request and cached for the life of the page: a
+    // list of 30 ads is 2 requests, not 30. classifieds.liquid:1065 and
+    // my-adverts.liquid:1333 still carry their own identical copies of this —
+    // they predate this snippet and should be migrated onto it.
+    var handednessCache = {};
+
+    async function fetchHandednessMap(handles) {
+      var map = {};
+      var CHUNK_SIZE = 20; // keep query cost/complexity reasonable per request
+      for (var i = 0; i < handles.length; i += CHUNK_SIZE) {
+        var chunk  = handles.slice(i, i + CHUNK_SIZE);
+        var fields = chunk.map(function (h, idx) {
+          return 'p' + idx + ': product(handle: ' + JSON.stringify(h) + ') { handle metafield(namespace: "custom", key: "lateralidad") { value } }';
+        }).join(' ');
+        try {
+          var res = await fetch(STOREFRONT_API, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN },
+            body:    JSON.stringify({ query: '{ ' + fields + ' }' })
+          });
+          if (!res.ok) continue;
+          var data = await res.json();
+          if (data.errors) continue;
+          Object.keys(data.data || {}).forEach(function (key) {
+            var prod = data.data[key];
+            if (prod && prod.handle) map[prod.handle] = (prod.metafield && prod.metafield.value) || '';
+          });
+        } catch (e) { /* leave this chunk unmapped — treated as empty below */ }
+      }
+      return map;
+    }
+
+    // Mutates `ads` in place. Only fills ads that have NO stored value: an ad
+    // created after the dropdown shipped carries the seller's own explicit
+    // choice, which must not be clobbered by the product's live default.
+    async function attachHandedness(ads) {
+      var list    = ads || [];
+      var handles = list.filter(function (ad) { return !ad.firearm_handedness; })
+                        .map(function (ad) { return ad.product_handle; })
+                        .filter(Boolean);
+      var unique  = handles.filter(function (h, i) {
+        return handles.indexOf(h) === i && !(h in handednessCache);
+      });
+
+      if (unique.length) {
+        var map = await fetchHandednessMap(unique);
+        unique.forEach(function (h) { handednessCache[h] = map[h] || ''; });
+      }
+
+      list.forEach(function (ad) {
+        if (!ad.firearm_handedness) ad.firearm_handedness = handednessCache[ad.product_handle] || '';
+      });
+      return list;
+    }
+
+    function handednessChipHtml(value) {
+      if (!value) return '';
+      var I18N  = i18n();
+      var canon = I18N.canonical(value);
+      return '<span class="ad-card_chip ad-card_chip--hand text-size-tiny">'
+           + (HAND_ARROW[canon] || '') + ' ' + I18N.t(canon)
+           + '</span>';
+    }
+
+    // ── Active-filter chips ──────────────────────────────────────────────────
+    // A <span> rather than a <button> because the desktop one is nested inside
+    // the dropdown-toggle button; it gets a button role and key handling.
+    function makeClearButton(key, value) {
+      var btn = document.createElement('span');
+      btn.className   = 'clf-chip-clear';
+      btn.dataset.key = key;
+      if (value) btn.dataset.value = value;
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('tabindex', '0');
+      btn.setAttribute('aria-label', REMOVE_LABEL);
+      btn.textContent = '×';
+      return btn;
+    }
+
+    // `items`: [{ key, value, display }] — one chip per selected value.
+    function renderChipRail(container, items) {
+      if (!container) return;
+      container.innerHTML = '';
+      container.hidden    = items.length === 0;
+      items.forEach(function (item) {
+        var chip = document.createElement('span');
+        chip.className = 'clf-active-chip';
+        var text = document.createElement('span');
+        text.className   = 'clf-active-chip-text';
+        text.textContent = item.display;
+        chip.appendChild(text);
+        chip.appendChild(makeClearButton(item.key, item.value));
+        container.appendChild(chip);
+      });
+    }
+
+    // One delegate for every clear "×" on the page (toggle chips and rail
+    // chips alike). Registered in the capture phase so it runs before the
+    // section's own click handler, which would otherwise re-open the dropdown
+    // the "×" sits inside.
+    function bindClearHandler(onClear) {
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.clf-chip-clear');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onClear(btn.dataset.key, btn.dataset.value || '');
+      }, true);
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var btn = e.target.closest && e.target.closest('.clf-chip-clear');
+        if (!btn) return;
+        e.preventDefault();
+        onClear(btn.dataset.key, btn.dataset.value || '');
+      });
+    }
+
+    // Rebuild a filter toggle as "Label: Value ×" when active, or the plain
+    // label with its dropdown arrow when not.
+    function paintToggle(toggle, text, isActive, key) {
+      if (!toggle) return;
+      // The arrow SVG is original markup; cache it on the node, because an
+      // active toggle swaps it for the "×" and it would otherwise be lost.
+      if (!toggle._arrowSvg) toggle._arrowSvg = toggle.querySelector('svg');
+
+      toggle.innerHTML = '';
+      var textEl = document.createElement('span');
+      textEl.className   = 'clf-toggle-text';
+      textEl.textContent = text;
+      toggle.appendChild(textEl);
+
+      if (isActive) toggle.appendChild(makeClearButton(key, ''));
+      else if (toggle._arrowSvg) toggle.appendChild(toggle._arrowSvg);
+
+      toggle.classList.toggle('clf-active', isActive);
+    }
+
+    return {
+      splitModelBarrel:   splitModelBarrel,
+      barrelInchesFor:    barrelInchesFor,
+      barrelChipHtml:     barrelChipHtml,
+      refreshBarrelChips: refreshBarrelChips,
+      loadBarrelInches:   loadBarrelInches,
+      handednessChipHtml: handednessChipHtml,
+      attachHandedness:   attachHandedness,
+      makeClearButton:    makeClearButton,
+      renderChipRail:     renderChipRail,
+      bindClearHandler:   bindClearHandler,
+      paintToggle:        paintToggle
+    };
+  })();
+</script>

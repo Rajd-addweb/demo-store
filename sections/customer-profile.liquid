@@ -1,0 +1,158 @@
+{{ 'customer-profile.css' | asset_url | stylesheet_tag: preload: true }}
+
+{% render 'gunloupe-routes' %}
+
+<div class="profile-page-wrapper">
+  <div class="profile-page-weapon-header bg-light-gray">
+    {% assign user_type = customer.metafields.custom.user_type.value %}
+      {%- comment -%} h2, not h1: layout/theme.liquid already renders the page's
+         single h1. This heading was tagged h1 while carrying h2 styling classes,
+         so the page ended up with two h1s. Tag only — appearance is unchanged.
+      {%- endcomment -%}
+      <h2 class="profile-greeting heading-style-h2">
+        {% if user_type == 'business' %}
+          Hello, {{ customer.metafields.custom.shop_name.value | default: customer.email | split: '@' | first }}
+        {% elsif customer.first_name != blank or customer.last_name != blank %}
+          Hello, {{ customer.first_name }} {{ customer.last_name }}
+        {% else %}
+          Hello, {{ customer.email | split: '@' | first }}
+        {% endif %}
+      </h2>
+  </div>
+
+  <div class="container">
+    <div class="profile-page" id="profilePage">
+
+      <div class="profile-card">
+        <div class="profile-card__header">
+          <div class="profile-avatar">
+            {% if customer.metafields.custom.profile_picture.value != blank %}
+              <img src="{{ customer.metafields.custom.profile_picture.value }}"
+                id="profileAvatarImg" alt="{{ customer.first_name }}">
+            {% else %}
+              {% render "icon-profile" %}
+            {% endif %}
+          </div>
+          <div class="profile-card__name-block">
+            {% assign user_type = customer.metafields.custom.user_type.value %}
+            <h2 class="profile-name">
+              {% if user_type == 'business' %}
+                {{ customer.metafields.custom.shop_name.value | default: customer.email | split: '@' | first }}
+              {% elsif customer.first_name != blank or customer.last_name != blank %}
+                {{ customer.first_name }} {{ customer.last_name }}
+              {% else %}
+                {{ customer.email | split: '@' | first }}
+              {% endif %}
+            </h2>
+            {% if customer.metafields.custom.alias != blank %}
+            <h2 class="profile-name profile-alias">{{ customer.metafields.custom.alias }}</h2>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section__title">{{ 'customer.account.contacts' | t: default: 'Contact' }}</div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.mail' | t: default: 'Mail' }}</span>
+            <span class="profile-row__value">{{ customer.email }}</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.phone' | t: default: 'Phone' }}</span>
+            <span class="profile-row__value">{{ customer.metafields.custom.phone.value | default: '–' }}</span>
+          </div>
+          {% if user_type != 'business' %}
+          <div class="profile-row">
+            <span class="profile-row__label">
+                {{ 'custom.date_of_birth' | t }}
+            </span>
+            <span class="profile-row__value">
+              {% if customer.metafields.custom.date_of_birth.value != blank %}
+                {{ customer.metafields.custom.date_of_birth.value | date: "%d/%m/%Y" }}
+              {% else %}
+                –
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="profile-row">
+            <span class="profile-row__label">
+                {{ 'custom.gender' | t }}
+            </span>
+            <span class="profile-row__value">
+              {% if customer.metafields.custom.gender.value == 'male' %}
+                {{ 'custom.gender_male' | t }}
+              {% elsif customer.metafields.custom.gender.value == 'female' %}
+                {{ 'custom.gender_female' | t }}
+              {% elsif customer.metafields.custom.gender.value == 'other' %}
+                {{ 'custom.gender_other' | t }}
+              {% elsif customer.metafields.custom.gender.value == 'prefer_not_to_say' %}
+                {{ 'custom.gender_prefer_not_to_say' | t }}
+              {% else %}
+                –
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section__title">{{ 'customer.account.address' | t: default: 'ADDRESS' }}</div>
+          {%- assign addr = customer.default_address -%}
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.address1' | t: default: 'Address #1' }}</span>
+            <span class="profile-row__value">{{ addr.address1 | default: '–' }}</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.address2' | t: default: 'Address #2' }}</span>
+            <span class="profile-row__value">{{ addr.address2 | default: '–' }}</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'custom.city' | t: default: 'City' }}</span>
+            <span class="profile-row__value">{{ addr.city | default: '–' }}</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.country' | t: default: 'Country' }}</span>
+            <span class="profile-row__value">{{ addr.country | default: '–' }}</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row__label">{{ 'customer.account.zip' | t: default: 'Zip Code' }}</span>
+            <span class="profile-row__value">{{ addr.zip | default: '–' }}</span>
+          </div>
+        </div>
+
+        <a href="{{ pages['editar-perfil'].url | default: '/pages/editar-perfil' }}"
+          class="button bg-color-orange text-block js-edit-profile-link">
+          {{ 'customer.account.edit_profile' | t: default: 'Edit profile' }}
+        </a>
+      </div>
+
+      <a href="{{ pages['ayuda'].url }}"
+        class="button button-secondary profile-btn--contact">
+        {{ 'customer.account.contact_us' | t: default: 'Contact with us' }}
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Update edit link to locale-aware route once GunloupeRoutes is available
+  (function () {
+    var link = document.querySelector('.js-edit-profile-link');
+    if (link && window.GunloupeRoutes && window.GunloupeRoutes.editProfile) {
+      link.href = window.GunloupeRoutes.editProfile;
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Customer Profile",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "padding_top",    "label": "Padding Top",    "min": 0, "max": 100, "step": 4, "default": 40 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 100, "step": 4, "default": 40 }
+  ],
+  "presets": [{ "name": "Customer Profile" }]
+}
+{% endschema %}

@@ -1,0 +1,9 @@
+{% paginate search.results by 24 %}
+  {% assign products = search.results | where: 'object_type', 'product' %}
+asdasdasdasdasd
+  {% for product in products %}
+    <div class="resource-list__item">
+      {% content_for 'blocks', closest.product: product %}
+    </div>
+  {% endfor %}
+{% endpaginate %}

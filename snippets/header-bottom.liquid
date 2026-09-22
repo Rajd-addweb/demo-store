@@ -1,0 +1,65 @@
+<div class="sub-header"
+  data-user-type="{{ user_type }}"
+  {% unless user_type == blank %}style="visibility:hidden;"{% endunless %}
+>
+  <div class="container">
+    <div class="custom-header-wrapper">
+      <nav class="nav flex gap-6">
+        {% assign user_type = customer.metafields.custom.user_type.value %}
+
+        {% for link in linklists['user-menu'].links %}
+
+        {% comment %} Detect Mi Armero / My Gun Safe {% endcomment %}
+        {% assign is_armorer = false %}
+        {% if link.url contains '/pages/mi-armero' or link.url contains '/pages/my-gun-safe' %}
+          {% assign is_armorer = true %}
+        {% endif %}
+
+        {% comment %} Detect My Ads / Mis Anuncios {% endcomment %}
+        {% assign is_my_ads = false %}
+        {% if link.url contains '/pages/my-ads' or link.url contains '/pages/anuncios' %}
+          {% assign is_my_ads = true %}
+        {% endif %}
+
+        {% assign hide_link = false %}
+
+        {% if is_armorer and user_type == 'business' %}
+          {% assign hide_link = true %}
+        {% endif %}
+
+        {% if is_my_ads and user_type == 'private' %}
+          {% assign hide_link = true %}
+        {% endif %}
+
+        {% unless hide_link %}
+          <a href="{{ link.url }}" class="{% if link.active %}active{% endif %}">
+            {% case link.handle %}
+              {% when 'my-armorer' %}
+                {% render 'icon-myarmor' %}
+              {% when 'mi-armero' %}
+                {% render 'icon-myarmor' %}
+
+              {% when 'favorites' %}
+                {% render 'icon-favourite' %}
+              {% when 'favoritos' %}
+                {% render 'icon-favourite' %}
+
+              {% when 'my-ads' %}
+                {% render 'icon-myads' %}
+              {% when 'mis-anuncios' %}
+                {% render 'icon-myads' %}
+
+              {% when 'comparator' %}
+                {% render 'icon-comparator' %}
+              {% when 'comparador' %}
+                {% render 'icon-comparator' %}
+            {% endcase %}
+            <span>{{ link.title }}</span>
+          </a>
+        {% endunless %}
+
+      {% endfor %}
+      </nav>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,30 @@
+{% form 'contact', id: 'PopupContactForm', class: 'contact-form__form' %}
+  <input type="hidden" name="contact[subject]" value="Gunloupe - New Inquiry from Gunloupe Contact Form">
+
+  <input type="hidden" name="form_type" value="contact">
+  <input type="hidden" name="utf8" value="✓">
+
+  <input type="text" id="ContactForm-name" name="contact[name]" placeholder="Full Name" required>
+  <small class="error-msg" id="nameError"></small>
+
+  <input type="email" id="ContactForm-email" name="contact[email]" placeholder="Email" required>
+  <small class="error-msg" id="emailError"></small>
+
+  <input type="tel" id="ContactForm-phone" name="contact[phone]" placeholder="Phone" required>
+  <small class="error-msg" id="phoneError"></small>
+
+  <textarea id="ContactForm-body" name="contact[body]" placeholder="Message" required></textarea>
+  <small class="error-msg" id="messageError"></small>
+
+  <label>
+    <input type="checkbox" id="privacyCheck" required>
+    Accept Privacy Policy
+  </label>
+  <small class="error-msg" id="checkboxError"></small>
+
+  {% if form.posted_successfully? %}
+    <p class="success-msg">✅ Your message has been sent successfully!</p>
+  {% endif %}
+
+  <button class="button text-block" type="submit" id="customSubmitBtn" disabled>Send Message</button>
+{% endform %}

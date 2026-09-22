@@ -1,0 +1,42 @@
+{%- comment -%}
+  Similar Products — FETCH SOURCE. Never linked or navigated to directly.
+  `sections/similar-products.liquid` requests it through the Section
+  Rendering API on an alternate collection template:
+
+    /collections/armas?view=similar-source&section_id=similar_source
+      &filter.p.product_type=<Type>
+      [&filter.p.m.custom.sub_tipo_de_arma=<Sub-type>]
+
+  It exists for one reason: the cards it returns must be IDENTICAL to the
+  ones the weapon page already shows. The `_product-card` block in
+  templates/collection.similar-source.json is copied verbatim from
+  templates/product.weapon.json, so the markup and every setting match.
+  Fetching the collection page instead would return the collection's own
+  card, which is a different shape.
+
+  Stock Material is deliberately NOT a storefront filter. It is stamped on
+  the wrapper below and the Tier 1 / Tier 2 split happens in the browser.
+{%- endcomment -%}
+
+{%- paginate collection.products by 24 -%}
+  <div id="sp-source" data-total="{{ collection.products_count }}">
+    {%- for product in collection.products -%}
+      <div
+        class="sp-item"
+        data-pid="{{ product.id }}"
+        data-subtype="{{ product.metafields.custom.sub_tipo_de_arma | downcase | strip | escape }}"
+        data-material="{{ product.metafields.custom.material_caja | downcase | strip | escape }}"
+      >
+        {% content_for 'block', type: '_product-card', id: 'static-product-card', closest.product: product %}
+      </div>
+    {%- endfor -%}
+  </div>
+{%- endpaginate -%}
+
+{% schema %}
+{
+  "name": "Similar products source",
+  "blocks": [{ "type": "@theme" }, { "type": "@app" }],
+  "settings": []
+}
+{% endschema %}

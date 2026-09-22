@@ -1,0 +1,41 @@
+<div id="userPopup" class="popup small hidden">
+  <div class="popup-box">
+    <div>
+      {% render 'icon-accountcircle' %}
+      <a class="color-primary" href="{{ pages['perfil'].url | default: '/pages/perfil' }}">{{ 'custom.profile' | t }}</a>
+    </div>
+    <div>
+      {% render 'icon-logout' %}
+      <a class="color-primary" href="{{ routes.account_logout_url }}">{{ 'custom.end_session' | t }}</a>
+    </div>
+  </div>
+</div>
+
+<!-- {% assign admin_emails = "dharmit.f@addwebsolution.in,sachin@addwebsolution.in,jota@ctd.io,abertrand@gunloupe.com" | split: "," %}
+{% assign is_admin_user = false %}
+{% if customer %}
+  {% for email in admin_emails %}
+    {% if customer.email == email %}
+      {% assign is_admin_user = true %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<div id="userPopup" class="popup small hidden">
+  <div class="popup-box">
+    <div>
+      {% render 'icon-accountcircle' %}
+      <a class="color-primary" href="{{ pages['perfil'].url | default: '/pages/perfil' }}">{{ 'custom.profile' | t }}</a>
+    </div>
+    {% if is_admin_user %}
+    <div>
+      {% render 'icon-accountcircle' %}
+      <a class="color-primary" href="{{ pages['consola-de-anuncios'].url | default: '/pages/consola-de-anuncios' }}">{{ 'custom.admin' | t }}</a>
+    </div>
+    {% endif %}
+    <div>
+      {% render 'icon-logout' %}
+      <a class="color-primary" href="{{ routes.account_logout_url }}">{{ 'custom.end_session' | t }}</a>
+    </div>
+  </div>
+</div> -->

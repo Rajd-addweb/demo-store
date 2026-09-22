@@ -1,0 +1,55 @@
+<div id="settingsPopup" class="popup hidden">
+  <div class="popup-box">
+    <div class="font-bold title--aligned-center">
+      {% render 'icon-language' %}
+      {{ 'content.language' | t }}:
+    </div>
+    {% form 'localization' %}
+    <div class="option-row text-size-small">
+      <button type="submit" name="locale_code" value="es"
+        class="color-primary {% if localization.language.iso_code == 'es' %}active{% endif %}">
+        {{ "custom.spanish" | t }}
+      </button>
+
+      <div class="popup-devider"></div>
+
+      <button type="submit" name="locale_code" value="en"
+        class="color-primary {% if localization.language.iso_code == 'en' %}active{% endif %}">
+        {{ "custom.english" | t }}
+      </button>
+    </div>
+    {% endform %}
+
+    <hr>
+
+    <div class="font-bold title--aligned-center">
+      {% render 'icon-measure' %}
+      {{ 'custom.measures' | t }}:
+    </div>
+    <div class="option-row text-size-small">
+      <span class="measures-btn active" data-measures="metric">{{ 'custom.metric' | t }}</span>
+      <div class="popup-devider"></div>
+      <span class="measures-btn" data-measures="imperial">{{ 'custom.imperial' | t }}</span>
+    </div>
+
+    <hr>
+
+    <div class="font-bold title--aligned-center">
+      {% render 'icon-currency' %}
+      {{ 'custom.currency' | t }}:
+    </div>
+    <div class="option-row text-size-small currency-btn"> 
+      <div class="color-primary currency-btn active" data-currency="EUR" onclick="setCurrency('EUR')">
+        <button class="color-primary" type="button">{% render 'icon-eur' %} Euro (EUR)</button>
+        <div class="text-size-tiny ">{{ 'custom.for_european_customers' | t }}</div>
+      </div>
+
+      <div class="popup-devider"></div>
+
+      <div class="color-primary currency-btn active" data-currency="USD" onclick="setCurrency('USD')">
+        <button class="color-primary" type="button">{% render 'icon-usd' %} Dollar (USD)</button>
+        <div class="text-size-tiny ">{{ 'custom.for_us_customers' | t }}</div>
+      </div>
+    </div>
+  </div>
+</div>

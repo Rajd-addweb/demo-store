@@ -1,0 +1,578 @@
+/* customer-profile.css — Gunloupe Custom Profile Page */
+
+.profile-page-wrapper .profile-page-weapon-header {
+  padding: 40px;
+  background-color: #F3F4F3;
+}
+
+.profile-page {
+  margin: 0 auto;
+  padding: 40px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.profile-greeting {
+  text-align: center;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+/* Profile card */
+
+.profile-card {
+  width: 100%;
+  max-width: 512px;
+  background: #f3f4f3;
+  border-radius: 16px;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e8ede8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-card__name-block {
+  display: flex;
+  /* flex-direction: column; */
+}
+
+.profile-name {
+  font-size: 24px !important;
+  margin: 0 0 2px;
+  text-transform: capitalize;
+}
+
+.profile-alias {
+  padding-left: 10px;
+  margin-left: 10px;
+  border-left: 2px solid var(--color-foreground);
+}
+
+/* Sections */
+
+.profile-section {
+  padding: 12px;
+  margin-bottom: 24px;
+  border: 1px solid #5E826326;
+  border-radius: 12px;
+  position: relative;
+}
+
+.profile-section__title {
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  background-color: #f3f4f4;
+  position: absolute;
+  top: -0.6em;
+  left: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px 0;
+}
+
+.profile-row__label {
+  font-size: 14px;
+  color: #295A31BF;
+  min-width: 100px;
+  max-width: 200px;
+}
+
+.profile-row__value {
+  font-size: 16px;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Contact btn */
+
+.profile-btn--contact {
+  width: 100%;
+  max-width: 512px;
+  margin: 0 auto;
+  display: block;
+  text-align: center;
+}
+
+/* Edit page */
+
+.profile-edit-page {
+  max-width: 512px;
+  margin: 0 auto;
+  padding: 32px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-edit-card {
+  background: #f3f4f3;
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-edit-card--slim {
+  padding: 16px;
+  padding-top: 0;
+  gap: 8px;
+}
+
+.personal-info-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.personal-info-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-section .input-wrapper .form-label,
+.profile-section .input-wrapper input {
+  background-color: #f3f4f3;
+}
+
+#profile-edit-Page .profile-section {
+  padding-top: 24px;
+}
+
+.profile-section .input-wrapper input {
+  border-color: #295A3126;
+  color: var(--color-foreground);
+}
+
+/* Avatar upload */
+
+.profile-modal__avatar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.profile-modal__avatar-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #295A31;
+  flex-shrink: 0;
+}
+
+.modal-avatar-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e8ede8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid #d1d9d1;
+}
+
+.profile-modal__avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: absolute;
+  top: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.modal-avatar-edit-btn {
+  cursor: pointer;
+  display: inline-block;
+  width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.profile-avatar-hint {
+  font-size: 12px;
+  color: #295A31;
+  margin: 0;
+}
+
+/* Legend */
+
+.profile-fieldset__legend {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #6b7a6b;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: block;
+}
+
+/* Form fields */
+
+.profile-field {
+  margin-bottom: 10px;
+}
+
+.profile-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7a6b;
+  margin-bottom: 4px;
+}
+
+.profile-input {
+  width: 100%;
+  padding: 14px 17px;
+  border: 1.5px solid #d1d9d1;
+  border-radius: 7px;
+  font-size: 14px;
+  color: #295A31;
+  background: transparent;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.profile-input:focus {
+  border-color: #295A31;
+}
+
+.profile-input--readonly {
+  background: #f5f5f5;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.profile-form-row {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-form-row--2col {
+  grid-template-columns: 1fr 1fr;
+}
+
+.profile-form-row--3col {
+  grid-template-columns: 1fr 1.2fr 1fr;
+}
+
+/* Checkboxes */
+
+.profile-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.profile-check label {
+  cursor: pointer;
+}
+
+.profile-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #295A31;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Action buttons */
+
+.profile-edit-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.profile-edit-actions .button {
+  width: 100%;
+}
+
+.profile-cancel-link {
+  font-size: 13px;
+  color: #6b7a6b;
+  text-decoration: underline;
+  text-align: center;
+  cursor: pointer;
+}
+
+.profile-cancel-link:hover {
+  color: #295A31;
+}
+
+.profile-btn--save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.profile-btn--save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Save message */
+
+.profile-save-msg {
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.profile-save-msg--success {
+  background: #f0fdf4;
+  color: #295A31;
+  border: 1px solid #bbf7d0;
+}
+
+.profile-save-msg--error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Header avatar */
+
+.user-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #295A31;
+}
+
+/* Spinner */
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 560px) {
+  .profile-form-row--2col {
+    grid-template-columns: 1fr;
+  }
+  .profile-form-row--3col {
+    grid-template-columns: 1fr 1fr;
+  }
+  .profile-form-row--3col .profile-field:last-child {
+    grid-column: span 2;
+  }
+  .profile-modal__avatar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Avatar upload circle (edit page) ─────────────────────────────────────── */
+/* Add these rules to the bottom of customer-profile.css                        */
+
+.profile-avatar-upload-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-right: 16px;
+  max-width: 25%;
+}
+
+@media (max-width: 767px) {
+  .profile-avatar-upload-wrap {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+}
+
+.profile-avatar-circle {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: visible; /* allow remove button to overflow */
+  flex-shrink: 0;
+}
+
+.profile-avatar-circle__img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 2px solid #295A31;
+}
+
+.profile-avatar-circle__placeholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #e8ede8;
+  border: 2px solid #d1d9d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Camera overlay on hover */
+.profile-avatar-circle__overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.profile-avatar-circle:hover .profile-avatar-circle__overlay {
+  opacity: 1;
+}
+
+/* Remove (×) button — top-right corner of circle */
+.profile-avatar-circle__remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  z-index: 2;
+  transition: background 0.15s;
+}
+
+.profile-avatar-circle__remove:hover {
+  background: #b91c1c;
+}
+
+/* Small hint label below circle */
+.profile-avatar-upload-hint {
+  font-size: 11px;
+  color: #6b7a6b;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Adjust personal-info-wrapper to align avatar left of fields */
+.personal-info-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.personal-info-inner {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Country select matches input style ───────────────────────────────────── */
+select.profile-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23295A31' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+
+@media (max-width: 767px) {
+  .profile-card__header {
+    flex-direction: column;
+  }
+
+  .profile-avatar,
+  .profile-avatar img {
+    width: 82px;
+    height: 82px;
+  }
+
+  .profile-card__name-block h2.profile-name {
+    font-size: 20px !important;
+  }
+
+  .profile-row__value,
+  .profile-row__label {
+    font-size: 12px !important;
+  }
+
+  .personal-info-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .personal-info-inner {
+    width: 100%;
+  }
+  
+  .profile-form-row {
+    gap: 12px;
+  }
+
+  .profile-form-row--3col {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,0 +1,169 @@
+<div class="container">
+  <footer class="custom-footer">
+    <div class="footer-top page-width" style="background: {{ section.settings.footer_bg }};">
+
+      <!-- LEFT -->
+      <div class="footer-left">
+          <div class="footer_logo mobile-only">
+            {% if section.settings.footer_logo != blank %}
+              {{ section.settings.footer_logo | image_url: width: 200 | image_tag }}
+            {% endif %}
+          </div>
+        <h2 class="footer-heading">{{ section.settings.footer_heading }}</h2>
+      </div>
+
+      <!-- MIDDLE (Main Menu) -->
+      <div class="footer-links">
+        {% if section.settings.main_menu != blank %}
+          <ul>
+            {% for link in section.settings.main_menu.links %}
+              <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if section.settings.footer_domain != blank %}
+          <a class="footer-domain" href="#">{{ section.settings.footer_domain }}</a>
+        {% endif %}
+      </div>
+
+      <!-- RIGHT (Newsletter) -->
+      <div class="footer-newsletter">
+        <div class="text-size-medium text-wrap-balance">{{ section.settings.newsletter_heading }}</div>
+
+        {% form 'customer' %}
+
+          {% if form.posted_successfully? %}
+
+            {% comment %} ── Success: hide form, show thank you card ── {% endcomment %}
+            <div class="footer-form_success">
+              <div class="footer-form_success-layout">
+                <h3>{{ section.settings.success_heading }}</h3>
+                <div>{{ section.settings.success_message }}</div>
+              </div>
+            </div>
+
+          {% else %}
+
+            {% comment %} ── Error state ──────────────────────────────── {% endcomment %}
+            {% if form.errors %}
+              <div class="footer-newsletter-error">
+                {{ form.errors | default_errors }}
+              </div>
+            {% endif %}
+
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            <input
+              type="email"
+              name="contact[email]"
+              placeholder="{{ 'blocks.contact_form.email' | t }}"
+              required
+            >
+            <div class="checkbox">
+              <input type="checkbox" id="footer-policy-checkbox" required>
+              <label class="text-size-small" for="footer-policy-checkbox">
+                {{ section.settings.checkbox_text }}
+              </label>
+            </div>
+            <button class="button" type="submit">
+              {{ section.settings.button_text }}
+            </button>
+
+          {% endif %}
+
+        {% endform %}
+      </div>
+
+      <div class="footer_logo desktop-only">
+        {% if section.settings.footer_logo != blank %}
+          {{ section.settings.footer_logo | image_url: width: 200 | image_tag }}
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="footer-bottom page-width">
+      <div>© {{ 'now' | date: "%Y" }} - {{ section.settings.rights_text }}</div>
+      <div class="footer-legal">
+        {% if section.settings.legal_menu != blank %}
+          {% for link in section.settings.legal_menu.links %}
+            <a href="{{ link.url }}">{{ link.title }}</a>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% if section.settings.credit_text != blank %}
+        <div class="footer-credit">
+          <a href="{{ section.settings.credit_link }}">{{ section.settings.credit_text }}</a>
+        </div>
+      {% endif %}
+    </div>
+  </footer>
+</div>
+
+<style>
+  .footer-form_success {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 24px;
+    width: 100%;
+  }
+
+  .footer-form_success-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    color: var(--color-foreground);
+  }
+
+  .footer-form_success-layout h3 {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .footer-form_success-layout div {
+    color: var(--color-foreground);
+  }
+
+  .footer-newsletter-error {
+    background: rgba(220, 53, 69, 0.15);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+
+  .footer-newsletter-error ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Custom Footer",
+  "settings": [
+    { "type": "color",       "id": "footer_bg",            "label": "Footer Background Color", "default": "#245c35" },
+    { "type": "text",        "id": "footer_heading",       "label": "Footer Title",             "default": "We find the weapon that fits you." },
+    { "type": "image_picker","id": "footer_logo",          "label": "Footer Logo" },
+    { "type": "link_list",   "id": "main_menu",            "label": "Main Footer Menu" },
+    { "type": "text",        "id": "footer_domain",        "label": "Footer Domain Text",       "default": "gunloupe.com" },
+    { "type": "text",        "id": "newsletter_heading",   "label": "Newsletter Heading",       "default": "Subscribe to receive exclusive news." },
+    { "type": "text",        "id": "email_placeholder",    "label": "Email Placeholder",        "default": "Email*" },
+    { "type": "text",        "id": "checkbox_text",        "label": "Checkbox Text",            "default": "I accept Privacy Policy." },
+    { "type": "text",        "id": "button_text",          "label": "Button Text",              "default": "Enviar" },
+    { "type": "text",        "id": "success_heading",      "label": "Success Heading",          "default": "Thank you!" },
+    { "type": "text",        "id": "success_message",      "label": "Success Message",          "default": "We have subscribed to it." },
+    { "type": "text",        "id": "rights_text",          "label": "Rights Text",              "default": "All rights reserved" },
+    { "type": "link_list",   "id": "legal_menu",           "label": "Legal Menu" },
+    { "type": "text",        "id": "credit_text",          "label": "Credit Text" },
+    { "type": "url",         "id": "credit_link",          "label": "Credit Link" }
+  ],
+  "presets": [{ "name": "Custom Footer" }]
+}
+{% endschema %}

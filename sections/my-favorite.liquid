@@ -1,0 +1,376 @@
+{% comment %}
+  section.favorites.liquid
+  Gunloupe — Favorites Section
+  Structure matches My Armorer card layout exactly
+{% endcomment %}
+
+<div class="container">
+  <div class="my-armorer-collection_layout">
+    {% if customer %}
+      {% comment %} {{-- Loading state --}} {% endcomment %}
+      <div class="product-list_empty" id="favorites-loading">
+        <h4>{{ 'custom.loading_favorites' | t }}...</h4>
+        <div class="max-width-medium">
+          <p class="text-wrap-balance">{{ 'custom.loading_saved_firearms' | t }}</p>
+        </div>
+      </div>
+
+      {% comment %} {{-- Empty state --}} {% endcomment %}
+      <div class="product-list_empty" id="favorites-empty" style="display:none;">
+        <h4>{{ 'custom.no_favorites' | t }}</h4>
+        <div class="max-width-medium">
+          <p class="text-wrap-balance">
+            {{ 'custom.empty_favorites_message' | t }}
+          </p>
+        </div>
+      </div>
+
+      <div class="products-grid_list-wrap">
+        <div class="products-grid_list" id="favorites-products-list">
+          <!-- JS inserts products-grid_item cards BEFORE the browse button -->
+          <a
+            href="{{ routes.collections_url }}/firearms"
+            class="product-grid_add-btn_component w-inline-block"
+            id="favorites-browse-btn"
+          >
+            <div class="product-grid_add-btn_layout u-vflex-center-center u-gap-medium">
+              <div class="product-grid_add-btn_icon icon-1x1-large w-embed">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  width="100%"
+                  height="100%"
+                  preserveAspectRatio="xMidYMid meet"
+                  role="img"
+                >
+                  <g fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="#295A31" stroke-width="1.5"></circle>
+                    <path d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15" stroke="#295A31" stroke-width="1.5" stroke-linecap="round"></path>
+                  </g>
+                </svg>
+              </div>
+              <div class="product-grid_add-btn_label text-style-allcaps color-primary">{{ 'custom.add_firearms' | t }}</div>
+            </div>
+          </a>
+        </div>
+        <!-- Empty slots always visible, never hidden -->
+        <div class="product-grid_empty-slots">
+          <div class="products-grid_list">
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+            <div class="product-grid_empty-slot"></div>
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+      <div class="product-list_empty">
+        <h4>{{ 'custom.signin_favorites' | t }}</h4>
+        <div class="max-width-medium">
+          <p class="text-wrap-balance">{{ 'custom.login_required_favorites' | t }}</p>
+        </div>
+        <a href="{{ routes.storefront_login_url }}" class="button is-small comparator-browse-btn">{{ 'customer.login' | t }}</a>
+        <a href="{{ routes.storefront_login_url }}" class="button comparator-browse-btn is-small is-secondary">{{ 'customer.register' | t }} </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if customer %}
+  <script>
+    (function () {
+      const BACKEND_URL = 'https://shopify-gunloupe.addwebprojects.com';
+      const CUSTOMER_ID = '{{ customer.id }}';
+
+      // ── User type ─────────────────────────────────────────────────────────────
+      var IS_BUSINESS_USER = '{{ customer.metafields.custom.user_type.value }}' == 'business';
+      var IS_PRIVATE_USER = '{{ customer.metafields.custom.user_type.value }}' !== 'business';
+
+      async function getFavoriteItems() {
+        try {
+          const res = await fetch(`${BACKEND_URL}/favorites/${CUSTOMER_ID}`);
+          const data = await res.json();
+          return data.success ? data.items || [] : [];
+        } catch (e) {
+          console.error('Favorites section: GET error', e);
+          return [];
+        }
+      }
+
+      async function removeItem(productHandle, title) {
+        try {
+          const items = await getFavoriteItems();
+          const updated = items.filter((i) => !(i.productHandle === productHandle && i.title === title));
+          const res = await fetch(`${BACKEND_URL}/favorites/${CUSTOMER_ID}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: updated }),
+          });
+          const data = await res.json();
+          return data.success;
+        } catch (e) {
+          console.error('Favorites section: remove error', e);
+          return false;
+        }
+      }
+
+      function formatPrice(price) {
+        if (!price || price === '' || price === '0' || price === '0.0') return '—';
+        const num = parseFloat(price);
+        if (isNaN(num)) return price;
+        // Shopify returns price in cents (e.g. 367100 = €3671)
+        const amount = num > 1000 ? num / 100 : num;
+        return `€${amount.toLocaleString('de-DE')}`;
+      }
+
+      async function render() {
+        const loadingEl = document.getElementById('favorites-loading');
+        const emptyEl = document.getElementById('favorites-empty');
+        const productsList = document.getElementById('favorites-products-list');
+        const browseBtn = document.getElementById('favorites-browse-btn');
+
+        // Show loading, hide empty
+        if (loadingEl) loadingEl.style.display = 'flex';
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        // Remove only existing product cards — browse button stays
+        productsList.querySelectorAll('.products-grid_item').forEach((el) => el.remove());
+
+        const items = await getFavoriteItems();
+
+        // Hide loading
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        if (!items || items.length === 0) {
+          if (emptyEl) emptyEl.style.display = 'flex';
+          return;
+        }
+
+        items.forEach((item) => {
+          // Detect variant-level favorite (title contains " // " = has caliber/barrel)
+          const isVariantLevel = item.title.includes(' // ');
+
+          const cardHtml = `
+        <div class="products-grid_item" data-fav-card="${item.productHandle}-${encodeURIComponent(item.title)}">
+          <div class="product-card_component">
+
+            <!-- IMAGE -->
+            <div class="product-card_thumb-wrap">
+              ${
+                item.image
+                  ? `<img
+                    src="${item.image}"
+                    alt="${item.title}"
+                    class="product-card_thumb-image layer"
+                    loading="lazy"
+                    width=""
+                    height=""
+                  >`
+                  : `<img
+                    src="https://cdn.shopify.com/s/files/1/0977/9986/4694/files/product-placeholder.svg"
+                    alt="No image"
+                    class="product-card_thumb-image layer"
+                  >`
+              }
+            </div>
+
+            <!-- DETAILS -->
+            <div class="product-card_details-wrap">
+              <h3 class="product-card_heading heading-style-h4">${item.title}</h3>
+
+              <div class="product-card_specs-wrap u-vflex-stretch-top u-gap-xxsmall">
+                <ul role="list" class="product-card_specs_list u-vflex-stretch-top u-gap-xxsmall w-list-unstyled">
+                  <li class="product-card_specs_item">
+                    <div class="product-card_specs_label">{{ 'custom.price_from' | t }}</div>
+                    <div class="product-card_specs_spec-wrap u-hflex-right-stretch">
+                      <div class="product-card_specs_spec-text is-price price" data-price="${getRawEurPrice(item.price)}">${formatPrice(item.price)}</div>
+                    </div>
+                  </li>
+                  <li class="product-card_specs_item">
+                    <div class="product-card_specs_label">{{ 'custom.firearm_type' | t }}</div>
+                    <div class="product-card_specs_spec-text">${item.type || '—'}</div>
+                  </li>
+                  <li class="product-card_specs_item">
+                    <div class="product-card_specs_label">{{ 'custom.firearm_subtype' | t }}</div>
+                    <div class="product-card_specs_spec-text">${item.subtype || '—'}</div>
+                  </li>
+                  <li class="product-card_specs_item">
+                    <div class="product-card_specs_label">{{ 'custom.category' | t }}</div>
+                    <div class="product-card_specs_spec-text">${item.category || '—'}</div>
+                  </li>
+                  <li class="product-card_specs_item">
+                    <div class="product-card_specs_label">{{ 'custom.status' | t }}</div>
+                    <div class="product-card_specs_spec-text is-catalogo is-active">${item.status || 'In catalog'}</div>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- BUTTONS -->
+              <div class="product-card_button-wrap">
+                <a class="button is-brand" href="${window.Shopify.routes.root}products/${item.productHandle}">
+                  {{ 'custom.more_info_buy' | t }}
+                </a>
+                
+                <button
+                  type="button"
+                  class="button button-secondary is-small js-fav-remove"
+                  data-handle="${item.productHandle}"
+                  data-title="${item.title}"
+                >
+                  <div class="product-card_icon icon-1x1-small w-embed">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img">
+                      <g fill="none">
+                        <path d="M8.96173 18.9111L9.42605 18.3221L8.96173 18.9111ZM12 5.50088L11.4596 6.02098C11.601 6.16787 11.7961 6.25088 12 6.25088C12.2039 6.25088 12.399 6.16787 12.5404 6.02098L12 5.50088ZM15.0383 18.9111L15.5026 19.5001L15.0383 18.9111ZM9.42605 18.3221C7.91039 17.1273 6.25307 15.9605 4.93829 14.48C3.64922 13.0285 2.75 11.3347 2.75 9.13734H1.25C1.25 11.8029 2.3605 13.8363 3.81672 15.476C5.24722 17.0868 7.07077 18.3755 8.49742 19.5001L9.42605 18.3221ZM2.75 9.13734C2.75 6.98647 3.96537 5.18277 5.62436 4.42444C7.23607 3.68772 9.40166 3.88282 11.4596 6.02098L12.5404 4.98078C10.0985 2.44377 7.26409 2.02563 5.00076 3.0602C2.78471 4.07317 1.25 6.42527 1.25 9.13734H2.75ZM8.49742 19.5001C9.00965 19.9039 9.55954 20.3345 10.1168 20.6602C10.6739 20.9857 11.3096 21.2502 12 21.2502V19.7502C11.6904 19.7502 11.3261 19.6295 10.8736 19.3651C10.4213 19.1008 9.95208 18.7368 9.42605 18.3221L8.49742 19.5001ZM15.5026 19.5001C16.9292 18.3755 18.7528 17.0868 20.1833 15.476C21.6395 13.8363 22.75 11.8029 22.75 9.13734H21.25C21.25 11.3347 20.3508 13.0285 19.0617 14.48C17.7469 15.9605 16.0896 17.1273 14.574 18.3221L15.5026 19.5001ZM22.75 9.13734C22.75 6.42527 21.2153 4.07317 18.9992 3.0602C16.7359 2.02563 13.9015 2.44377 11.4596 4.98078L12.5404 6.02098C14.5983 3.88282 16.7639 3.68772 18.3756 4.42444C20.0346 5.18277 21.25 6.98647 21.25 9.13734H22.75ZM14.574 18.3221C14.0479 18.7368 13.5787 19.1008 13.1264 19.3651C12.6739 19.6295 12.3096 19.7502 12 19.7502V21.2502C12.6904 21.2502 13.3261 20.9857 13.8832 20.6602C14.4405 20.3345 14.9903 19.9039 15.5026 19.5001L14.574 18.3221Z" fill="currentColor"></path>
+                      </g>
+                    </svg>
+                  </div>
+                  {{ 'custom.remove_from_favorites' | t }}
+                </button>
+
+                ${!IS_PRIVATE_USER ? `
+                <button
+                  type="button"
+                  class="button button-secondary is-small open-ad-popup"
+                  data-sell-handle="${item.productHandle}"
+                  data-sell-type="${item.type || ''}"
+                  data-sell-subtype="${item.subtype || ''}"
+                  data-sell-brand="${item.brand || ''}"
+                  data-sell-model="${item.model || ''}"
+                  data-sell-caliber="${(item.title || '').split(' // ')[1] || ''}"
+                  data-sell-barrel="${item.barrel || ''}"
+                  data-sell-image="${item.image || ''}"
+                  data-sell-source="favorites"
+                  ${ isVariantLevel ? `` : 'disabled' }
+                >
+                  <div class="product-card_icon icon-1x1-small w-embed">
+                    <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <g clip-path="url(#clip0_1046_4501)"><path d="M15.6187 4.92189C15.6187 3.87189 14.3719 3.08439 12.6984 3.08439C12.6 3.08439 12.4687 3.08439 12.3375 3.1172L12.3047 2.62501C12.2719 2.29689 12.0094 2.0672 11.7141 2.03439L7.05469 1.57501C6.85781 1.57501 6.66094 1.64064 6.52969 1.77189L0.360938 7.94064C0.0984375 8.20314 0.0984375 8.59689 0.360938 8.85939L5.44688 13.9453C5.57812 14.0766 5.74219 14.1422 5.90625 14.1422C6.07031 14.1422 6.23438 14.0766 6.36562 13.9781L12.5672 7.80939C12.6984 7.67814 12.7969 7.48126 12.7641 7.28439L12.6984 6.72657C14.3719 6.72657 15.5859 5.93907 15.6187 4.92189ZM5.90625 12.6L1.70625 8.43283L7.21875 2.92032L11.0578 3.28126L11.2219 5.05314C11.1234 4.98751 11.0578 4.92189 11.0578 4.88907C11.0578 4.52814 10.7625 4.23282 10.4016 4.23282C10.0406 4.23282 9.74531 4.52814 9.74531 4.88907C9.74531 5.64376 10.4016 6.2672 11.3531 6.56251L11.4187 7.08751L5.90625 12.6ZM12.6984 5.44689C12.6656 5.44689 12.6328 5.44689 12.5672 5.44689L12.4688 4.36407H12.6984C13.7484 4.36407 14.3063 4.75782 14.3391 4.88907C14.3063 5.02032 13.7484 5.44689 12.6984 5.44689Z" fill="#295A31"/></g>
+                      <defs><clipPath id="clip0_1046_4501"><rect width="15.75" height="15.75" fill="white"/></clipPath></defs>
+                    </svg>
+                  </div>
+                  {{ 'custom.sell_firearm' | t }}
+                </button>
+                ` : ''}
+
+                <div class="flex">
+                  <button
+                    type="button"
+                    class="button button-secondary is-small"
+                    data-compare-btn
+                    data-compare-variant="${item.variantId || ''}"
+                    data-product-handle="${item.productHandle}"
+                    data-compare-removable="true"
+                    ${ isVariantLevel ? `` : 'disabled' }
+                  >
+                    <div class="product-card_icon">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.875 1.96875H7.21875C4.74387 1.96875 3.50644 1.96875 2.73759 2.73759C1.96875 3.50644 1.96875 4.74387 1.96875 7.21875V8.53125C1.96875 11.0061 1.96875 12.2436 2.73759 13.0124C3.50644 13.7812 4.74387 13.7812 7.21875 13.7812H7.875" stroke="#295A31" stroke-width="0.984375"/>
+                        <path d="M7.21875 1.96875H9.84375C11.6999 1.96875 12.628 1.96875 13.2046 2.54538C13.7812 3.12202 13.7812 4.05009 13.7812 5.90625V9.84375C13.7812 11.6999 13.7812 12.628 13.2046 13.2046C12.628 13.7812 11.6999 13.7812 9.84375 13.7812H7.21875" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round" stroke-dasharray="1.64 1.97"/>
+                        <path d="M7.875 1.3125V14.4375" stroke="#295A31" stroke-width="0.984375" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                    <div class="before-added">{{ 'custom.add_to_compare' | t }}</div>
+                    <div class="after-added" style="display:none;">{{ 'custom.remove_from_comparison' | t }}</div>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      `;
+
+          // Insert card BEFORE the browse button so it always stays last
+          browseBtn.insertAdjacentHTML('beforebegin', cardHtml);
+        });
+
+        // ── Bind remove buttons ──────────────────────────────────────────────
+        document.querySelectorAll('.js-fav-remove').forEach((btn) => {
+          btn.addEventListener('click', async function () {
+            this.disabled = true;
+            this.textContent = '{{ "custom.removing" | t }}...';
+            const handle = this.dataset.handle;
+            const title = this.dataset.title;
+            const success = await removeItem(handle, title);
+            if (success) {
+              // Remove card from DOM instantly
+              const cardKey = `${handle}-${encodeURIComponent(title)}`;
+              const card = document.querySelector(`[data-fav-card="${cardKey}"]`);
+              if (card) card.remove();
+
+              // Clear favorites.js cache so button states update
+              if (window.GunloupeFavorites) {
+                window.GunloupeFavorites.clearCache();
+                window.GunloupeFavorites.sync();
+              }
+
+              // Show empty state if no items left
+              const remaining = document.querySelectorAll('#favorites-products-list .products-grid_item').length;
+              if (remaining === 0) {
+                const emptyEl = document.getElementById('favorites-empty');
+                if (emptyEl) emptyEl.style.display = 'flex';
+              }
+            } else {
+              this.disabled = false;
+              this.textContent = '{{ 'custom.remove_from_favorites' | t }}';
+            }
+          });
+        });
+
+        // ── Re-bind comparator buttons + sync state ─────────────────────────
+        if (window.GunloupeComparator) {
+          window.GunloupeComparator.sync();
+          window.GunloupeComparator.bindButtons();
+        }
+
+        // ── Re-bind sell popup buttons — with delay to ensure DOM is ready ───
+        setTimeout(() => {
+          if (window.GunloupeAdPopup) {
+            window.GunloupeAdPopup.bindButtons();
+          }
+          if (window.GunloupeFavorites) {
+            window.GunloupeFavorites.sync();
+          }
+          if (window.GunloupeComparator) {
+            window.GunloupeComparator.sync();
+          }
+        }, 500);
+
+        // ✅ ADD THIS — update prices after cards are in the DOM
+        if (typeof updatePrices === 'function') {
+          updatePrices();
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', render);
+    })();
+  </script>
+{% endif %}
+
+<style>
+  /* Loading spinner */
+  #favorites-loading h4 { opacity: 0.5; }
+  #favorites-loading p { opacity: 0.4; }
+</style>
+
+{% schema %}
+{
+  "name": "Favorites",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "padding_top", "label": "Padding Top", "min": 0, "max": 100, "step": 4, "default": 0 },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding Bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "default": 40
+    }
+  ],
+  "presets": [{ "name": "Favorites" }]
+}
+{% endschema %}
