@@ -5,7 +5,7 @@
   "use strict";
 
   const cfg = window.__profileConfig || {};
-  const API_BASE = cfg.apiBase || "https://shopify-gunloupe.addwebprojects.com";
+  const API_BASE = cfg.apiBase || "https://collaboration-assumes-shed-smoke.trycloudflare.com";
   const customerId = cfg.customerId;
 
   // ── Copy ─────────────────────────────────────────────────────────────────
